@@ -1,43 +1,21 @@
 import React, { useState, useEffect } from "react";
 import {
-  MapPin,
-  Users,
-  Heart,
-  Camera,
-  Star,
-  Clock,
-  Gift,
-  Plus,
-  Search,
-  Menu,
-  User,
-  Bell,
-  BarChart3,
-  TrendingUp,
-  Eye,
-  Edit,
-  Save,
-  X,
-  Calendar,
-  DollarSign,
-  Settings,
-  Upload,
-  Image,
-  Trash2,
-  ChevronDown,
-  Filter,
-} from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts";
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Modal,
+  Dimensions,
+  SafeAreaView,
+  StatusBar,
+  Alert,
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import { LineChart, BarChart } from "react-native-chart-kit";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const SceneAppComplete = () => {
   const [viewMode, setViewMode] = useState("customer"); // 'customer' or 'venue'
@@ -100,326 +78,315 @@ const SceneAppComplete = () => {
     };
 
     const SceneMap = () => (
-      <div className="relative h-full bg-gray-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-black">
-          <div className="w-full h-full relative overflow-hidden">
-            {venues.map((venue, index) => (
-              <div
-                key={venue.id}
-                className={`absolute cursor-pointer transform transition-all duration-300 hover:scale-110`}
-                style={{
+      <View style={styles.mapContainer}>
+        <View style={styles.mapBackground}>
+          {venues.map((venue, index) => (
+            <TouchableOpacity
+              key={venue.id}
+              style={[
+                styles.mapPin,
+                {
                   left: `${20 + index * 25}%`,
                   top: `${30 + index * 20}%`,
-                }}
-                onClick={() => setSelectedVenue(venue)}
-              >
-                <div className="relative">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
+                },
+              ]}
+              onPress={() => setSelectedVenue(venue)}
+            >
+              <View
+                style={[
+                  styles.pinCircle,
+                  {
+                    backgroundColor:
                       venue.sceneScore > 9
-                        ? "bg-red-500 border-red-400"
+                        ? "#ef4444"
                         : venue.sceneScore > 8
-                        ? "bg-red-600 border-red-500"
-                        : "bg-red-700 border-red-600"
-                    } shadow-lg`}
-                  >
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 bg-black border border-red-500 rounded-full w-8 h-8 flex items-center justify-center">
-                    <span className="text-red-400 text-xs font-bold">
-                      {venue.checkedIn}
-                    </span>
-                  </div>
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm border border-red-500/30 rounded-lg px-2 py-1">
-                    <span className="text-red-400 text-xs font-bold">
-                      {venue.sceneScore}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                        ? "#dc2626"
+                        : "#b91c1c",
+                  },
+                ]}
+              >
+                <Icon name="people" size={24} color="white" />
+              </View>
+              <View style={styles.pinBadge}>
+                <Text style={styles.pinBadgeText}>{venue.checkedIn}</Text>
+              </View>
+              <View style={styles.scoreDisplay}>
+                <Text style={styles.scoreText}>{venue.sceneScore}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        <div className="absolute top-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-b border-red-900/30 p-4 z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Menu className="w-6 h-6 text-red-400" />
-              <h1 className="text-xl font-bold text-white">Scene</h1>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Search className="w-6 h-6 text-red-400" />
-              <Bell className="w-6 h-6 text-red-400" />
-              <User className="w-6 h-6 text-red-400" />
-            </div>
-          </div>
-        </div>
+        <View style={styles.mapHeader}>
+          <View style={styles.headerLeft}>
+            <Icon name="menu" size={24} color="#f87171" />
+            <Text style={styles.headerTitle}>Scene</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <Icon name="search" size={24} color="#f87171" />
+            <Icon name="notifications" size={24} color="#f87171" />
+            <Icon name="person" size={24} color="#f87171" />
+          </View>
+        </View>
 
-        {selectedVenue && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end z-20">
-            <div className="w-full bg-black border-t border-red-900/30 rounded-t-3xl p-6 max-h-80 overflow-y-auto">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-white">
-                    {selectedVenue.name}
-                  </h3>
-                  <p className="text-red-400">
-                    {selectedVenue.location} • {selectedVenue.distance}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedVenue(null)}
-                  className="text-red-400 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
+        <Modal
+          visible={selectedVenue !== null}
+          transparent={true}
+          animationType="slide"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.venueModal}>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.venueTitle}>{selectedVenue?.name}</Text>
+                  <Text style={styles.venueSubtitle}>
+                    {selectedVenue?.location} • {selectedVenue?.distance}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedVenue(null)}>
+                  <Icon name="close" size={24} color="#f87171" />
+                </TouchableOpacity>
+              </View>
 
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="flex items-center space-x-1">
-                  <Star className="w-5 h-5 text-red-400" />
-                  <span className="text-white font-bold">
-                    {selectedVenue.sceneScore}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Users className="w-5 h-5 text-red-400" />
-                  <span className="text-white">
-                    {selectedVenue.checkedIn} here now
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Camera className="w-5 h-5 text-red-400" />
-                  <span className="text-white">
-                    {selectedVenue.photos} photos
-                  </span>
-                </div>
-              </div>
+              <View style={styles.venueStats}>
+                <View style={styles.statItem}>
+                  <Icon name="star" size={20} color="#f87171" />
+                  <Text style={styles.statText}>
+                    {selectedVenue?.sceneScore}
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Icon name="people" size={20} color="#f87171" />
+                  <Text style={styles.statText}>
+                    {selectedVenue?.checkedIn} here now
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Icon name="camera-alt" size={20} color="#f87171" />
+                  <Text style={styles.statText}>
+                    {selectedVenue?.photos} photos
+                  </Text>
+                </View>
+              </View>
 
-              {selectedVenue.hasPromo && (
-                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 mb-4">
-                  <div className="flex items-center space-x-2">
-                    <Gift className="w-5 h-5 text-red-400" />
-                    <span className="text-red-400 font-semibold">
-                      Active Promo: 25% off drinks until 11 PM
-                    </span>
-                  </div>
-                </div>
+              {selectedVenue?.hasPromo && (
+                <View style={styles.promoCard}>
+                  <Icon name="card-giftcard" size={20} color="#f87171" />
+                  <Text style={styles.promoText}>
+                    Active Promo: 25% off drinks until 11 PM
+                  </Text>
+                </View>
               )}
 
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => handleCheckIn(selectedVenue.id)}
-                  className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
-                    userCheckedIn === selectedVenue.id
-                      ? "bg-red-600 text-white"
-                      : "bg-red-500 hover:bg-red-600 text-white"
-                  }`}
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.checkInButton,
+                    userCheckedIn === selectedVenue?.id &&
+                      styles.checkedInButton,
+                  ]}
+                  onPress={() => handleCheckIn(selectedVenue?.id)}
                 >
-                  {userCheckedIn === selectedVenue.id
-                    ? "Checked In"
-                    : "Check In"}
-                </button>
-                <button className="px-4 py-3 bg-gray-800 hover:bg-gray-700 text-red-400 rounded-lg transition-colors">
-                  <Camera className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                  <Text style={styles.checkInText}>
+                    {userCheckedIn === selectedVenue?.id
+                      ? "Checked In"
+                      : "Check In"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cameraButton}>
+                  <Icon name="camera-alt" size={20} color="#f87171" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
     );
 
     const VenueList = () => (
-      <div className="h-full bg-black overflow-y-auto">
-        <div className="p-4 border-b border-red-900/30">
-          <h2 className="text-xl font-bold text-white mb-3">Venues Near You</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-400" />
-            <input
-              type="text"
-              placeholder="Search venues..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-red-900/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-red-500"
+      <ScrollView style={styles.venueList}>
+        <View style={styles.listHeader}>
+          <Text style={styles.listTitle}>Venues Near You</Text>
+          <View style={styles.searchContainer}>
+            <Icon
+              name="search"
+              size={20}
+              color="#f87171"
+              style={styles.searchIcon}
             />
-          </div>
-        </div>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search venues..."
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+        </View>
 
-        <div className="p-4 space-y-4">
+        <View style={styles.venueCards}>
           {venues.map((venue) => (
-            <div
-              key={venue.id}
-              className="bg-gray-900 border border-red-900/30 rounded-lg p-4"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="text-white font-semibold">{venue.name}</h3>
-                  <p className="text-gray-400 text-sm">
+            <View key={venue.id} style={styles.venueCard}>
+              <View style={styles.cardHeader}>
+                <View>
+                  <Text style={styles.venueName}>{venue.name}</Text>
+                  <Text style={styles.venueType}>
                     {venue.type} • {venue.location}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-red-400" />
-                    <span className="text-white font-bold">
-                      {venue.sceneScore}
-                    </span>
-                  </div>
-                  <p className="text-gray-400 text-sm">{venue.distance}</p>
-                </div>
-              </div>
+                  </Text>
+                </View>
+                <View style={styles.cardRight}>
+                  <View style={styles.scoreContainer}>
+                    <Icon name="star" size={16} color="#f87171" />
+                    <Text style={styles.scoreValue}>{venue.sceneScore}</Text>
+                  </View>
+                  <Text style={styles.distance}>{venue.distance}</Text>
+                </View>
+              </View>
 
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-1">
-                    <Users className="w-4 h-4 text-red-400" />
-                    <span className="text-white text-sm">
-                      {venue.checkedIn}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Camera className="w-4 h-4 text-red-400" />
-                    <span className="text-white text-sm">{venue.photos}</span>
-                  </div>
-                </div>
+              <View style={styles.cardStats}>
+                <View style={styles.cardStatsLeft}>
+                  <View style={styles.statPair}>
+                    <Icon name="people" size={16} color="#f87171" />
+                    <Text style={styles.statSmall}>{venue.checkedIn}</Text>
+                  </View>
+                  <View style={styles.statPair}>
+                    <Icon name="camera-alt" size={16} color="#f87171" />
+                    <Text style={styles.statSmall}>{venue.photos}</Text>
+                  </View>
+                </View>
                 {venue.hasPromo && (
-                  <div className="flex items-center space-x-1">
-                    <Gift className="w-4 h-4 text-red-400" />
-                    <span className="text-red-400 text-sm font-semibold">
-                      Promo
-                    </span>
-                  </div>
+                  <View style={styles.promoIndicator}>
+                    <Icon name="card-giftcard" size={16} color="#f87171" />
+                    <Text style={styles.promoLabel}>Promo</Text>
+                  </View>
                 )}
-              </div>
+              </View>
 
-              <button
-                onClick={() => handleCheckIn(venue.id)}
-                className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  userCheckedIn === venue.id
-                    ? "bg-red-600 text-white"
-                    : "bg-red-500 hover:bg-red-600 text-white"
-                }`}
+              <TouchableOpacity
+                style={[
+                  styles.venueCheckInButton,
+                  userCheckedIn === venue.id && styles.venueCheckedInButton,
+                ]}
+                onPress={() => handleCheckIn(venue.id)}
               >
-                {userCheckedIn === venue.id ? "Checked In" : "Check In"}
-              </button>
-            </div>
+                <Text style={styles.venueCheckInText}>
+                  {userCheckedIn === venue.id ? "Checked In" : "Check In"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ))}
-        </div>
-      </div>
+        </View>
+      </ScrollView>
     );
 
     const PhotoFeed = () => (
-      <div className="h-full bg-black overflow-y-auto">
-        <div className="p-4 border-b border-red-900/30">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white">Scene Photos</h2>
-            <button className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors">
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+      <ScrollView style={styles.photoFeed}>
+        <View style={styles.photoHeader}>
+          <Text style={styles.photoTitle}>Scene Photos</Text>
+          <TouchableOpacity style={styles.addPhotoButton}>
+            <Icon name="add" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
 
-        <div className="grid grid-cols-2 gap-1">
+        <View style={styles.photoGrid}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="aspect-square bg-gray-900 relative group">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="absolute bottom-2 left-2 right-2">
-                  <div className="flex items-center justify-between text-white">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4 text-red-400" />
-                      <span className="text-sm">Midnight Lounge</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4 text-red-400" />
-                      <span className="text-sm">
-                        {Math.floor(Math.random() * 50) + 10}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="w-full h-full bg-gradient-to-br from-red-900/20 to-gray-800 flex items-center justify-center">
-                <Camera className="w-8 h-8 text-red-400/50" />
-              </div>
-            </div>
+            <TouchableOpacity key={i} style={styles.photoCard}>
+              <View style={styles.photoPlaceholder}>
+                <Icon name="camera-alt" size={32} color="#f87171" />
+              </View>
+              <View style={styles.photoOverlay}>
+                <View style={styles.photoInfo}>
+                  <View style={styles.photoLocation}>
+                    <Icon name="location-on" size={16} color="#f87171" />
+                    <Text style={styles.photoLocationText}>
+                      Midnight Lounge
+                    </Text>
+                  </View>
+                  <View style={styles.photoLikes}>
+                    <Icon name="favorite" size={16} color="#f87171" />
+                    <Text style={styles.photoLikesText}>
+                      {Math.floor(Math.random() * 50) + 10}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
           ))}
-        </div>
-      </div>
+        </View>
+      </ScrollView>
     );
 
     const Profile = () => (
-      <div className="h-full bg-black overflow-y-auto">
-        <div className="p-4">
-          <div className="text-center mb-6">
-            <div className="w-20 h-20 bg-red-500 rounded-full mx-auto mb-3 flex items-center justify-center">
-              <User className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-xl font-bold text-white">Your Profile</h2>
-            <p className="text-gray-400">Scene Explorer</p>
-          </div>
+      <ScrollView style={styles.profile}>
+        <View style={styles.profileHeader}>
+          <View style={styles.profileAvatar}>
+            <Icon name="person" size={40} color="white" />
+          </View>
+          <Text style={styles.profileName}>Your Profile</Text>
+          <Text style={styles.profileRole}>Scene Explorer</Text>
+        </View>
 
-          <div className="space-y-4">
-            <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="text-white">Total Check-ins</span>
-                <span className="text-red-400 font-bold">47</span>
-              </div>
-            </div>
+        <View style={styles.profileStats}>
+          <View style={styles.profileStat}>
+            <Text style={styles.profileStatLabel}>Total Check-ins</Text>
+            <Text style={styles.profileStatValue}>47</Text>
+          </View>
+          <View style={styles.profileStat}>
+            <Text style={styles.profileStatLabel}>Photos Shared</Text>
+            <Text style={styles.profileStatValue}>23</Text>
+          </View>
+          <View style={styles.profileStat}>
+            <Text style={styles.profileStatLabel}>Scene Score</Text>
+            <Text style={styles.profileStatValue}>8.9</Text>
+          </View>
+        </View>
 
-            <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="text-white">Photos Shared</span>
-                <span className="text-red-400 font-bold">23</span>
-              </div>
-            </div>
-
-            <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="text-white">Scene Score</span>
-                <span className="text-red-400 font-bold">8.9</span>
-              </div>
-            </div>
-
-            <button className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors">
-              Edit Profile
-            </button>
-          </div>
-        </div>
-      </div>
+        <TouchableOpacity style={styles.editProfileButton}>
+          <Text style={styles.editProfileText}>Edit Profile</Text>
+        </TouchableOpacity>
+      </ScrollView>
     );
 
     return (
-      <div className="max-w-md mx-auto h-screen bg-black flex flex-col">
-        <div className="flex-1 overflow-hidden">
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <View style={styles.appContent}>
           {activeTab === "map" && <SceneMap />}
           {activeTab === "venues" && <VenueList />}
           {activeTab === "photos" && <PhotoFeed />}
           {activeTab === "profile" && <Profile />}
-        </div>
+        </View>
 
-        <div className="bg-black border-t border-red-900/30 p-2">
-          <div className="flex justify-around">
-            {[
-              { id: "map", icon: MapPin, label: "Map" },
-              { id: "venues", icon: Users, label: "Venues" },
-              { id: "photos", icon: Camera, label: "Photos" },
-              { id: "profile", icon: User, label: "Profile" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
-                  activeTab === tab.id
-                    ? "text-red-400 bg-red-900/20"
-                    : "text-gray-400 hover:text-red-400"
-                }`}
+        <View style={styles.tabBar}>
+          {[
+            { id: "map", icon: "map", label: "Map" },
+            { id: "venues", icon: "people", label: "Venues" },
+            { id: "photos", icon: "camera-alt", label: "Photos" },
+            { id: "profile", icon: "person", label: "Profile" },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[
+                styles.tabButton,
+                activeTab === tab.id && styles.activeTabButton,
+              ]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Icon
+                name={tab.icon}
+                size={24}
+                color={activeTab === tab.id ? "#f87171" : "#9ca3af"}
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  activeTab === tab.id && styles.activeTabLabel,
+                ]}
               >
-                <tab.icon className="w-6 h-6 mb-1" />
-                <span className="text-xs">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </SafeAreaView>
     );
   };
 
@@ -427,7 +394,8 @@ const SceneAppComplete = () => {
   const VenueDashboard = () => {
     const [activeTab, setActiveTab] = useState("overview");
     const [showPromoModal, setShowPromoModal] = useState(false);
-    const [venue, setVenue] = useState({
+
+    const [venue] = useState({
       name: "Midnight Lounge",
       address: "123 Downtown Blvd, City Center",
       type: "Nightclub",
@@ -438,27 +406,9 @@ const SceneAppComplete = () => {
       verified: true,
     });
 
-    const [analytics, setAnalytics] = useState({
-      weeklyCheckins: [
-        { day: "Mon", checkins: 23 },
-        { day: "Tue", checkins: 18 },
-        { day: "Wed", checkins: 31 },
-        { day: "Thu", checkins: 45 },
-        { day: "Fri", checkins: 89 },
-        { day: "Sat", checkins: 156 },
-        { day: "Sun", checkins: 67 },
-      ],
-      hourlyData: [
-        { hour: "6PM", users: 12 },
-        { hour: "7PM", users: 28 },
-        { hour: "8PM", users: 45 },
-        { hour: "9PM", users: 67 },
-        { hour: "10PM", users: 89 },
-        { hour: "11PM", users: 112 },
-        { hour: "12AM", users: 134 },
-        { hour: "1AM", users: 98 },
-        { hour: "2AM", users: 45 },
-      ],
+    const [analytics] = useState({
+      weeklyCheckins: [23, 18, 31, 45, 89, 156, 67],
+      hourlyData: [12, 28, 45, 67, 89, 112, 134, 98, 45],
     });
 
     const [promos, setPromos] = useState([
@@ -484,21 +434,6 @@ const SceneAppComplete = () => {
       },
     ]);
 
-    const [photos, setPhotos] = useState([
-      { id: 1, likes: 45, views: 234, uploaded: "2 hours ago", featured: true },
-      {
-        id: 2,
-        likes: 32,
-        views: 189,
-        uploaded: "5 hours ago",
-        featured: false,
-      },
-      { id: 3, likes: 67, views: 321, uploaded: "1 day ago", featured: true },
-      { id: 4, likes: 28, views: 156, uploaded: "2 days ago", featured: false },
-      { id: 5, likes: 89, views: 445, uploaded: "3 days ago", featured: true },
-      { id: 6, likes: 23, views: 134, uploaded: "4 days ago", featured: false },
-    ]);
-
     const [newPromo, setNewPromo] = useState({
       title: "",
       description: "",
@@ -507,505 +442,1311 @@ const SceneAppComplete = () => {
       type: "discount",
     });
 
-    const Header = () => (
-      <header className="bg-black border-b border-red-900/30 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  Scene Dashboard
-                </h1>
-                <p className="text-red-400">{venue.name}</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors">
-              <Bell className="w-5 h-5" />
-            </button>
-            <button className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
-            <div className="flex items-center space-x-2 bg-gray-900 px-3 py-2 rounded-lg">
-              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">ML</span>
-              </div>
-              <span className="text-white text-sm">Manager</span>
-            </div>
-          </div>
-        </div>
-      </header>
-    );
-
-    const Sidebar = () => (
-      <aside className="w-64 bg-gray-900 border-r border-red-900/30 h-full">
-        <div className="p-6">
-          <div className="space-y-2">
-            {[
-              { id: "overview", icon: BarChart3, label: "Overview" },
-              { id: "checkins", icon: Users, label: "Check-ins" },
-              { id: "promos", icon: Gift, label: "Promotions" },
-              { id: "photos", icon: Camera, label: "Photos" },
-              { id: "analytics", icon: TrendingUp, label: "Analytics" },
-              { id: "settings", icon: Settings, label: "Settings" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-red-500 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800"
-                }`}
-              >
-                <tab.icon className="w-5 h-5" />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </aside>
-    );
-
-    const StatsCard = ({ title, value, change, icon: Icon, color = "red" }) => (
-      <div className="bg-gray-900 border border-red-900/30 rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-400 text-sm">{title}</p>
-            <p className="text-2xl font-bold text-white">{value}</p>
+    const StatsCard = ({ title, value, change, iconName }) => (
+      <View style={styles.statsCard}>
+        <View style={styles.statsContent}>
+          <View>
+            <Text style={styles.statsTitle}>{title}</Text>
+            <Text style={styles.statsValue}>{value}</Text>
             {change && (
-              <p
-                className={`text-sm flex items-center space-x-1 ${
-                  change > 0 ? "text-green-400" : "text-red-400"
-                }`}
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>
-                  {change > 0 ? "+" : ""}
-                  {change}%
-                </span>
-              </p>
+              <View style={styles.statsChange}>
+                <Icon name="trending-up" size={16} color="#10b981" />
+                <Text style={styles.statsChangeText}>+{change}%</Text>
+              </View>
             )}
-          </div>
-          <div
-            className={`w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center`}
-          >
-            <Icon className={`w-6 h-6 text-red-400`} />
-          </div>
-        </div>
-      </div>
+          </View>
+          <View style={styles.statsIcon}>
+            <Icon name={iconName} size={24} color="#f87171" />
+          </View>
+        </View>
+      </View>
     );
 
     const Overview = () => (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <ScrollView style={styles.dashboardContent}>
+        <View style={styles.statsGrid}>
           <StatsCard
             title="Scene Score"
             value={venue.sceneScore}
             change={12}
-            icon={Star}
+            iconName="star"
           />
           <StatsCard
             title="Currently Here"
             value={venue.currentCheckins}
             change={8}
-            icon={Users}
+            iconName="people"
           />
           <StatsCard
             title="Total Check-ins"
             value={venue.totalCheckins.toLocaleString()}
             change={23}
-            icon={MapPin}
+            iconName="location-on"
           />
           <StatsCard
             title="Photos Shared"
             value={venue.totalPhotos}
             change={15}
-            icon={Camera}
+            iconName="camera-alt"
           />
-        </div>
+        </View>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-gray-900 border border-red-900/30 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Weekly Check-ins
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics.weeklyCheckins}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="day" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1F2937",
-                    border: "1px solid #DC2626",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="checkins" fill="#DC2626" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Weekly Check-ins</Text>
+          <BarChart
+            data={{
+              labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+              datasets: [{ data: analytics.weeklyCheckins }],
+            }}
+            width={screenWidth - 32}
+            height={220}
+            chartConfig={{
+              backgroundColor: "#1f2937",
+              backgroundGradientFrom: "#1f2937",
+              backgroundGradientTo: "#111827",
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(220, 38, 38, ${opacity})`,
+              style: { borderRadius: 16 },
+            }}
+            style={styles.chart}
+          />
+        </View>
 
-          <div className="bg-gray-900 border border-red-900/30 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Today's Traffic
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.hourlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="hour" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1F2937",
-                    border: "1px solid #DC2626",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="users"
-                  stroke="#DC2626"
-                  strokeWidth={3}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Today's Traffic</Text>
+          <LineChart
+            data={{
+              labels: ["6PM", "8PM", "10PM", "12AM", "2AM"],
+              datasets: [{ data: [12, 45, 89, 134, 45] }],
+            }}
+            width={screenWidth - 32}
+            height={220}
+            chartConfig={{
+              backgroundColor: "#1f2937",
+              backgroundGradientFrom: "#1f2937",
+              backgroundGradientTo: "#111827",
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(220, 38, 38, ${opacity})`,
+              style: { borderRadius: 16 },
+            }}
+            style={styles.chart}
+          />
+        </View>
 
-        <div className="bg-gray-900 border border-red-900/30 rounded-lg p-6">
-          <h3 className="text-xl font-bold text-white mb-4">
-            Active Promotions
-          </h3>
-          <div className="space-y-3">
-            {promos
-              .filter((p) => p.active)
-              .map((promo) => (
-                <div
-                  key={promo.id}
-                  className="flex items-center justify-between bg-black/50 p-4 rounded-lg border border-red-900/30"
-                >
-                  <div className="flex items-center space-x-3">
-                    <Gift className="w-5 h-5 text-red-400" />
-                    <div>
-                      <h4 className="text-white font-semibold">
-                        {promo.title}
-                      </h4>
-                      <p className="text-gray-400 text-sm">
-                        {promo.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-red-400 font-bold">
-                      {promo.redemptions} used
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      {promo.startTime} - {promo.endTime}
-                    </p>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
+        <View style={styles.activePromos}>
+          <Text style={styles.sectionTitle}>Active Promotions</Text>
+          {promos
+            .filter((p) => p.active)
+            .map((promo) => (
+              <View key={promo.id} style={styles.promoItem}>
+                <View style={styles.promoContent}>
+                  <Icon name="card-giftcard" size={20} color="#f87171" />
+                  <View style={styles.promoDetails}>
+                    <Text style={styles.promoTitle}>{promo.title}</Text>
+                    <Text style={styles.promoDescription}>
+                      {promo.description}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.promoStats}>
+                  <Text style={styles.promoUsed}>{promo.redemptions} used</Text>
+                  <Text style={styles.promoTime}>
+                    {promo.startTime} - {promo.endTime}
+                  </Text>
+                </View>
+              </View>
+            ))}
+        </View>
+      </ScrollView>
     );
 
     const Promotions = () => (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-white">Promotions</h2>
-          <button
-            onClick={() => setShowPromoModal(true)}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+      <ScrollView style={styles.dashboardContent}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Promotions</Text>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => setShowPromoModal(true)}
           >
-            <Plus className="w-4 h-4" />
-            <span>Create Promo</span>
-          </button>
-        </div>
+            <Icon name="add" size={16} color="white" />
+            <Text style={styles.createButtonText}>Create Promo</Text>
+          </TouchableOpacity>
+        </View>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <View style={styles.promosGrid}>
           {promos.map((promo) => (
-            <div
-              key={promo.id}
-              className="bg-gray-900 border border-red-900/30 rounded-lg p-6"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-2">
-                  <Gift className="w-5 h-5 text-red-400" />
-                  <h3 className="text-white font-semibold">{promo.title}</h3>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      promo.active
-                        ? "bg-green-900/30 text-green-400"
-                        : "bg-gray-800 text-gray-400"
-                    }`}
+            <View key={promo.id} style={styles.promoCard}>
+              <View style={styles.promoCardHeader}>
+                <View style={styles.promoCardTitle}>
+                  <Icon name="card-giftcard" size={20} color="#f87171" />
+                  <Text style={styles.promoCardName}>{promo.title}</Text>
+                </View>
+                <View style={styles.promoCardActions}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      promo.active ? styles.activeBadge : styles.inactiveBadge,
+                    ]}
                   >
-                    {promo.active ? "Active" : "Inactive"}
-                  </span>
-                  <button className="text-gray-400 hover:text-white">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        promo.active ? styles.activeText : styles.inactiveText,
+                      ]}
+                    >
+                      {promo.active ? "Active" : "Inactive"}
+                    </Text>
+                  </View>
+                  <TouchableOpacity>
+                    <Icon name="edit" size={16} color="#9ca3af" />
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-              <p className="text-gray-400 text-sm mb-4">{promo.description}</p>
+              <Text style={styles.promoCardDescription}>
+                {promo.description}
+              </Text>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Time:</span>
-                  <span className="text-white">
+              <View style={styles.promoCardDetails}>
+                <View style={styles.promoCardDetail}>
+                  <Text style={styles.detailLabel}>Time:</Text>
+                  <Text style={styles.detailValue}>
                     {promo.startTime} - {promo.endTime}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Redemptions:</span>
-                  <span className="text-red-400 font-bold">
-                    {promo.redemptions}
-                  </span>
-                </div>
-              </div>
+                  </Text>
+                </View>
+                <View style={styles.promoCardDetail}>
+                  <Text style={styles.detailLabel}>Redemptions:</Text>
+                  <Text style={styles.detailValueRed}>{promo.redemptions}</Text>
+                </View>
+              </View>
 
-              <button
-                className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${
+              <TouchableOpacity
+                style={[
+                  styles.promoToggleButton,
                   promo.active
-                    ? "bg-red-600 hover:bg-red-700 text-white"
-                    : "bg-gray-800 hover:bg-gray-700 text-gray-300"
-                }`}
+                    ? styles.deactivateButton
+                    : styles.activateButton,
+                ]}
               >
-                {promo.active ? "Deactivate" : "Activate"}
-              </button>
-            </div>
+                <Text style={styles.promoToggleText}>
+                  {promo.active ? "Deactivate" : "Activate"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ))}
-        </div>
-      </div>
+        </View>
+      </ScrollView>
     );
 
-    const Photos = () => (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-white">Venue Photos</h2>
-          <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-            <Upload className="w-4 h-4" />
-            <span>Upload Photo</span>
-          </button>
-        </div>
+    const PromoModal = () => (
+      <Modal visible={showPromoModal} transparent={true} animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.promoModalContent}>
+            <View style={styles.promoModalHeader}>
+              <Text style={styles.modalTitle}>Create Promotion</Text>
+              <TouchableOpacity onPress={() => setShowPromoModal(false)}>
+                <Icon name="close" size={24} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {photos.map((photo) => (
-            <div key={photo.id} className="relative group">
-              <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-red-900/20 to-gray-800 flex items-center justify-center">
-                  <Image className="w-12 h-12 text-red-400/50" />
-                </div>
-              </div>
-
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                <div className="text-center text-white">
-                  <div className="flex items-center justify-center space-x-4 mb-2">
-                    <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4 text-red-400" />
-                      <span className="text-sm">{photo.likes}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Eye className="w-4 h-4 text-red-400" />
-                      <span className="text-sm">{photo.views}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button className="p-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {photo.featured && (
-                <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                  Featured
-                </div>
-              )}
-
-              <div className="absolute bottom-2 left-2 right-2 text-white text-xs bg-black/60 backdrop-blur-sm rounded px-2 py-1">
-                {photo.uploaded}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-
-    const PromoModal = () =>
-      showPromoModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-gray-900 border border-red-900/30 rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Create Promotion</h3>
-              <button
-                onClick={() => setShowPromoModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
+            <ScrollView style={styles.promoForm}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Title</Text>
+                <TextInput
+                  style={styles.formInput}
                   value={newPromo.title}
-                  onChange={(e) =>
-                    setNewPromo({ ...newPromo, title: e.target.value })
+                  onChangeText={(text) =>
+                    setNewPromo({ ...newPromo, title: text })
                   }
-                  className="w-full px-3 py-2 bg-black border border-red-900/30 rounded-lg text-white focus:outline-none focus:border-red-500"
                   placeholder="Happy Hour Special"
+                  placeholderTextColor="#9ca3af"
                 />
-              </div>
+              </View>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Description
-                </label>
-                <textarea
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Description</Text>
+                <TextInput
+                  style={[styles.formInput, styles.textArea]}
                   value={newPromo.description}
-                  onChange={(e) =>
-                    setNewPromo({ ...newPromo, description: e.target.value })
+                  onChangeText={(text) =>
+                    setNewPromo({ ...newPromo, description: text })
                   }
-                  className="w-full px-3 py-2 bg-black border border-red-900/30 rounded-lg text-white focus:outline-none focus:border-red-500"
-                  rows="3"
                   placeholder="25% off all drinks"
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  numberOfLines={3}
                 />
-              </div>
+              </View>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Start Time
-                  </label>
-                  <input
-                    type="time"
+              <View style={styles.formRow}>
+                <View style={styles.formHalf}>
+                  <Text style={styles.formLabel}>Start Time</Text>
+                  <TextInput
+                    style={styles.formInput}
                     value={newPromo.startTime}
-                    onChange={(e) =>
-                      setNewPromo({ ...newPromo, startTime: e.target.value })
+                    onChangeText={(text) =>
+                      setNewPromo({ ...newPromo, startTime: text })
                     }
-                    className="w-full px-3 py-2 bg-black border border-red-900/30 rounded-lg text-white focus:outline-none focus:border-red-500"
+                    placeholder="18:00"
+                    placeholderTextColor="#9ca3af"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    End Time
-                  </label>
-                  <input
-                    type="time"
+                </View>
+                <View style={styles.formHalf}>
+                  <Text style={styles.formLabel}>End Time</Text>
+                  <TextInput
+                    style={styles.formInput}
                     value={newPromo.endTime}
-                    onChange={(e) =>
-                      setNewPromo({ ...newPromo, endTime: e.target.value })
+                    onChangeText={(text) =>
+                      setNewPromo({ ...newPromo, endTime: text })
                     }
-                    className="w-full px-3 py-2 bg-black border border-red-900/30 rounded-lg text-white focus:outline-none focus:border-red-500"
+                    placeholder="20:00"
+                    placeholderTextColor="#9ca3af"
                   />
-                </div>
-              </div>
+                </View>
+              </View>
+            </ScrollView>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Type
-                </label>
-                <select
-                  value={newPromo.type}
-                  onChange={(e) =>
-                    setNewPromo({ ...newPromo, type: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-black border border-red-900/30 rounded-lg text-white focus:outline-none focus:border-red-500"
-                >
-                  <option value="discount">Discount</option>
-                  <option value="free">Free Item</option>
-                  <option value="bogo">Buy One Get One</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={() => setShowPromoModal(false)}
-                className="flex-1 py-2 border border-gray-600 text-gray-400 rounded-lg hover:bg-gray-800 transition-colors"
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowPromoModal(false)}
               >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.createPromoButton}
+                onPress={() => {
                   setShowPromoModal(false);
+                  Alert.alert("Success", "Promotion created!");
                 }}
-                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
               >
-                Create Promo
-              </button>
-            </div>
-          </div>
-        </div>
-      );
+                <Text style={styles.createPromoButtonText}>Create Promo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
 
     return (
-      <div className="min-h-screen bg-black">
-        <Header />
-        <div className="flex h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-6">
-            {activeTab === "overview" && <Overview />}
-            {activeTab === "promos" && <Promotions />}
-            {activeTab === "photos" && <Photos />}
-          </main>
-        </div>
+      <SafeAreaView style={styles.dashboardContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+
+        <View style={styles.dashboardHeader}>
+          <View style={styles.dashboardHeaderLeft}>
+            <View style={styles.dashboardIcon}>
+              <Icon name="bar-chart" size={24} color="white" />
+            </View>
+            <View>
+              <Text style={styles.dashboardTitle}>Scene Dashboard</Text>
+              <Text style={styles.dashboardSubtitle}>{venue.name}</Text>
+            </View>
+          </View>
+          <View style={styles.dashboardHeaderRight}>
+            <TouchableOpacity style={styles.headerButton}>
+              <Icon name="notifications" size={20} color="#f87171" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton}>
+              <Icon name="settings" size={20} color="#f87171" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.dashboardTabs}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {[
+              { id: "overview", icon: "bar-chart", label: "Overview" },
+              { id: "promos", icon: "card-giftcard", label: "Promotions" },
+              { id: "analytics", icon: "trending-up", label: "Analytics" },
+            ].map((tab) => (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.dashboardTab,
+                  activeTab === tab.id && styles.activeDashboardTab,
+                ]}
+                onPress={() => setActiveTab(tab.id)}
+              >
+                <Icon
+                  name={tab.icon}
+                  size={20}
+                  color={activeTab === tab.id ? "white" : "#9ca3af"}
+                />
+                <Text
+                  style={[
+                    styles.dashboardTabText,
+                    activeTab === tab.id && styles.activeDashboardTabText,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.dashboardMain}>
+          {activeTab === "overview" && <Overview />}
+          {activeTab === "promos" && <Promotions />}
+        </View>
+
         <PromoModal />
-      </div>
+      </SafeAreaView>
     );
   };
 
   // Main App Controller
   return (
-    <div className="min-h-screen bg-black">
+    <View style={styles.mainContainer}>
       {/* View Mode Toggle */}
-      <div className="fixed top-4 right-4 z-50">
-        <div className="bg-gray-900 border border-red-900/30 rounded-lg p-2 flex space-x-2">
-          <button
-            onClick={() => setViewMode("customer")}
-            className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              viewMode === "customer"
-                ? "bg-red-500 text-white"
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
-            }`}
+      <View style={styles.viewToggle}>
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              viewMode === "customer" && styles.activeToggle,
+            ]}
+            onPress={() => setViewMode("customer")}
           >
-            Customer App
-          </button>
-          <button
-            onClick={() => setViewMode("venue")}
-            className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              viewMode === "venue"
-                ? "bg-red-500 text-white"
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
-            }`}
+            <Text
+              style={[
+                styles.toggleText,
+                viewMode === "customer" && styles.activeToggleText,
+              ]}
+            >
+              Customer App
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              viewMode === "venue" && styles.activeToggle,
+            ]}
+            onPress={() => setViewMode("venue")}
           >
-            Venue Dashboard
-          </button>
-        </div>
-      </div>
+            <Text
+              style={[
+                styles.toggleText,
+                viewMode === "venue" && styles.activeToggleText,
+              ]}
+            >
+              Venue Dashboard
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Render Selected View */}
       {viewMode === "customer" ? <SceneApp /> : <VenueDashboard />}
-    </div>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  viewToggle: {
+    position: "absolute",
+    top: 50,
+    right: 16,
+    zIndex: 1000,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    backgroundColor: "#1f2937",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#7f1d1d",
+    padding: 4,
+  },
+  toggleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  activeToggle: {
+    backgroundColor: "#dc2626",
+  },
+  toggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#9ca3af",
+  },
+  activeToggleText: {
+    color: "white",
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  appContent: {
+    flex: 1,
+  },
+
+  // Map Styles
+  mapContainer: {
+    flex: 1,
+    backgroundColor: "#111827",
+  },
+  mapBackground: {
+    flex: 1,
+    position: "relative",
+  },
+  mapPin: {
+    position: "absolute",
+  },
+  pinCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#dc2626",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pinBadge: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: "#dc2626",
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pinBadgeText: {
+    color: "#f87171",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  scoreDisplay: {
+    position: "absolute",
+    top: 56,
+    left: "50%",
+    transform: [{ translateX: -20 }],
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(220, 38, 38, 0.3)",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  scoreText: {
+    color: "#f87171",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  mapHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(127, 29, 29, 0.3)",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    marginLeft: 12,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  venueModal: {
+    backgroundColor: "#000000",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(127, 29, 29, 0.3)",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: 320,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  venueTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+  },
+  venueSubtitle: {
+    color: "#f87171",
+    marginTop: 4,
+  },
+  venueStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 16,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statText: {
+    color: "white",
+    fontSize: 14,
+  },
+  promoCard: {
+    backgroundColor: "rgba(127, 29, 29, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(220, 38, 38, 0.3)",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  promoText: {
+    color: "#f87171",
+    fontWeight: "600",
+    flex: 1,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  checkInButton: {
+    flex: 1,
+    backgroundColor: "#dc2626",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  checkedInButton: {
+    backgroundColor: "#b91c1c",
+  },
+  checkInText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  cameraButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#1f2937",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Venue List Styles
+  venueList: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  listHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(127, 29, 29, 0.3)",
+  },
+  listTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 12,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    color: "white",
+    fontSize: 16,
+  },
+  venueCards: {
+    padding: 16,
+    gap: 16,
+  },
+  venueCard: {
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    padding: 16,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  venueName: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  venueType: {
+    color: "#9ca3af",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  cardRight: {
+    alignItems: "flex-end",
+  },
+  scoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  scoreValue: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  distance: {
+    color: "#9ca3af",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  cardStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  cardStatsLeft: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  statPair: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statSmall: {
+    color: "white",
+    fontSize: 14,
+  },
+  promoIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  promoLabel: {
+    color: "#f87171",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  venueCheckInButton: {
+    backgroundColor: "#dc2626",
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  venueCheckedInButton: {
+    backgroundColor: "#b91c1c",
+  },
+  venueCheckInText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Photo Feed Styles
+  photoFeed: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  photoHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(127, 29, 29, 0.3)",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  photoTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+  },
+  addPhotoButton: {
+    backgroundColor: "#dc2626",
+    padding: 8,
+    borderRadius: 8,
+  },
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  photoCard: {
+    width: screenWidth / 2,
+    aspectRatio: 1,
+    position: "relative",
+  },
+  photoPlaceholder: {
+    flex: 1,
+    backgroundColor: "#1f2937",
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 1,
+  },
+  photoOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    padding: 8,
+    margin: 1,
+  },
+  photoInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  photoLocation: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    flex: 1,
+  },
+  photoLocationText: {
+    color: "white",
+    fontSize: 12,
+  },
+  photoLikes: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  photoLikesText: {
+    color: "white",
+    fontSize: 12,
+  },
+
+  // Profile Styles
+  profile: {
+    flex: 1,
+    backgroundColor: "#000000",
+    padding: 16,
+  },
+  profileHeader: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    backgroundColor: "#dc2626",
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+  },
+  profileRole: {
+    color: "#9ca3af",
+    marginTop: 4,
+  },
+  profileStats: {
+    gap: 16,
+  },
+  profileStat: {
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  profileStatLabel: {
+    color: "white",
+  },
+  profileStatValue: {
+    color: "#f87171",
+    fontWeight: "bold",
+  },
+  editProfileButton: {
+    backgroundColor: "#dc2626",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 24,
+  },
+  editProfileText: {
+    color: "white",
+    fontWeight: "600",
+  },
+
+  // Tab Bar Styles
+  tabBar: {
+    backgroundColor: "#000000",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(127, 29, 29, 0.3)",
+    flexDirection: "row",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  activeTabButton: {
+    backgroundColor: "rgba(127, 29, 29, 0.2)",
+  },
+  tabLabel: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginTop: 4,
+  },
+  activeTabLabel: {
+    color: "#f87171",
+  },
+
+  // Dashboard Styles
+  dashboardContainer: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  dashboardHeader: {
+    backgroundColor: "#000000",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(127, 29, 29, 0.3)",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dashboardHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  dashboardIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#dc2626",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dashboardTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+  },
+  dashboardSubtitle: {
+    color: "#f87171",
+  },
+  dashboardHeaderRight: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  headerButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  dashboardTabs: {
+    backgroundColor: "#1f2937",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(127, 29, 29, 0.3)",
+    paddingVertical: 8,
+  },
+  dashboardTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 4,
+    borderRadius: 8,
+  },
+  activeDashboardTab: {
+    backgroundColor: "#dc2626",
+  },
+  dashboardTabText: {
+    color: "#9ca3af",
+    fontWeight: "600",
+  },
+  activeDashboardTabText: {
+    color: "white",
+  },
+  dashboardMain: {
+    flex: 1,
+  },
+  dashboardContent: {
+    flex: 1,
+    padding: 16,
+  },
+
+  // Stats Card Styles
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    marginBottom: 24,
+  },
+  statsCard: {
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    padding: 16,
+    width: (screenWidth - 48) / 2,
+  },
+  statsContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  statsTitle: {
+    color: "#9ca3af",
+    fontSize: 14,
+  },
+  statsValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    marginTop: 4,
+  },
+  statsChange: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  statsChangeText: {
+    color: "#10b981",
+    fontSize: 12,
+  },
+  statsIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: "rgba(220, 38, 38, 0.2)",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // Chart Styles
+  chartContainer: {
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+  },
+  chartTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 16,
+  },
+  chart: {
+    borderRadius: 16,
+  },
+
+  // Active Promos Styles
+  activePromos: {
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 16,
+  },
+  promoItem: {
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  promoContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  promoDetails: {
+    flex: 1,
+  },
+  promoTitle: {
+    color: "white",
+    fontWeight: "600",
+  },
+  promoDescription: {
+    color: "#9ca3af",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  promoStats: {
+    alignItems: "flex-end",
+  },
+  promoUsed: {
+    color: "#f87171",
+    fontWeight: "bold",
+  },
+  promoTime: {
+    color: "#9ca3af",
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  // Promotions Section Styles
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  createButton: {
+    backgroundColor: "#dc2626",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  promosGrid: {
+    gap: 16,
+  },
+  promoCard: {
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    padding: 16,
+  },
+  promoCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  promoCardTitle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  promoCardName: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  promoCardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  activeBadge: {
+    backgroundColor: "rgba(16, 185, 129, 0.3)",
+  },
+  inactiveBadge: {
+    backgroundColor: "#1f2937",
+  },
+  statusText: {
+    fontSize: 12,
+  },
+  activeText: {
+    color: "#10b981",
+  },
+  inactiveText: {
+    color: "#9ca3af",
+  },
+  promoCardDescription: {
+    color: "#9ca3af",
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  promoCardDetails: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  promoCardDetail: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  detailLabel: {
+    color: "#9ca3af",
+    fontSize: 14,
+  },
+  detailValue: {
+    color: "white",
+    fontSize: 14,
+  },
+  detailValueRed: {
+    color: "#f87171",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  promoToggleButton: {
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deactivateButton: {
+    backgroundColor: "#b91c1c",
+  },
+  activateButton: {
+    backgroundColor: "#1f2937",
+  },
+  promoToggleText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Promo Modal Styles
+  promoModalContent: {
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    margin: 16,
+    maxHeight: screenHeight * 0.8,
+  },
+  promoModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(127, 29, 29, 0.3)",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+  },
+  promoForm: {
+    padding: 24,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    color: "#9ca3af",
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: "rgba(127, 29, 29, 0.3)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    color: "white",
+    fontSize: 16,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: "top",
+  },
+  formRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  formHalf: {
+    flex: 1,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 24,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(127, 29, 29, 0.3)",
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#6b7280",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#9ca3af",
+    fontWeight: "600",
+  },
+  createPromoButton: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: "#dc2626",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  createPromoButtonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+});
 
 export default SceneAppComplete;
