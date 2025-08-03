@@ -11,198 +11,379 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { LineChart, BarChart } from "react-native-chart-kit";
+import axios from "axios";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
+// API configuration
+const API_BASE_URL = "http://localhost:3001/api";
+
 const SceneAppComplete = () => {
-  const [viewMode, setViewMode] = useState("customer"); // 'customer' or 'venue'
+  const [viewMode, setViewMode] = useState("customer");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [token, setToken] = useState(null); // JWT token for authenticated requests
+
+  const AuthScreen = ({ onLogin }) => {
+    const [isLogin, setIsLogin] = useState(true);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [name, setName] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [viewMode, setViewMode] = useState("customer");
+    const [token, setToken] = useState(null);
+
+    // Check for existing token on app load
+    useEffect(() => {
+      const checkAuth = async () => {
+        try {
+          const storedToken = await SecureStore.getItemAsync("authToken");
+          if (storedToken) {
+            setToken(storedToken);
+          }
+        } catch (error) {
+          console.error("Failed to load token", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      checkAuth();
+    }, []);
+
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#f87171" />
+        </View>
+      );
+    }
+
+    if (!token) {
+      return <AuthScreen onLogin={setToken} />;
+    }
+
+    const handleAuth = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const endpoint = isLogin ? "/auth/login" : "/auth/register";
+        const payload = isLogin
+          ? { email, password }
+          : { email, password, name, role: "venue_manager" }; // or 'customer'
+
+        const response = await axios.post(
+          `${API_BASE_URL}${endpoint}`,
+          payload
+        );
+
+        // Store token securely
+        await SecureStore.setItemAsync("authToken", response.data.token);
+
+        // Notify parent component
+        onLogin(response.data.token);
+      } catch (err) {
+        setError(err.response?.data?.error || "Authentication failed");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <View style={styles.authContainer}>
+        <Text style={styles.authTitle}>{isLogin ? "Login" : "Register"}</Text>
+
+        {error ? <Text style={styles.authError}>{error}</Text> : null}
+
+        <TextInput
+          style={styles.authInput}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <TextInput
+          style={styles.authInput}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        {!isLogin && (
+          <TextInput
+            style={styles.authInput}
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+          />
+        )}
+
+        <TouchableOpacity
+          style={styles.authButton}
+          onPress={handleAuth}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.authButtonText}>
+              {isLogin ? "Login" : "Register"}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.authToggle}
+          onPress={() => setIsLogin(!isLogin)}
+        >
+          <Text style={styles.authToggleText}>
+            {isLogin
+              ? "Don't have an account? Register"
+              : "Already have an account? Login"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   // Customer App Component
   const SceneApp = () => {
     const [activeTab, setActiveTab] = useState("map");
-    const [venues, setVenues] = useState([
-      {
-        id: 1,
-        name: "Midnight Lounge",
-        location: "Downtown",
-        checkedIn: 47,
-        sceneScore: 9.2,
-        photos: 12,
-        hasPromo: true,
-        distance: "0.2 mi",
-        type: "Nightclub",
-      },
-      {
-        id: 2,
-        name: "Red Room Bar",
-        location: "Arts District",
-        checkedIn: 23,
-        sceneScore: 7.8,
-        photos: 8,
-        hasPromo: false,
-        distance: "0.5 mi",
-        type: "Bar",
-      },
-      {
-        id: 3,
-        name: "Club Pulse",
-        location: "Uptown",
-        checkedIn: 89,
-        sceneScore: 9.7,
-        photos: 24,
-        hasPromo: true,
-        distance: "1.2 mi",
-        type: "Nightclub",
-      },
-    ]);
-
+    const [venues, setVenues] = useState([]);
     const [userCheckedIn, setUserCheckedIn] = useState(null);
     const [selectedVenue, setSelectedVenue] = useState(null);
+    const [photos, setPhotos] = useState([]);
+    const [userProfile, setUserProfile] = useState(null);
 
-    const handleCheckIn = (venueId) => {
-      if (userCheckedIn === venueId) {
-        setUserCheckedIn(null);
-      } else {
-        setUserCheckedIn(venueId);
-        setVenues((prev) =>
-          prev.map((v) =>
-            v.id === venueId
-              ? { ...v, checkedIn: v.checkedIn + (userCheckedIn ? 0 : 1) }
-              : v
-          )
-        );
+    // Fetch venues from API
+    const fetchVenues = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/venues`);
+        setVenues(response.data.data);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to fetch venues");
+      } finally {
+        setLoading(false);
       }
     };
 
+    // Fetch photos from API
+    const fetchPhotos = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/photos`);
+        setPhotos(response.data);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to fetch photos");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Fetch user profile from API
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUserProfile(response.data);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to fetch profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Handle check-in
+    const handleCheckIn = async (venueId, latitude, longitude) => {
+      try {
+        setLoading(true);
+        const response = await axios.post(
+          `${API_BASE_URL}/checkins`,
+          { venueId, latitude, longitude },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setUserCheckedIn(venueId);
+        fetchVenues(); // Refresh venues data
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to check in");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Handle check-out
+    const handleCheckOut = async (checkinId) => {
+      try {
+        setLoading(true);
+        await axios.post(
+          `${API_BASE_URL}/checkins/${checkinId}/checkout`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setUserCheckedIn(null);
+        fetchVenues(); // Refresh venues data
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to check out");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Load data on component mount
+    useEffect(() => {
+      fetchVenues();
+      fetchPhotos();
+      if (token) fetchUserProfile();
+    }, [token]);
+
+    // Map component with real data
     const SceneMap = () => (
       <View style={styles.mapContainer}>
-        <View style={styles.mapBackground}>
-          {venues.map((venue, index) => (
-            <TouchableOpacity
-              key={venue.id}
-              style={[
-                styles.mapPin,
-                {
-                  left: `${20 + index * 25}%`,
-                  top: `${30 + index * 20}%`,
-                },
-              ]}
-              onPress={() => setSelectedVenue(venue)}
-            >
-              <View
-                style={[
-                  styles.pinCircle,
-                  {
-                    backgroundColor:
-                      venue.sceneScore > 9
-                        ? "#ef4444"
-                        : venue.sceneScore > 8
-                        ? "#dc2626"
-                        : "#b91c1c",
-                  },
-                ]}
-              >
-                <Icon name="people" size={24} color="white" />
-              </View>
-              <View style={styles.pinBadge}>
-                <Text style={styles.pinBadgeText}>{venue.checkedIn}</Text>
-              </View>
-              <View style={styles.scoreDisplay}>
-                <Text style={styles.scoreText}>{venue.sceneScore}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.mapHeader}>
-          <View style={styles.headerLeft}>
-            <Icon name="menu" size={24} color="#f87171" />
-            <Text style={styles.headerTitle}>Scene</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <Icon name="search" size={24} color="#f87171" />
-            <Icon name="notifications" size={24} color="#f87171" />
-            <Icon name="person" size={24} color="#f87171" />
-          </View>
-        </View>
-
-        <Modal
-          visible={selectedVenue !== null}
-          transparent={true}
-          animationType="slide"
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.venueModal}>
-              <View style={styles.modalHeader}>
-                <View>
-                  <Text style={styles.venueTitle}>{selectedVenue?.name}</Text>
-                  <Text style={styles.venueSubtitle}>
-                    {selectedVenue?.location} • {selectedVenue?.distance}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => setSelectedVenue(null)}>
-                  <Icon name="close" size={24} color="#f87171" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.venueStats}>
-                <View style={styles.statItem}>
-                  <Icon name="star" size={20} color="#f87171" />
-                  <Text style={styles.statText}>
-                    {selectedVenue?.sceneScore}
-                  </Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Icon name="people" size={20} color="#f87171" />
-                  <Text style={styles.statText}>
-                    {selectedVenue?.checkedIn} here now
-                  </Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Icon name="camera-alt" size={20} color="#f87171" />
-                  <Text style={styles.statText}>
-                    {selectedVenue?.photos} photos
-                  </Text>
-                </View>
-              </View>
-
-              {selectedVenue?.hasPromo && (
-                <View style={styles.promoCard}>
-                  <Icon name="card-giftcard" size={20} color="#f87171" />
-                  <Text style={styles.promoText}>
-                    Active Promo: 25% off drinks until 11 PM
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.modalActions}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#f87171" />
+        ) : (
+          <>
+            <View style={styles.mapBackground}>
+              {venues.map((venue, index) => (
                 <TouchableOpacity
+                  key={venue.id}
                   style={[
-                    styles.checkInButton,
-                    userCheckedIn === selectedVenue?.id &&
-                      styles.checkedInButton,
+                    styles.mapPin,
+                    {
+                      left: `${20 + index * 25}%`,
+                      top: `${30 + index * 20}%`,
+                    },
                   ]}
-                  onPress={() => handleCheckIn(selectedVenue?.id)}
+                  onPress={() => setSelectedVenue(venue)}
                 >
-                  <Text style={styles.checkInText}>
-                    {userCheckedIn === selectedVenue?.id
-                      ? "Checked In"
-                      : "Check In"}
-                  </Text>
+                  <View
+                    style={[
+                      styles.pinCircle,
+                      {
+                        backgroundColor:
+                          venue.sceneScore > 9
+                            ? "#ef4444"
+                            : venue.sceneScore > 8
+                            ? "#dc2626"
+                            : "#b91c1c",
+                      },
+                    ]}
+                  >
+                    <Icon name="people" size={24} color="white" />
+                  </View>
+                  <View style={styles.pinBadge}>
+                    <Text style={styles.pinBadgeText}>
+                      {venue.currentCheckins}
+                    </Text>
+                  </View>
+                  <View style={styles.scoreDisplay}>
+                    <Text style={styles.scoreText}>{venue.sceneScore}</Text>
+                  </View>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.cameraButton}>
-                  <Icon name="camera-alt" size={20} color="#f87171" />
-                </TouchableOpacity>
-              </View>
+              ))}
             </View>
-          </View>
-        </Modal>
+
+            <Modal
+              visible={selectedVenue !== null}
+              transparent={true}
+              animationType="slide"
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.venueModal}>
+                  <View style={styles.modalHeader}>
+                    <View>
+                      <Text style={styles.venueTitle}>
+                        {selectedVenue?.name}
+                      </Text>
+                      <Text style={styles.venueSubtitle}>
+                        {selectedVenue?.location} • {selectedVenue?.distance}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setSelectedVenue(null)}>
+                      <Icon name="close" size={24} color="#f87171" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.venueStats}>
+                    <View style={styles.statItem}>
+                      <Icon name="star" size={20} color="#f87171" />
+                      <Text style={styles.statText}>
+                        {selectedVenue?.sceneScore}
+                      </Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Icon name="people" size={20} color="#f87171" />
+                      <Text style={styles.statText}>
+                        {selectedVenue?.currentCheckins} here now
+                      </Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Icon name="camera-alt" size={20} color="#f87171" />
+                      <Text style={styles.statText}>
+                        {selectedVenue?.totalPhotos} photos
+                      </Text>
+                    </View>
+                  </View>
+
+                  {selectedVenue?.activePromotions?.length > 0 && (
+                    <View style={styles.promoCard}>
+                      <Icon name="card-giftcard" size={20} color="#f87171" />
+                      <Text style={styles.promoText}>
+                        Active Promo: {selectedVenue.activePromotions[0].title}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[
+                        styles.checkInButton,
+                        userCheckedIn === selectedVenue?.id &&
+                          styles.checkedInButton,
+                      ]}
+                      onPress={() =>
+                        userCheckedIn === selectedVenue?.id
+                          ? handleCheckOut(userCheckedIn)
+                          : handleCheckIn(
+                              selectedVenue?.id,
+                              selectedVenue?.coordinates.lat,
+                              selectedVenue?.coordinates.lng
+                            )
+                      }
+                    >
+                      <Text style={styles.checkInText}>
+                        {userCheckedIn === selectedVenue?.id
+                          ? "Checked In"
+                          : "Check In"}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.cameraButton}>
+                      <Icon name="camera-alt" size={20} color="#f87171" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          </>
+        )}
       </View>
     );
 
+    // Venue list component with real data
     const VenueList = () => (
       <ScrollView style={styles.venueList}>
         <View style={styles.listHeader}>
@@ -222,61 +403,76 @@ const SceneAppComplete = () => {
           </View>
         </View>
 
-        <View style={styles.venueCards}>
-          {venues.map((venue) => (
-            <View key={venue.id} style={styles.venueCard}>
-              <View style={styles.cardHeader}>
-                <View>
-                  <Text style={styles.venueName}>{venue.name}</Text>
-                  <Text style={styles.venueType}>
-                    {venue.type} • {venue.location}
+        {loading ? (
+          <ActivityIndicator size="large" color="#f87171" />
+        ) : (
+          <View style={styles.venueCards}>
+            {venues.map((venue) => (
+              <View key={venue.id} style={styles.venueCard}>
+                <View style={styles.cardHeader}>
+                  <View>
+                    <Text style={styles.venueName}>{venue.name}</Text>
+                    <Text style={styles.venueType}>
+                      {venue.type} • {venue.location}
+                    </Text>
+                  </View>
+                  <View style={styles.cardRight}>
+                    <View style={styles.scoreContainer}>
+                      <Icon name="star" size={16} color="#f87171" />
+                      <Text style={styles.scoreValue}>{venue.sceneScore}</Text>
+                    </View>
+                    <Text style={styles.distance}>{venue.distance}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardStats}>
+                  <View style={styles.cardStatsLeft}>
+                    <View style={styles.statPair}>
+                      <Icon name="people" size={16} color="#f87171" />
+                      <Text style={styles.statSmall}>
+                        {venue.currentCheckins}
+                      </Text>
+                    </View>
+                    <View style={styles.statPair}>
+                      <Icon name="camera-alt" size={16} color="#f87171" />
+                      <Text style={styles.statSmall}>{venue.totalPhotos}</Text>
+                    </View>
+                  </View>
+                  {venue.hasPromo && (
+                    <View style={styles.promoIndicator}>
+                      <Icon name="card-giftcard" size={16} color="#f87171" />
+                      <Text style={styles.promoLabel}>Promo</Text>
+                    </View>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.venueCheckInButton,
+                    userCheckedIn === venue.id && styles.venueCheckedInButton,
+                  ]}
+                  onPress={() =>
+                    userCheckedIn === venue.id
+                      ? handleCheckOut(userCheckedIn)
+                      : handleCheckIn(
+                          venue.id,
+                          venue.coordinates.lat,
+                          venue.coordinates.lng
+                        )
+                  }
+                >
+                  <Text style={styles.venueCheckInText}>
+                    {userCheckedIn === venue.id ? "Checked In" : "Check In"}
                   </Text>
-                </View>
-                <View style={styles.cardRight}>
-                  <View style={styles.scoreContainer}>
-                    <Icon name="star" size={16} color="#f87171" />
-                    <Text style={styles.scoreValue}>{venue.sceneScore}</Text>
-                  </View>
-                  <Text style={styles.distance}>{venue.distance}</Text>
-                </View>
+                </TouchableOpacity>
               </View>
-
-              <View style={styles.cardStats}>
-                <View style={styles.cardStatsLeft}>
-                  <View style={styles.statPair}>
-                    <Icon name="people" size={16} color="#f87171" />
-                    <Text style={styles.statSmall}>{venue.checkedIn}</Text>
-                  </View>
-                  <View style={styles.statPair}>
-                    <Icon name="camera-alt" size={16} color="#f87171" />
-                    <Text style={styles.statSmall}>{venue.photos}</Text>
-                  </View>
-                </View>
-                {venue.hasPromo && (
-                  <View style={styles.promoIndicator}>
-                    <Icon name="card-giftcard" size={16} color="#f87171" />
-                    <Text style={styles.promoLabel}>Promo</Text>
-                  </View>
-                )}
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.venueCheckInButton,
-                  userCheckedIn === venue.id && styles.venueCheckedInButton,
-                ]}
-                onPress={() => handleCheckIn(venue.id)}
-              >
-                <Text style={styles.venueCheckInText}>
-                  {userCheckedIn === venue.id ? "Checked In" : "Check In"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     );
 
+    // Photo feed with real data
     const PhotoFeed = () => (
       <ScrollView style={styles.photoFeed}>
         <View style={styles.photoHeader}>
@@ -286,62 +482,83 @@ const SceneAppComplete = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.photoGrid}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <TouchableOpacity key={i} style={styles.photoCard}>
-              <View style={styles.photoPlaceholder}>
-                <Icon name="camera-alt" size={32} color="#f87171" />
-              </View>
-              <View style={styles.photoOverlay}>
-                <View style={styles.photoInfo}>
-                  <View style={styles.photoLocation}>
-                    <Icon name="location-on" size={16} color="#f87171" />
-                    <Text style={styles.photoLocationText}>
-                      Midnight Lounge
-                    </Text>
-                  </View>
-                  <View style={styles.photoLikes}>
-                    <Icon name="favorite" size={16} color="#f87171" />
-                    <Text style={styles.photoLikesText}>
-                      {Math.floor(Math.random() * 50) + 10}
-                    </Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#f87171" />
+        ) : (
+          <View style={styles.photoGrid}>
+            {photos.map((photo) => (
+              <TouchableOpacity key={photo.id} style={styles.photoCard}>
+                <View style={styles.photoPlaceholder}>
+                  <Icon name="camera-alt" size={32} color="#f87171" />
+                </View>
+                <View style={styles.photoOverlay}>
+                  <View style={styles.photoInfo}>
+                    <View style={styles.photoLocation}>
+                      <Icon name="location-on" size={16} color="#f87171" />
+                      <Text style={styles.photoLocationText}>
+                        {photo.venue?.name || "Unknown venue"}
+                      </Text>
+                    </View>
+                    <View style={styles.photoLikes}>
+                      <Icon name="favorite" size={16} color="#f87171" />
+                      <Text style={styles.photoLikesText}>{photo.likes}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     );
 
+    // Profile with real data
     const Profile = () => (
       <ScrollView style={styles.profile}>
-        <View style={styles.profileHeader}>
-          <View style={styles.profileAvatar}>
-            <Icon name="person" size={40} color="white" />
-          </View>
-          <Text style={styles.profileName}>Your Profile</Text>
-          <Text style={styles.profileRole}>Scene Explorer</Text>
-        </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#f87171" />
+        ) : (
+          <>
+            <View style={styles.profileHeader}>
+              <View style={styles.profileAvatar}>
+                <Icon name="person" size={40} color="white" />
+              </View>
+              <Text style={styles.profileName}>
+                {userProfile?.name || "Your Profile"}
+              </Text>
+              <Text style={styles.profileRole}>
+                {userProfile?.role === "venue_manager"
+                  ? "Venue Manager"
+                  : "Scene Explorer"}
+              </Text>
+            </View>
 
-        <View style={styles.profileStats}>
-          <View style={styles.profileStat}>
-            <Text style={styles.profileStatLabel}>Total Check-ins</Text>
-            <Text style={styles.profileStatValue}>47</Text>
-          </View>
-          <View style={styles.profileStat}>
-            <Text style={styles.profileStatLabel}>Photos Shared</Text>
-            <Text style={styles.profileStatValue}>23</Text>
-          </View>
-          <View style={styles.profileStat}>
-            <Text style={styles.profileStatLabel}>Scene Score</Text>
-            <Text style={styles.profileStatValue}>8.9</Text>
-          </View>
-        </View>
+            <View style={styles.profileStats}>
+              <View style={styles.profileStat}>
+                <Text style={styles.profileStatLabel}>Total Check-ins</Text>
+                <Text style={styles.profileStatValue}>
+                  {userProfile?.profile?.totalCheckins || 0}
+                </Text>
+              </View>
+              <View style={styles.profileStat}>
+                <Text style={styles.profileStatLabel}>Photos Shared</Text>
+                <Text style={styles.profileStatValue}>
+                  {userProfile?.profile?.photosShared || 0}
+                </Text>
+              </View>
+              <View style={styles.profileStat}>
+                <Text style={styles.profileStatLabel}>Scene Score</Text>
+                <Text style={styles.profileStatValue}>
+                  {userProfile?.profile?.sceneScore || 0}
+                </Text>
+              </View>
+            </View>
 
-        <TouchableOpacity style={styles.editProfileButton}>
-          <Text style={styles.editProfileText}>Edit Profile</Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.editProfileButton}>
+              <Text style={styles.editProfileText}>Edit Profile</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     );
 
@@ -390,407 +607,484 @@ const SceneAppComplete = () => {
     );
   };
 
-  // Venue Dashboard Component
+  // Venue Dashboard Component (similar modifications needed)
   const VenueDashboard = () => {
-    const [activeTab, setActiveTab] = useState("overview");
-    const [showPromoModal, setShowPromoModal] = useState(false);
-
-    const [venue] = useState({
-      name: "Midnight Lounge",
-      address: "123 Downtown Blvd, City Center",
-      type: "Nightclub",
-      sceneScore: 9.2,
-      totalCheckins: 1247,
-      currentCheckins: 47,
-      totalPhotos: 89,
-      verified: true,
-    });
-
-    const [analytics] = useState({
-      weeklyCheckins: [23, 18, 31, 45, 89, 156, 67],
-      hourlyData: [12, 28, 45, 67, 89, 112, 134, 98, 45],
-    });
-
-    const [promos, setPromos] = useState([
-      {
-        id: 1,
-        title: "Happy Hour Special",
-        description: "25% off all drinks",
-        startTime: "18:00",
-        endTime: "20:00",
-        active: true,
-        redemptions: 23,
-        type: "discount",
-      },
-      {
-        id: 2,
-        title: "Ladies Night",
-        description: "Free cocktails for ladies",
-        startTime: "21:00",
-        endTime: "23:00",
-        active: false,
-        redemptions: 0,
-        type: "free",
-      },
-    ]);
-
-    const [newPromo, setNewPromo] = useState({
+    const [activeTab, setActiveTab] = useState("analytics");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [venueData, setVenueData] = useState(null);
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [promotions, setPromotions] = useState([]);
+    const [newPromoModal, setNewPromoModal] = useState(false);
+    const [newPromoData, setNewPromoData] = useState({
       title: "",
       description: "",
       startTime: "",
       endTime: "",
       type: "discount",
+      discountPercentage: 10,
+      validDays: [],
     });
 
-    const StatsCard = ({ title, value, change, iconName }) => (
-      <View style={styles.statsCard}>
-        <View style={styles.statsContent}>
-          <View>
-            <Text style={styles.statsTitle}>{title}</Text>
-            <Text style={styles.statsValue}>{value}</Text>
-            {change && (
-              <View style={styles.statsChange}>
-                <Icon name="trending-up" size={16} color="#10b981" />
-                <Text style={styles.statsChangeText}>+{change}%</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.statsIcon}>
-            <Icon name={iconName} size={24} color="#f87171" />
-          </View>
-        </View>
-      </View>
-    );
+    // Fetch venue data from API
+    const fetchVenueData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/venues/manager`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setVenueData(response.data);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to fetch venue data");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const Overview = () => (
+    // Fetch analytics data
+    const fetchAnalyticsData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `${API_BASE_URL}/venues/${venueData?.id}/analytics`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setAnalyticsData(response.data);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to fetch analytics");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Fetch promotions
+    const fetchPromotions = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `${API_BASE_URL}/venues/${venueData?.id}/promotions`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setPromotions(response.data);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to fetch promotions");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Create new promotion
+    const createPromotion = async () => {
+      try {
+        setLoading(true);
+        await axios.post(
+          `${API_BASE_URL}/promotions`,
+          { ...newPromoData, venueId: venueData?.id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setNewPromoModal(false);
+        fetchPromotions();
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to create promotion");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Toggle promotion status
+    const togglePromotion = async (promoId, currentStatus) => {
+      try {
+        setLoading(true);
+        await axios.put(
+          `${API_BASE_URL}/promotions/${promoId}`,
+          { active: !currentStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        fetchPromotions();
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to update promotion");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Load data on component mount
+    useEffect(() => {
+      if (token) {
+        fetchVenueData();
+      }
+    }, [token]);
+
+    useEffect(() => {
+      if (venueData) {
+        fetchAnalyticsData();
+        fetchPromotions();
+      }
+    }, [venueData]);
+
+    // Analytics Tab
+    const AnalyticsTab = () => (
       <ScrollView style={styles.dashboardContent}>
-        <View style={styles.statsGrid}>
-          <StatsCard
-            title="Scene Score"
-            value={venue.sceneScore}
-            change={12}
-            iconName="star"
-          />
-          <StatsCard
-            title="Currently Here"
-            value={venue.currentCheckins}
-            change={8}
-            iconName="people"
-          />
-          <StatsCard
-            title="Total Check-ins"
-            value={venue.totalCheckins.toLocaleString()}
-            change={23}
-            iconName="location-on"
-          />
-          <StatsCard
-            title="Photos Shared"
-            value={venue.totalPhotos}
-            change={15}
-            iconName="camera-alt"
-          />
-        </View>
+        <Text style={styles.dashboardTitle}>Venue Analytics</Text>
 
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Weekly Check-ins</Text>
-          <BarChart
-            data={{
-              labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-              datasets: [{ data: analytics.weeklyCheckins }],
-            }}
-            width={screenWidth - 32}
-            height={220}
-            chartConfig={{
-              backgroundColor: "#1f2937",
-              backgroundGradientFrom: "#1f2937",
-              backgroundGradientTo: "#111827",
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(220, 38, 38, ${opacity})`,
-              style: { borderRadius: 16 },
-            }}
-            style={styles.chart}
-          />
-        </View>
-
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Today's Traffic</Text>
-          <LineChart
-            data={{
-              labels: ["6PM", "8PM", "10PM", "12AM", "2AM"],
-              datasets: [{ data: [12, 45, 89, 134, 45] }],
-            }}
-            width={screenWidth - 32}
-            height={220}
-            chartConfig={{
-              backgroundColor: "#1f2937",
-              backgroundGradientFrom: "#1f2937",
-              backgroundGradientTo: "#111827",
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(220, 38, 38, ${opacity})`,
-              style: { borderRadius: 16 },
-            }}
-            style={styles.chart}
-          />
-        </View>
-
-        <View style={styles.activePromos}>
-          <Text style={styles.sectionTitle}>Active Promotions</Text>
-          {promos
-            .filter((p) => p.active)
-            .map((promo) => (
-              <View key={promo.id} style={styles.promoItem}>
-                <View style={styles.promoContent}>
-                  <Icon name="card-giftcard" size={20} color="#f87171" />
-                  <View style={styles.promoDetails}>
-                    <Text style={styles.promoTitle}>{promo.title}</Text>
-                    <Text style={styles.promoDescription}>
-                      {promo.description}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.promoStats}>
-                  <Text style={styles.promoUsed}>{promo.redemptions} used</Text>
-                  <Text style={styles.promoTime}>
-                    {promo.startTime} - {promo.endTime}
-                  </Text>
-                </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#f87171" />
+        ) : (
+          <>
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>
+                  {venueData?.currentCheckins || 0}
+                </Text>
+                <Text style={styles.statLabel}>Current Check-ins</Text>
               </View>
-            ))}
-        </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>
+                  {venueData?.totalCheckins || 0}
+                </Text>
+                <Text style={styles.statLabel}>Total Check-ins</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>
+                  {venueData?.sceneScore || 0}
+                </Text>
+                <Text style={styles.statLabel}>Scene Score</Text>
+              </View>
+            </View>
+
+            <Text style={styles.chartTitle}>Weekly Check-ins</Text>
+            <LineChart
+              data={{
+                labels:
+                  analyticsData?.weeklyCheckins.map((item) =>
+                    item.day.substring(0, 3)
+                  ) || [],
+                datasets: [
+                  {
+                    data:
+                      analyticsData?.weeklyCheckins.map(
+                        (item) => item.checkins
+                      ) || [],
+                  },
+                ],
+              }}
+              width={screenWidth - 40}
+              height={220}
+              chartConfig={{
+                backgroundColor: "#1e1e1e",
+                backgroundGradientFrom: "#1e1e1e",
+                backgroundGradientTo: "#1e1e1e",
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(248, 113, 113, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                style: { borderRadius: 16 },
+              }}
+              bezier
+              style={styles.chart}
+            />
+
+            <Text style={styles.chartTitle}>Hourly Traffic</Text>
+            <BarChart
+              data={{
+                labels:
+                  analyticsData?.hourlyTraffic.map((item) => item.hour) || [],
+                datasets: [
+                  {
+                    data:
+                      analyticsData?.hourlyTraffic.map((item) => item.users) ||
+                      [],
+                  },
+                ],
+              }}
+              width={screenWidth - 40}
+              height={220}
+              chartConfig={{
+                backgroundColor: "#1e1e1e",
+                backgroundGradientFrom: "#1e1e1e",
+                backgroundGradientTo: "#1e1e1e",
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(248, 113, 113, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              }}
+              style={styles.chart}
+            />
+          </>
+        )}
       </ScrollView>
     );
 
-    const Promotions = () => (
+    // Promotions Tab
+    const PromotionsTab = () => (
       <ScrollView style={styles.dashboardContent}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Promotions</Text>
+        <View style={styles.promoHeader}>
+          <Text style={styles.dashboardTitle}>Promotions</Text>
           <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => setShowPromoModal(true)}
+            style={styles.addButton}
+            onPress={() => setNewPromoModal(true)}
           >
-            <Icon name="add" size={16} color="white" />
-            <Text style={styles.createButtonText}>Create Promo</Text>
+            <Icon name="add" size={20} color="white" />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.promosGrid}>
-          {promos.map((promo) => (
-            <View key={promo.id} style={styles.promoCard}>
-              <View style={styles.promoCardHeader}>
-                <View style={styles.promoCardTitle}>
-                  <Icon name="card-giftcard" size={20} color="#f87171" />
-                  <Text style={styles.promoCardName}>{promo.title}</Text>
-                </View>
-                <View style={styles.promoCardActions}>
-                  <View
+        {loading ? (
+          <ActivityIndicator size="large" color="#f87171" />
+        ) : (
+          <>
+            {promotions.map((promo) => (
+              <View key={promo.id} style={styles.promoCard}>
+                <View style={styles.promoCardHeader}>
+                  <Text style={styles.promoTitle}>{promo.title}</Text>
+                  <TouchableOpacity
                     style={[
-                      styles.statusBadge,
-                      promo.active ? styles.activeBadge : styles.inactiveBadge,
+                      styles.toggleButton,
+                      promo.active && styles.toggleButtonActive,
                     ]}
+                    onPress={() => togglePromotion(promo.id, promo.active)}
                   >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        promo.active ? styles.activeText : styles.inactiveText,
-                      ]}
-                    >
+                    <Text style={styles.toggleButtonText}>
                       {promo.active ? "Active" : "Inactive"}
                     </Text>
-                  </View>
-                  <TouchableOpacity>
-                    <Icon name="edit" size={16} color="#9ca3af" />
                   </TouchableOpacity>
                 </View>
-              </View>
-
-              <Text style={styles.promoCardDescription}>
-                {promo.description}
-              </Text>
-
-              <View style={styles.promoCardDetails}>
-                <View style={styles.promoCardDetail}>
-                  <Text style={styles.detailLabel}>Time:</Text>
-                  <Text style={styles.detailValue}>
+                <Text style={styles.promoDescription}>{promo.description}</Text>
+                <View style={styles.promoDetails}>
+                  <Text style={styles.promoDetail}>
                     {promo.startTime} - {promo.endTime}
                   </Text>
+                  <Text style={styles.promoDetail}>
+                    {promo.type === "discount"
+                      ? `${promo.discountPercentage}% off`
+                      : "Free offer"}
+                  </Text>
+                  <Text style={styles.promoDetail}>
+                    {promo.validDays.join(", ")}
+                  </Text>
                 </View>
-                <View style={styles.promoCardDetail}>
-                  <Text style={styles.detailLabel}>Redemptions:</Text>
-                  <Text style={styles.detailValueRed}>{promo.redemptions}</Text>
-                </View>
+                <Text style={styles.promoRedemptions}>
+                  {promo.redemptions} redemptions
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* New Promotion Modal */}
+        <Modal visible={newPromoModal} transparent={true} animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.promoModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Create New Promotion</Text>
+                <TouchableOpacity onPress={() => setNewPromoModal(false)}>
+                  <Icon name="close" size={24} color="#f87171" />
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.promoToggleButton,
-                  promo.active
-                    ? styles.deactivateButton
-                    : styles.activateButton,
-                ]}
-              >
-                <Text style={styles.promoToggleText}>
-                  {promo.active ? "Deactivate" : "Activate"}
-                </Text>
-              </TouchableOpacity>
+              <ScrollView style={styles.modalContent}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Title"
+                  value={newPromoData.title}
+                  onChangeText={(text) =>
+                    setNewPromoData({ ...newPromoData, title: text })
+                  }
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Description"
+                  value={newPromoData.description}
+                  onChangeText={(text) =>
+                    setNewPromoData({ ...newPromoData, description: text })
+                  }
+                />
+
+                <View style={styles.timeInputs}>
+                  <TextInput
+                    style={[styles.input, styles.timeInput]}
+                    placeholder="Start Time (HH:MM)"
+                    value={newPromoData.startTime}
+                    onChangeText={(text) =>
+                      setNewPromoData({ ...newPromoData, startTime: text })
+                    }
+                  />
+                  <TextInput
+                    style={[styles.input, styles.timeInput]}
+                    placeholder="End Time (HH:MM)"
+                    value={newPromoData.endTime}
+                    onChangeText={(text) =>
+                      setNewPromoData({ ...newPromoData, endTime: text })
+                    }
+                  />
+                </View>
+
+                <View style={styles.promoTypeContainer}>
+                  <Text style={styles.label}>Promotion Type:</Text>
+                  <View style={styles.radioGroup}>
+                    <TouchableOpacity
+                      style={styles.radioButton}
+                      onPress={() =>
+                        setNewPromoData({ ...newPromoData, type: "discount" })
+                      }
+                    >
+                      <View style={styles.radioCircle}>
+                        {newPromoData.type === "discount" && (
+                          <View style={styles.radioDot} />
+                        )}
+                      </View>
+                      <Text style={styles.radioLabel}>Discount</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.radioButton}
+                      onPress={() =>
+                        setNewPromoData({ ...newPromoData, type: "free" })
+                      }
+                    >
+                      <View style={styles.radioCircle}>
+                        {newPromoData.type === "free" && (
+                          <View style={styles.radioDot} />
+                        )}
+                      </View>
+                      <Text style={styles.radioLabel}>Free Offer</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {newPromoData.type === "discount" && (
+                  <View style={styles.discountInput}>
+                    <Text style={styles.label}>Discount Percentage:</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="10"
+                      keyboardType="numeric"
+                      value={String(newPromoData.discountPercentage)}
+                      onChangeText={(text) =>
+                        setNewPromoData({
+                          ...newPromoData,
+                          discountPercentage: parseInt(text) || 0,
+                        })
+                      }
+                    />
+                  </View>
+                )}
+
+                <View style={styles.daysContainer}>
+                  <Text style={styles.label}>Valid Days:</Text>
+                  <View style={styles.daysGrid}>
+                    {[
+                      "Monday",
+                      "Tuesday",
+                      "Wednesday",
+                      "Thursday",
+                      "Friday",
+                      "Saturday",
+                      "Sunday",
+                    ].map((day) => (
+                      <TouchableOpacity
+                        key={day}
+                        style={[
+                          styles.dayButton,
+                          newPromoData.validDays.includes(day.toLowerCase()) &&
+                            styles.dayButtonSelected,
+                        ]}
+                        onPress={() => {
+                          const dayLower = day.toLowerCase();
+                          if (newPromoData.validDays.includes(dayLower)) {
+                            setNewPromoData({
+                              ...newPromoData,
+                              validDays: newPromoData.validDays.filter(
+                                (d) => d !== dayLower
+                              ),
+                            });
+                          } else {
+                            setNewPromoData({
+                              ...newPromoData,
+                              validDays: [...newPromoData.validDays, dayLower],
+                            });
+                          }
+                        }}
+                      >
+                        <Text style={styles.dayButtonText}>
+                          {day.substring(0, 3)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setNewPromoModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.createButton}
+                  onPress={createPromotion}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.createButtonText}>
+                      Create Promotion
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          ))}
-        </View>
+          </View>
+        </Modal>
       </ScrollView>
     );
 
-    const PromoModal = () => (
-      <Modal visible={showPromoModal} transparent={true} animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.promoModalContent}>
-            <View style={styles.promoModalHeader}>
-              <Text style={styles.modalTitle}>Create Promotion</Text>
-              <TouchableOpacity onPress={() => setShowPromoModal(false)}>
-                <Icon name="close" size={24} color="#9ca3af" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.promoForm}>
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Title</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={newPromo.title}
-                  onChangeText={(text) =>
-                    setNewPromo({ ...newPromo, title: text })
-                  }
-                  placeholder="Happy Hour Special"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Description</Text>
-                <TextInput
-                  style={[styles.formInput, styles.textArea]}
-                  value={newPromo.description}
-                  onChangeText={(text) =>
-                    setNewPromo({ ...newPromo, description: text })
-                  }
-                  placeholder="25% off all drinks"
-                  placeholderTextColor="#9ca3af"
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-
-              <View style={styles.formRow}>
-                <View style={styles.formHalf}>
-                  <Text style={styles.formLabel}>Start Time</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={newPromo.startTime}
-                    onChangeText={(text) =>
-                      setNewPromo({ ...newPromo, startTime: text })
-                    }
-                    placeholder="18:00"
-                    placeholderTextColor="#9ca3af"
-                  />
-                </View>
-                <View style={styles.formHalf}>
-                  <Text style={styles.formLabel}>End Time</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={newPromo.endTime}
-                    onChangeText={(text) =>
-                      setNewPromo({ ...newPromo, endTime: text })
-                    }
-                    placeholder="20:00"
-                    placeholderTextColor="#9ca3af"
-                  />
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowPromoModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.createPromoButton}
-                onPress={() => {
-                  setShowPromoModal(false);
-                  Alert.alert("Success", "Promotion created!");
-                }}
-              >
-                <Text style={styles.createPromoButtonText}>Create Promo</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-
     return (
-      <SafeAreaView style={styles.dashboardContainer}>
+      <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
         <View style={styles.dashboardHeader}>
-          <View style={styles.dashboardHeaderLeft}>
-            <View style={styles.dashboardIcon}>
-              <Icon name="bar-chart" size={24} color="white" />
-            </View>
-            <View>
-              <Text style={styles.dashboardTitle}>Scene Dashboard</Text>
-              <Text style={styles.dashboardSubtitle}>{venue.name}</Text>
-            </View>
-          </View>
-          <View style={styles.dashboardHeaderRight}>
-            <TouchableOpacity style={styles.headerButton}>
-              <Icon name="notifications" size={20} color="#f87171" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton}>
-              <Icon name="settings" size={20} color="#f87171" />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.venueName}>
+            {venueData?.name || "Your Venue"}
+          </Text>
+          <Text style={styles.venueLocation}>{venueData?.location || ""}</Text>
         </View>
 
         <View style={styles.dashboardTabs}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {[
-              { id: "overview", icon: "bar-chart", label: "Overview" },
-              { id: "promos", icon: "card-giftcard", label: "Promotions" },
-              { id: "analytics", icon: "trending-up", label: "Analytics" },
-            ].map((tab) => (
-              <TouchableOpacity
-                key={tab.id}
-                style={[
-                  styles.dashboardTab,
-                  activeTab === tab.id && styles.activeDashboardTab,
-                ]}
-                onPress={() => setActiveTab(tab.id)}
-              >
-                <Icon
-                  name={tab.icon}
-                  size={20}
-                  color={activeTab === tab.id ? "white" : "#9ca3af"}
-                />
-                <Text
-                  style={[
-                    styles.dashboardTabText,
-                    activeTab === tab.id && styles.activeDashboardTabText,
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <TouchableOpacity
+            style={[
+              styles.dashboardTab,
+              activeTab === "analytics" && styles.activeDashboardTab,
+            ]}
+            onPress={() => setActiveTab("analytics")}
+          >
+            <Text
+              style={[
+                styles.dashboardTabText,
+                activeTab === "analytics" && styles.activeDashboardTabText,
+              ]}
+            >
+              Analytics
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.dashboardTab,
+              activeTab === "promotions" && styles.activeDashboardTab,
+            ]}
+            onPress={() => setActiveTab("promotions")}
+          >
+            <Text
+              style={[
+                styles.dashboardTabText,
+                activeTab === "promotions" && styles.activeDashboardTabText,
+              ]}
+            >
+              Promotions
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.dashboardMain}>
-          {activeTab === "overview" && <Overview />}
-          {activeTab === "promos" && <Promotions />}
-        </View>
-
-        <PromoModal />
+        {activeTab === "analytics" ? <AnalyticsTab /> : <PromotionsTab />}
       </SafeAreaView>
     );
   };
@@ -841,6 +1135,8 @@ const SceneAppComplete = () => {
     </View>
   );
 };
+
+// ... keep all your existing styles ...
 
 const styles = StyleSheet.create({
   mainContainer: {
@@ -1746,6 +2042,308 @@ const styles = StyleSheet.create({
   createPromoButtonText: {
     color: "white",
     fontWeight: "600",
+  },
+  // Auth styles
+  authContainer: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#1e1e1e",
+  },
+  authTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#f87171",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  authInput: {
+    backgroundColor: "#2d2d2d",
+    color: "white",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  authButton: {
+    backgroundColor: "#f87171",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  authButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  authToggle: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  authToggleText: {
+    color: "#9ca3af",
+  },
+  authError: {
+    color: "#ef4444",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+
+  // Dashboard styles
+  dashboardHeader: {
+    padding: 20,
+    backgroundColor: "#1e1e1e",
+  },
+  venueName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+  },
+  venueLocation: {
+    fontSize: 16,
+    color: "#9ca3af",
+    marginTop: 5,
+  },
+  dashboardTabs: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#2d2d2d",
+  },
+  dashboardTab: {
+    flex: 1,
+    padding: 15,
+    alignItems: "center",
+  },
+  activeDashboardTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#f87171",
+  },
+  dashboardTabText: {
+    color: "#9ca3af",
+    fontWeight: "bold",
+  },
+  activeDashboardTabText: {
+    color: "#f87171",
+  },
+  dashboardContent: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#1e1e1e",
+  },
+  dashboardTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 20,
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  statCard: {
+    backgroundColor: "#2d2d2d",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#f87171",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginTop: 5,
+  },
+  chartTitle: {
+    color: "white",
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  promoHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  addButton: {
+    backgroundColor: "#f87171",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  promoCard: {
+    backgroundColor: "#2d2d2d",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+  },
+  promoCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  promoTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "white",
+  },
+  toggleButton: {
+    backgroundColor: "#3f3f3f",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+  },
+  toggleButtonActive: {
+    backgroundColor: "#f87171",
+  },
+  toggleButtonText: {
+    color: "white",
+    fontSize: 12,
+  },
+  promoDescription: {
+    color: "#d1d5db",
+    marginBottom: 10,
+  },
+  promoDetails: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 10,
+  },
+  promoDetail: {
+    color: "#9ca3af",
+    marginRight: 15,
+    fontSize: 12,
+  },
+  promoRedemptions: {
+    color: "#f87171",
+    fontSize: 12,
+  },
+  promoModal: {
+    backgroundColor: "#2d2d2d",
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: "80%",
+    width: "90%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+  },
+  modalContent: {
+    maxHeight: "70%",
+  },
+  modalFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  cancelButton: {
+    backgroundColor: "#3f3f3f",
+    padding: 15,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 10,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  createButton: {
+    backgroundColor: "#f87171",
+    padding: 15,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: "center",
+  },
+  createButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  timeInputs: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  timeInput: {
+    width: "48%",
+  },
+  label: {
+    color: "white",
+    marginBottom: 10,
+  },
+  promoTypeContainer: {
+    marginVertical: 15,
+  },
+  radioGroup: {
+    flexDirection: "row",
+    marginTop: 10,
+  },
+  radioButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 20,
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#f87171",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#f87171",
+  },
+  radioLabel: {
+    color: "white",
+  },
+  daysContainer: {
+    marginVertical: 15,
+  },
+  daysGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  dayButton: {
+    width: "14%",
+    aspectRatio: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#3f3f3f",
+    borderRadius: 5,
+    marginVertical: 5,
+  },
+  dayButtonSelected: {
+    backgroundColor: "#f87171",
+  },
+  dayButtonText: {
+    color: "white",
+    fontSize: 12,
   },
 });
 
