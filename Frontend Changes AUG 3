@@ -1,0 +1,1851 @@
+import React, { useState, useEffect } from "react";
+import {
+  MapPin, Users, Calendar, CheckCircle2, QrCode, X, Music, Clock, 
+  Bell, CheckCircle, Edit, BarChart3, DollarSign, Target, Plus, Eye, 
+  Share2, Search, Filter, User, Camera, Heart, Settings, UserCheck, UserX,
+  Download, Play, ArrowRight
+} from "lucide-react";
+
+const SceneRSVPApp = () => {
+  const [appMode, setAppMode] = useState("consumer");
+  const [notifications, setNotifications] = useState([]);
+  const [myRSVPs, setMyRSVPs] = useState([]);
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [allRSVPs, setAllRSVPs] = useState([
+    {
+      id: 1,
+      eventId: 1,
+      userName: "Sarah Johnson",
+      userEmail: "sarah@email.com",
+      ticketType: "VIP Table",
+      status: "confirmed",
+      guestCount: 2,
+      qrCode: "QR_SAT_FEVER_001",
+      checkedIn: false,
+      approved: true
+    },
+    {
+      id: 2,
+      eventId: 1,
+      userName: "Mike Chen",
+      userEmail: "mike@email.com",
+      ticketType: "General Admission",
+      status: "pending",
+      guestCount: 1,
+      qrCode: "QR_SAT_FEVER_002",
+      checkedIn: false,
+      approved: null // null = pending approval, true = approved, false = rejected
+    },
+    {
+      id: 3,
+      eventId: 2,
+      userName: "Emma Wilson",
+      userEmail: "emma@email.com",
+      ticketType: "VIP Access",
+      status: "confirmed",
+      guestCount: 1,
+      qrCode: "QR_VIP_LAUNCH_003",
+      checkedIn: true,
+      approved: true
+    }
+  ]);
+
+  const [showRSVPModal, setShowRSVPModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedTicketType, setSelectedTicketType] = useState(null);
+  const [selectedRSVP, setSelectedRSVP] = useState(null);
+  const [guestCount, setGuestCount] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const events = [
+    {
+      id: 1,
+      title: "Saturday Night Fever",
+      description: "The hottest party of the weekend featuring DJ Marcus and special guest performances",
+      venue: { name: "Keys on Sunset", location: "Sunset Strip" },
+      date: "2025-08-09T22:00:00Z",
+      capacity: 300,
+      attendeeCount: 156,
+      ticketTypes: [
+        { id: 1, name: "General Admission", price: 25, available: 155, perks: ["Entry", "Welcome Drink"] },
+        { id: 2, name: "VIP Table", price: 150, available: 12, perks: ["Reserved Table", "Bottle Service", "Skip Line"] },
+        { id: 3, name: "Guest List", price: 0, available: 57, perks: ["Complimentary Entry", "Priority Access"] }
+      ],
+      tags: ["Electronic", "Dance", "Weekend"],
+      hasUserRSVP: false
+    },
+    {
+      id: 2,
+      title: "VIP Launch Party",
+      description: "Exclusive launch party for the new cocktail menu with celebrity guest DJs",
+      venue: { name: "Poppy", location: "West Hollywood" },
+      date: "2025-08-15T20:00:00Z",
+      capacity: 100,
+      attendeeCount: 67,
+      ticketTypes: [
+        { id: 1, name: "VIP Access", price: 0, available: 33, perks: ["Exclusive Access", "Complimentary Cocktails"] }
+      ],
+      tags: ["Cocktails", "VIP", "Launch"],
+      hasUserRSVP: true,
+      userTicketType: "VIP Access"
+    },
+    {
+      id: 3,
+      title: "Rooftop Summer Sessions",
+      description: "Outdoor party with amazing city views and live DJs spinning the hottest tracks",
+      venue: { name: "Bootsy Bellows", location: "West Hollywood" },
+      date: "2025-08-20T19:00:00Z",
+      capacity: 200,
+      attendeeCount: 89,
+      ticketTypes: [
+        { id: 1, name: "General Entry", price: 30, available: 111, perks: ["Entry", "Rooftop Access"] },
+        { id: 2, name: "Premium", price: 75, available: 25, perks: ["VIP Area", "Complimentary Drinks"] }
+      ],
+      tags: ["Rooftop", "Summer", "Live Music"],
+      hasUserRSVP: false
+    }
+  ];
+
+  const tourSteps = [
+    { 
+      title: "Welcome to Scene RSVP!",
+      description: "This is your complete nightlife event platform. Browse events, RSVP, and manage your nightlife experience.",
+      action: "Get Started"
+    },
+    {
+      title: "Browse Events",
+      description: "See all upcoming events in LA's hottest venues. Each event shows capacity, pricing, and attendee count.",
+      action: "Try RSVP Flow"
+    },
+    {
+      title: "RSVP to Events", 
+      description: "Select ticket types, choose guest count, and get instant QR codes for entry.",
+      action: "View QR Code"
+    },
+    {
+      title: "My RSVPs",
+      description: "Manage all your confirmed events and access QR codes for entry.",
+      action: "Switch to Promoter"
+    },
+    {
+      title: "Promoter Dashboard",
+      description: "Event organizers can track revenue, manage guest lists, and monitor event performance.",
+      action: "Manage Guest List"
+    },
+    {
+      title: "Guest Management",
+      description: "View RSVPs, check-in guests, and track attendance in real-time.",
+      action: "Finish Tour"
+    }
+  ];
+
+  const addNotification = (message, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 3000);
+  };
+
+  const handleCheckInAll = (eventId) => {
+    setAllRSVPs(prev => prev.map(rsvp => 
+      rsvp.eventId === eventId ? { ...rsvp, checkedIn: true } : rsvp
+    ));
+    addNotification("All guests checked in successfully! ✅", "success");
+  };
+
+  const handleApproveRSVP = (rsvpId) => {
+    setAllRSVPs(prev => prev.map(rsvp => 
+      rsvp.id === rsvpId ? { ...rsvp, approved: true, status: "confirmed" } : rsvp
+    ));
+    addNotification("RSVP approved! ✅", "success");
+  };
+
+  const handleRejectRSVP = (rsvpId) => {
+    setAllRSVPs(prev => prev.map(rsvp => 
+      rsvp.id === rsvpId ? { ...rsvp, approved: false, status: "rejected" } : rsvp
+    ));
+    addNotification("RSVP rejected ❌", "error");
+  };
+
+  const handleDeleteRSVP = (rsvpId) => {
+    setAllRSVPs(prev => prev.filter(rsvp => rsvp.id !== rsvpId));
+    addNotification("RSVP removed", "info");
+  };
+
+  const handleToggleCheckIn = (rsvpId) => {
+    setAllRSVPs(prev => prev.map(rsvp => 
+      rsvp.id === rsvpId ? { ...rsvp, checkedIn: !rsvp.checkedIn } : rsvp
+    ));
+  };
+
+  const handleExportGuestList = (eventId) => {
+    const eventRSVPs = allRSVPs.filter(rsvp => rsvp.eventId === eventId);
+    const csvContent = "Name,Email,Ticket Type,Guests,Status,QR Code\n" + 
+      eventRSVPs.map(rsvp => 
+        `${rsvp.userName},${rsvp.userEmail},${rsvp.ticketType},${rsvp.guestCount},${rsvp.checkedIn ? 'Checked In' : 'Pending'},${rsvp.qrCode}`
+      ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `guest-list-${eventId}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    addNotification("Guest list exported! 📋", "success");
+  };
+
+  const handleRSVP = async () => {
+    if (!selectedTicketType || !selectedEvent) return;
+    
+    setLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const qrCode = `QR_${selectedEvent.id}_${Date.now()}`;
+      const newRSVP = {
+        id: Date.now(),
+        eventId: selectedEvent.id,
+        event: selectedEvent,
+        userName: "John Doe",
+        userEmail: "john@email.com",
+        ticketType: selectedTicketType.name,
+        status: "confirmed",
+        guestCount,
+        qrCode,
+        checkedIn: false,
+        approved: true // Auto-approve new RSVPs
+      };
+      
+      setMyRSVPs(prev => [...prev, newRSVP]);
+      setAllRSVPs(prev => [...prev, newRSVP]);
+      setShowRSVPModal(false);
+      addNotification("RSVP confirmed! Your QR code is ready! 🎉", "success");
+      
+      if (showTour && tourStep === 2) {
+        setTimeout(() => setTourStep(3), 2000);
+      }
+    } catch (error) {
+      addNotification("RSVP failed. Please try again.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextTourStep = () => {
+    if (tourStep < tourSteps.length - 1) {
+      setTourStep(tourStep + 1);
+    } else {
+      setShowTour(false);
+    }
+  };
+
+  const runTourAction = () => {
+    switch (tourStep) {
+      case 0:
+        nextTourStep();
+        break;
+      case 1:
+        setSelectedEvent(events[0]);
+        setShowRSVPModal(true);
+        nextTourStep();
+        break;
+      case 2:
+        if (myRSVPs.length > 0) {
+          setSelectedRSVP(myRSVPs[0]);
+          setShowQRModal(true);
+          nextTourStep();
+        }
+        break;
+      case 3:
+        // Fixed: Don't change activeTab, just switch mode and proceed
+        setTimeout(() => {
+          setAppMode("promoter");
+          nextTourStep();
+        }, 1000);
+        break;
+      case 4:
+        // Fixed: Use the correct state setter function
+        setTimeout(() => {
+          setAppMode("promoter");
+          nextTourStep();
+        }, 500);
+        break;
+      case 5:
+        setShowTour(false);
+        break;
+    }
+  };
+
+  // Consumer App
+  const ConsumerApp = () => {
+    const [activeTab, setActiveTab] = useState("events");
+    const [searchQuery, setSearchQuery] = useState('');
+    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [locationEnabled, setLocationEnabled] = useState(false);
+    const [showAccountSettings, setShowAccountSettings] = useState(false);
+    const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+
+    const filteredEvents = events.filter(event =>
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.venue.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="max-w-md mx-auto h-screen bg-gradient-to-b from-gray-950 to-black flex flex-col font-sans">
+        {/* Header with Mode Toggle */}
+        <div className="p-6 border-b border-red-900/30 bg-black/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-white">Scene</h1>
+              <p className="text-xs text-red-400 uppercase tracking-widest">RSVP</p>
+            </div>
+            <div className="flex bg-gray-900/80 rounded-full p-1 border border-red-900/50">
+              <button
+                onClick={() => setAppMode("consumer")}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  appMode === "consumer" 
+                    ? "bg-red-500 text-white shadow-lg" 
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Consumer
+              </button>
+              <button
+                onClick={() => setAppMode("promoter")}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  appMode === "promoter" 
+                    ? "bg-red-500 text-white shadow-lg" 
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Promoter
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {activeTab === "events" && (
+          <>
+            {/* Search Header */}
+            <div className="p-6 border-b border-red-900/30">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Events</h2>
+                  <p className="text-sm text-gray-400">Discover tonight's scene</p>
+                </div>
+                <div className="relative">
+                  <Bell className="w-6 h-6 text-red-400" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                </div>
+              </div>
+              
+              <div className="relative mb-4">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-400" />
+                <input
+                  type="text"
+                  placeholder="Search events or venues..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-red-900/30 rounded-2xl text-white placeholder-gray-400 text-sm focus:outline-none focus:border-red-500 focus:bg-gray-900/80 transition-all"
+                />
+              </div>
+
+              <div className="flex space-x-3 overflow-x-auto pb-2">
+                {["All", "Tonight", "VIP", "Free"].map(filter => (
+                  <button
+                    key={filter}
+                    className="px-4 py-2 bg-gray-900/50 text-gray-300 rounded-full text-sm hover:bg-red-900/30 hover:text-red-400 transition-all whitespace-nowrap border border-red-900/30"
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Events List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {filteredEvents.map(event => (
+                <div key={event.id} className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-red-900/30 rounded-3xl overflow-hidden hover:border-red-500/50 transition-all duration-300 shadow-xl">
+                  {/* Event Image */}
+                  <div className="relative h-40 bg-gradient-to-br from-red-900/30 via-purple-900/30 to-red-800/30">
+                    <div className="absolute inset-0 bg-black/20"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Music className="w-16 h-16 text-red-400/50" />
+                    </div>
+                    <div className="absolute top-4 left-4">
+                      <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-semibold border border-red-400/20">
+                        {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                    {event.hasUserRSVP && (
+                      <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center space-x-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>RSVP'd</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Event Details */}
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
+                        <div className="space-y-1">
+                          <p className="text-gray-400 text-sm flex items-center space-x-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{event.venue.name} • {event.venue.location}</span>
+                          </p>
+                          <p className="text-gray-400 text-sm flex items-center space-x-2">
+                            <Clock className="w-4 h-4" />
+                            <span>{new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center space-x-1 text-green-400 mb-1">
+                          <Users className="w-4 h-4" />
+                          <span className="font-bold text-lg">{event.attendeeCount}</span>
+                        </div>
+                        <p className="text-gray-400 text-xs">attending</p>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-300 text-sm mb-4 leading-relaxed">{event.description}</p>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {event.tags.map(tag => (
+                        <span key={tag} className="bg-red-900/30 text-red-400 px-3 py-1 rounded-full text-xs border border-red-800/50">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Ticket Preview */}
+                    <div className="bg-gray-800/30 rounded-2xl p-4 mb-4 border border-red-900/30">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-white font-medium">Available Tickets</span>
+                        <span className="text-gray-400 text-sm">{event.capacity - event.attendeeCount} spots left</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        {event.ticketTypes.slice(0, 3).map(ticket => (
+                          <div key={ticket.id} className="text-center">
+                            <p className="text-red-400 font-bold text-lg">
+                              {ticket.price === 0 ? 'FREE' : `$${ticket.price}`}
+                            </p>
+                            <p className="text-gray-400 text-xs">{ticket.name}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {event.hasUserRSVP ? (
+                      <div className="flex space-x-3">
+                        <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-2xl font-semibold flex items-center justify-center space-x-2 transition-all">
+                          <CheckCircle2 className="w-5 h-5" />
+                          <span>RSVP'd - {event.userTicketType}</span>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSelectedRSVP({
+                              event,
+                              qrCode: "QR_VIP_001",
+                              ticketType: event.userTicketType,
+                              guestCount: 1
+                            });
+                            setShowQRModal(true);
+                          }}
+                          className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl transition-all"
+                        >
+                          <QrCode className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedEvent(event);
+                          setSelectedTicketType(null);
+                          setShowRSVPModal(true);
+                        }}
+                        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-2xl font-semibold transition-all duration-300 shadow-lg"
+                      >
+                        RSVP Now
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeTab === "my-rsvps" && (
+          <div className="flex-1 p-4">
+            <h2 className="text-xl font-bold text-white mb-4">My RSVPs</h2>
+            
+            {myRSVPs.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400 mb-2">No RSVPs yet</p>
+                <p className="text-gray-500 text-sm">Browse events to get started!</p>
+                <button
+                  onClick={() => setActiveTab("events")}
+                  className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Browse Events
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myRSVPs.map(rsvp => (
+                  <div key={rsvp.id} className="bg-gray-900 border border-red-900/30 rounded-lg p-4 hover:border-red-500/50 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-white font-semibold">{rsvp.event.title}</h3>
+                        <p className="text-gray-400 text-sm flex items-center space-x-1">
+                          <MapPin className="w-3 h-3" />
+                          <span>{rsvp.event.venue.name}</span>
+                        </p>
+                        <p className="text-gray-400 text-sm flex items-center space-x-1">
+                          <Clock className="w-3 h-3" />
+                          <span>
+                            {new Date(rsvp.event.date).toLocaleDateString()} at {new Date(rsvp.event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </span>
+                        </p>
+                      </div>
+                      <span className="bg-green-900/30 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
+                        CONFIRMED
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <p className="text-red-400 font-semibold">{rsvp.ticketType}</p>
+                        <p className="text-gray-400 text-sm">{rsvp.guestCount} {rsvp.guestCount === 1 ? 'guest' : 'guests'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedRSVP(rsvp);
+                          setShowQRModal(true);
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                      >
+                        <QrCode className="w-4 h-4" />
+                        <span>Show QR Code</span>
+                      </button>
+                      <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors">
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                      <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "map" && (
+          <div className="flex-1 p-4">
+            <h2 className="text-xl font-bold text-white mb-4">Venue Locations</h2>
+            
+            <div className="space-y-4">
+              {/* Featured Venues */}
+              <div className="bg-gray-900 border border-red-900/30 rounded-xl p-4">
+                <h3 className="text-white font-semibold mb-3 flex items-center space-x-2">
+                  <MapPin className="w-4 h-4 text-red-400" />
+                  <span>Popular Venues</span>
+                </h3>
+                
+                <div className="space-y-3">
+                  <div className="bg-gray-800/50 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                      <p className="text-white font-semibold">Keys on Sunset</p>
+                      <p className="text-gray-400 text-sm">8117 Sunset Blvd, West Hollywood</p>
+                      <p className="text-red-400 text-xs">1 event this week</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-green-400 text-sm">2.1 mi</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                      <p className="text-white font-semibold">Poppy</p>
+                      <p className="text-gray-400 text-sm">765 N La Cienega Blvd, West Hollywood</p>
+                      <p className="text-red-400 text-xs">1 event this week</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-green-400 text-sm">3.4 mi</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                      <p className="text-white font-semibold">Bootsy Bellows</p>
+                      <p className="text-gray-400 text-sm">9081 Santa Monica Blvd, West Hollywood</p>
+                      <p className="text-red-400 text-xs">1 event this week</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-green-400 text-sm">4.2 mi</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Neighborhood Filter */}
+              <div className="bg-gray-900 border border-red-900/30 rounded-xl p-4">
+                <h3 className="text-white font-semibold mb-3">Browse by Area</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {["West Hollywood", "Hollywood", "Downtown LA", "Beverly Hills", "Santa Monica", "Venice"].map(area => (
+                    <button
+                      key={area}
+                      className="bg-gray-800 hover:bg-red-900/30 text-gray-300 hover:text-red-400 py-2 px-3 rounded-lg text-sm transition-colors"
+                    >
+                      {area}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-gray-900 border border-red-900/30 rounded-xl p-4">
+                <h3 className="text-white font-semibold mb-3">Quick Actions</h3>
+                <div className="space-y-2">
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                    <MapPin className="w-4 h-4" />
+                    <span>Get Directions</span>
+                  </button>
+                  <button className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                    <Share2 className="w-4 h-4" />
+                    <span>Share Location</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "profile" && (
+          <div className="flex-1 p-4">
+            <h2 className="text-xl font-semibold text-white mb-4">Profile</h2>
+            
+            {/* Profile Header */}
+            <div className="bg-gray-900 border border-red-900/30 rounded-xl p-4 mb-4">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold">John Doe</h3>
+                  <p className="text-gray-400 text-sm">john@email.com</p>
+                  <span className="bg-red-900/30 text-red-400 px-2 py-1 rounded-full text-xs">VIP Member</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-white font-bold">{myRSVPs.length}</p>
+                  <p className="text-gray-400 text-xs">Events</p>
+                </div>
+                <div>
+                  <p className="text-white font-bold">12</p>
+                  <p className="text-gray-400 text-xs">Attended</p>
+                </div>
+                <div>
+                  <p className="text-white font-bold">4.8</p>
+                  <p className="text-gray-400 text-xs">Rating</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-gray-900 border border-red-900/30 rounded-xl p-4 mb-4">
+              <h3 className="text-white font-semibold mb-3">Quick Actions</h3>
+              <div className="space-y-2">
+                <button className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                  <Calendar className="w-4 h-4" />
+                  <span>View My RSVPs</span>
+                </button>
+                <button className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 py-3 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                  <Heart className="w-4 h-4" />
+                  <span>Favorite Venues</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Settings Menu */}
+            <div className="space-y-3">
+              <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-3">
+                    <Bell className="w-5 h-5 text-gray-400" />
+                    <span className="text-white">Notifications</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setNotificationsEnabled(!notificationsEnabled);
+                      addNotification(
+                        notificationsEnabled ? "Notifications disabled 🔕" : "Notifications enabled 🔔", 
+                        "info"
+                      );
+                    }}
+                    className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${
+                      notificationsEnabled ? 'bg-red-500' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${
+                      notificationsEnabled ? 'right-0.5' : 'left-0.5'
+                    }`}></div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="w-5 h-5 text-gray-400" />
+                    <span className="text-white">Location Services</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setLocationEnabled(!locationEnabled);
+                      addNotification(
+                        locationEnabled ? "Location services disabled 📍" : "Location services enabled 🗺️", 
+                        "info"
+                      );
+                    }}
+                    className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${
+                      locationEnabled ? 'bg-red-500' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${
+                      locationEnabled ? 'right-0.5' : 'left-0.5'
+                    }`}></div>
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowAccountSettings(true)}
+                className="w-full bg-gray-900 border border-red-900/30 rounded-lg p-4 flex justify-between items-center hover:bg-gray-800 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <Settings className="w-5 h-5 text-gray-400" />
+                  <span className="text-white">Account Settings</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <button 
+                onClick={() => setShowPrivacySettings(true)}
+                className="w-full bg-gray-900 border border-red-900/30 rounded-lg p-4 flex justify-between items-center hover:bg-gray-800 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <Eye className="w-5 h-5 text-gray-400" />
+                  <span className="text-white">Privacy Settings</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <button 
+                onClick={() => {
+                  // GDPR/Legal requirement - export user data
+                  const userData = {
+                    profile: { name: "John Doe", email: "john@email.com" },
+                    rsvps: myRSVPs,
+                    settings: { notifications: notificationsEnabled, location: locationEnabled }
+                  };
+                  const dataStr = JSON.stringify(userData, null, 2);
+                  const blob = new Blob([dataStr], { type: 'application/json' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'my-scene-data.json';
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  addNotification("Data downloaded! 📄", "success");
+                }}
+                className="w-full bg-gray-900 border border-red-900/30 rounded-lg p-4 flex justify-between items-center hover:bg-gray-800 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <Download className="w-5 h-5 text-gray-400" />
+                  <span className="text-white">Download My Data</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-gray-900 border border-red-900/30 rounded-xl p-4 mt-4">
+              <h3 className="text-white font-semibold mb-3">Recent Activity</h3>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-gray-400 text-sm">RSVP'd to VIP Launch Party</span>
+                  <span className="text-gray-500 text-xs ml-auto">2 days ago</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span className="text-gray-400 text-sm">Checked into Rooftop Sessions</span>
+                  <span className="text-gray-500 text-xs ml-auto">1 week ago</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                  <span className="text-gray-400 text-sm">Reviewed Saturday Night Fever</span>
+                  <span className="text-gray-500 text-xs ml-auto">2 weeks ago</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg mt-4 transition-colors">
+              Sign Out
+            </button>
+          </div>
+        )}
+
+        {/* Account Settings Modal */}
+        {showAccountSettings && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 border border-red-900/30 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-white">Account Settings</h3>
+                <button onClick={() => setShowAccountSettings(false)} className="text-gray-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    defaultValue="John Doe"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
+                  <input
+                    type="email"
+                    defaultValue="john@email.com"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Date of Birth</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => setShowAccountSettings(false)}
+                  className="flex-1 py-2 border border-gray-600 text-gray-400 rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAccountSettings(false);
+                    addNotification("Account updated! ✅", "success");
+                  }}
+                  className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Privacy Settings Modal */}
+        {showPrivacySettings && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 border border-red-900/30 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-white">Privacy Settings</h3>
+                <button onClick={() => setShowPrivacySettings(false)} className="text-gray-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-white font-medium">Profile Visibility</p>
+                    <p className="text-gray-400 text-sm">Who can see your profile</p>
+                  </div>
+                  <select className="bg-gray-800 border border-gray-600 rounded text-white px-2 py-1">
+                    <option>Public</option>
+                    <option>Friends</option>
+                    <option>Private</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-white font-medium">Event History</p>
+                    <p className="text-gray-400 text-sm">Show events you've attended</p>
+                  </div>
+                  <div className="w-12 h-6 bg-red-500 rounded-full relative cursor-pointer">
+                    <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 right-0.5"></div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-white font-medium">Data Analytics</p>
+                    <p className="text-gray-400 text-sm">Help improve the app</p>
+                  </div>
+                  <div className="w-12 h-6 bg-gray-600 rounded-full relative cursor-pointer">
+                    <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5"></div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-white font-medium">Marketing Emails</p>
+                    <p className="text-gray-400 text-sm">Receive promotional content</p>
+                  </div>
+                  <div className="w-12 h-6 bg-gray-600 rounded-full relative cursor-pointer">
+                    <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    setShowPrivacySettings(false);
+                    addNotification("Privacy settings updated! 🔒", "success");
+                  }}
+                  className="w-full py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                >
+                  Save Privacy Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Navigation */}
+        <div className="bg-black/95 backdrop-blur-sm border-t border-red-900/30 p-4">
+          <div className="flex justify-around">
+            {[
+              { id: "events", icon: Calendar, label: "Events" },
+              { id: "my-rsvps", icon: CheckCircle2, label: "My RSVPs", badge: myRSVPs.length },
+              { id: "map", icon: MapPin, label: "Venues" },
+              { id: "profile", icon: User, label: "Profile" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex flex-col items-center py-3 px-4 rounded-2xl transition-all duration-300 relative ${
+                  activeTab === tab.id 
+                    ? "text-red-400 bg-red-900/30 scale-105 shadow-lg" 
+                    : "text-gray-400 hover:text-red-400 hover:bg-red-900/20"
+                }`}
+              >
+                <tab.icon className="w-6 h-6 mb-1" />
+                <span className="text-xs font-medium">{tab.label}</span>
+                {tab.badge > 0 && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-white text-xs font-bold">{tab.badge}</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Promoter App
+  const PromoterApp = () => {
+    const [selectedEventForManagement, setSelectedEventForManagement] = useState(null);
+    const [showCreateEvent, setShowCreateEvent] = useState(false);
+    const [promoterActiveTab, setPromoterActiveTab] = useState("dashboard");
+
+    const promoterStats = {
+      totalEvents: 3,
+      totalRSVPs: 312,
+      totalRevenue: 18750,
+      averageAttendance: 104
+    };
+
+    const eventStats = events.map(event => ({
+      ...event,
+      rsvps: allRSVPs.filter(rsvp => rsvp.eventId === event.id),
+      revenue: allRSVPs
+        .filter(rsvp => rsvp.eventId === event.id)
+        .reduce((sum, rsvp) => {
+          const ticket = event.ticketTypes.find(t => t.name === rsvp.ticketType);
+          return sum + (ticket?.price || 0);
+        }, 0)
+    }));
+
+    return (
+      <div className="max-w-md mx-auto h-screen bg-gradient-to-b from-gray-950 to-black flex flex-col font-sans">
+        {/* Header */}
+        <div className="p-6 border-b border-red-900/30 bg-black/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-xl font-bold text-white">Scene</h1>
+              <p className="text-xs text-red-400 uppercase tracking-widest">PRO DASHBOARD</p>
+            </div>
+            <div className="flex bg-gray-900/80 rounded-full p-1 border border-red-900/50">
+              <button
+                onClick={() => setAppMode("consumer")}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  appMode === "consumer" 
+                    ? "bg-red-500 text-white shadow-lg" 
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Consumer
+              </button>
+              <button
+                onClick={() => setAppMode("promoter")}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  appMode === "promoter" 
+                    ? "bg-red-500 text-white shadow-lg" 
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Promoter
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 rounded-2xl p-4 text-center border border-red-900/30">
+              <p className="text-red-400 font-bold text-xl">{promoterStats.totalEvents}</p>
+              <p className="text-gray-400 text-xs">Active Events</p>
+            </div>
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 rounded-2xl p-4 text-center border border-red-900/30">
+              <p className="text-green-400 font-bold text-xl">{promoterStats.totalRSVPs}</p>
+              <p className="text-gray-400 text-xs">Total RSVPs</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Dashboard Tab */}
+        {promoterActiveTab === "dashboard" && (
+          <>
+            <div className="p-4">
+              <div className="bg-gray-900 border border-red-900/30 rounded-xl p-4 mb-4">
+                <h3 className="text-white font-semibold mb-3 flex items-center space-x-2">
+                  <DollarSign className="w-4 h-4 text-green-400" />
+                  <span>Revenue Overview</span>
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-green-400 font-bold text-xl">${promoterStats.totalRevenue.toLocaleString()}</p>
+                    <p className="text-gray-400 text-sm">Total Revenue</p>
+                  </div>
+                  <div>
+                    <p className="text-blue-400 font-bold text-xl">{promoterStats.averageAttendance}</p>
+                    <p className="text-gray-400 text-sm">Avg. Attendance</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 pb-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-white font-semibold">Recent Activity</h3>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-white text-sm">New RSVP for Saturday Night Fever</span>
+                  </div>
+                  <p className="text-gray-400 text-xs">2 minutes ago</p>
+                </div>
+                <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span className="text-white text-sm">Payment received: $150</span>
+                  </div>
+                  <p className="text-gray-400 text-xs">5 minutes ago</p>
+                </div>
+                <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                    <span className="text-white text-sm">VIP Launch Party 75% full</span>
+                  </div>
+                  <p className="text-gray-400 text-xs">1 hour ago</p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Events Tab */}
+        {promoterActiveTab === "events" && (
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex justify-between items-center mb-3 mt-4">
+              <h3 className="text-white font-semibold">Your Events</h3>
+              <button
+                onClick={() => setShowCreateEvent(true)}
+                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {eventStats.map(event => (
+                <div key={event.id} className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h4 className="text-white font-semibold">{event.title}</h4>
+                      <p className="text-gray-400 text-sm flex items-center space-x-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{event.venue.name}</span>
+                      </p>
+                      <p className="text-gray-400 text-sm flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{new Date(event.date).toLocaleDateString()}</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        new Date(event.date) > new Date() ? 'bg-green-900/30 text-green-400' : 'bg-gray-700 text-gray-400'
+                      }`}>
+                        {new Date(event.date) > new Date() ? 'UPCOMING' : 'PAST'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Event Stats */}
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    <div className="text-center">
+                      <p className="text-blue-400 font-bold">{event.attendeeCount}</p>
+                      <p className="text-gray-400 text-xs">RSVPs</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-purple-400 font-bold">{event.capacity - event.attendeeCount}</p>
+                      <p className="text-gray-400 text-xs">Available</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-green-400 font-bold">${event.revenue}</p>
+                      <p className="text-gray-400 text-xs">Revenue</p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mb-3">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">Capacity</span>
+                      <span className="text-gray-400">{Math.round((event.attendeeCount / event.capacity) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(event.attendeeCount / event.capacity) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedEventForManagement(event);
+                      }}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold transition-colors"
+                    >
+                      Manage RSVPs
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        addNotification("Analytics coming soon! 📊", "info");
+                      }}
+                      className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        addNotification("Event editing coming soon! ✏️", "info");
+                      }}
+                      className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Guests Tab */}
+        {promoterActiveTab === "guests" && (
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex justify-between items-center mb-3 mt-4">
+              <h3 className="text-white font-semibold">All Guests</h3>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => {
+                    const pendingGuests = allRSVPs.filter(rsvp => !rsvp.checkedIn);
+                    if (pendingGuests.length > 0) {
+                      setAllRSVPs(prev => prev.map(rsvp => ({ ...rsvp, checkedIn: true })));
+                      addNotification(`Checked in ${pendingGuests.length} guests! ✅`, "success");
+                    } else {
+                      addNotification("All guests already checked in!", "info");
+                    }
+                  }}
+                  className="text-green-400 hover:text-green-300 bg-green-900/20 hover:bg-green-900/40 px-3 py-1 rounded-lg transition-colors"
+                >
+                  <UserCheck className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => {
+                    const csvContent = "Name,Email,Ticket Type,Guests,Status,QR Code\n" + 
+                      allRSVPs.map(rsvp => {
+                        const event = events.find(e => e.id === rsvp.eventId);
+                        return `${rsvp.userName},${rsvp.userEmail},${rsvp.ticketType},${rsvp.guestCount},${rsvp.checkedIn ? 'Checked In' : 'Pending'},${rsvp.qrCode}`;
+                      }).join('\n');
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'all-guests.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    addNotification("Guest list exported! 📋", "success");
+                  }}
+                  className="text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 px-3 py-1 rounded-lg transition-colors"
+                >
+                  Export
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {allRSVPs.map(rsvp => {
+                const event = events.find(e => e.id === rsvp.eventId);
+                return (
+                  <div key={rsvp.id} className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="text-white font-semibold">{rsvp.userName}</p>
+                        <p className="text-gray-400 text-sm">{rsvp.userEmail}</p>
+                        <p className="text-gray-400 text-xs">{event?.title}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          rsvp.checkedIn ? 'bg-green-900/30 text-green-400' : 'bg-gray-700 text-gray-400'
+                        }`}>
+                          {rsvp.checkedIn ? 'CHECKED IN' : 'PENDING'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-red-400 text-sm">{rsvp.ticketType}</p>
+                        <p className="text-gray-400 text-xs">{rsvp.guestCount} guest{rsvp.guestCount > 1 ? 's' : ''}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => handleToggleCheckIn(rsvp.id)}
+                          className={`p-1 rounded transition-colors ${
+                            rsvp.checkedIn 
+                              ? 'text-green-400 bg-green-900/20 hover:bg-green-900/40' 
+                              : 'text-gray-400 bg-gray-700 hover:bg-green-900/20 hover:text-green-400'
+                          }`}
+                          disabled={rsvp.approved !== true}
+                        >
+                          <UserCheck className="w-4 h-4" />
+                        </button>
+                        {rsvp.approved === null && (
+                          <>
+                            <button 
+                              onClick={() => handleApproveRSVP(rsvp.id)}
+                              className="text-green-400 hover:text-green-300 bg-green-900/20 hover:bg-green-900/40 p-1 rounded transition-colors"
+                              title="Approve RSVP"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleRejectRSVP(rsvp.id)}
+                              className="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/40 p-1 rounded transition-colors"
+                              title="Reject RSVP"
+                            >
+                              <UserX className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {rsvp.approved === false && (
+                          <button 
+                            onClick={() => handleApproveRSVP(rsvp.id)}
+                            className="text-green-400 hover:text-green-300 bg-green-900/20 hover:bg-green-900/40 p-1 rounded transition-colors"
+                            title="Re-approve RSVP"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => handleDeleteRSVP(rsvp.id)}
+                          className="text-gray-400 hover:text-gray-300 bg-gray-700 hover:bg-gray-600 p-1 rounded transition-colors"
+                          title="Remove from list"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <button className="text-blue-400 hover:text-blue-300">
+                          <QrCode className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {promoterActiveTab === "analytics" && (
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="mt-4 space-y-4">
+              <h3 className="text-white font-semibold">Analytics Overview</h3>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4 text-center">
+                  <p className="text-blue-400 font-bold text-2xl">68%</p>
+                  <p className="text-gray-400 text-sm">Avg Fill Rate</p>
+                </div>
+                <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4 text-center">
+                  <p className="text-purple-400 font-bold text-2xl">$60</p>
+                  <p className="text-gray-400 text-sm">Avg Revenue/Guest</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-3">Top Events</h4>
+                {eventStats.map((event, index) => (
+                  <div key={event.id} className="flex justify-between items-center py-2">
+                    <div>
+                      <p className="text-white text-sm">{event.title}</p>
+                      <p className="text-gray-400 text-xs">{event.attendeeCount} attendees</p>
+                    </div>
+                    <p className="text-green-400 font-bold">${event.revenue}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-gray-900 border border-red-900/30 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-3">Ticket Type Performance</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">VIP Table</span>
+                    <span className="text-green-400">$3,150</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">General Admission</span>
+                    <span className="text-green-400">$2,875</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Guest List</span>
+                    <span className="text-green-400">$0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* RSVP Management Modal */}
+        {selectedEventForManagement && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 border border-red-900/30 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-white">Manage RSVPs</h3>
+                <button onClick={() => setSelectedEventForManagement(null)} className="text-gray-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <h4 className="text-white font-semibold">{selectedEventForManagement.title}</h4>
+                <p className="text-gray-400 text-sm">{selectedEventForManagement.venue.name}</p>
+              </div>
+
+              {/* RSVP List */}
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Guest List ({allRSVPs.filter(r => r.eventId === selectedEventForManagement.id).length})</span>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => {
+                        const eventGuests = allRSVPs.filter(rsvp => rsvp.eventId === selectedEventForManagement.id && !rsvp.checkedIn);
+                        if (eventGuests.length > 0) {
+                          handleCheckInAll(selectedEventForManagement.id);
+                        } else {
+                          addNotification("All guests already checked in!", "info");
+                        }
+                      }}
+                      className="text-green-400 hover:text-green-300 bg-green-900/20 hover:bg-green-900/40 px-2 py-1 rounded transition-colors"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const eventGuests = allRSVPs.filter(rsvp => rsvp.eventId === selectedEventForManagement.id && rsvp.approved === null);
+                        eventGuests.forEach(guest => handleApproveRSVP(guest.id));
+                        if (eventGuests.length > 0) {
+                          addNotification(`Approved ${eventGuests.length} pending RSVPs! ✅`, "success");
+                        } else {
+                          addNotification("No pending approvals!", "info");
+                        }
+                      }}
+                      className="text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 px-2 py-1 rounded transition-colors"
+                    >
+                      Approve All
+                    </button>
+                  </div>
+                </div>
+                
+                {allRSVPs
+                  .filter(rsvp => rsvp.eventId === selectedEventForManagement.id)
+                  .map(rsvp => (
+                    <div key={rsvp.id} className="bg-gray-800 rounded-lg p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <p className="text-white font-semibold text-sm">{rsvp.userName}</p>
+                          <p className="text-gray-400 text-xs">{rsvp.ticketType} • {rsvp.guestCount} guest{rsvp.guestCount > 1 ? 's' : ''}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            rsvp.approved === true ? 'bg-green-900/30 text-green-400' :
+                            rsvp.approved === false ? 'bg-red-900/30 text-red-400' :
+                            'bg-yellow-900/30 text-yellow-400'
+                          }`}>
+                            {rsvp.approved === true ? 'APPROVED' :
+                             rsvp.approved === false ? 'REJECTED' :
+                             'PENDING'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={() => handleToggleCheckIn(rsvp.id)}
+                            className={`w-2 h-2 rounded-full cursor-pointer transition-colors ${
+                              rsvp.checkedIn ? 'bg-green-400' : 'bg-gray-500 hover:bg-green-400'
+                            }`}
+                            disabled={rsvp.approved !== true}
+                          ></button>
+                          <span className="text-gray-400 text-xs">
+                            {rsvp.checkedIn ? 'Checked In' : 'Not Checked In'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-1">
+                          {rsvp.approved === null && (
+                            <>
+                              <button 
+                                onClick={() => handleApproveRSVP(rsvp.id)}
+                                className="text-green-400 hover:text-green-300 bg-green-900/20 hover:bg-green-900/40 p-1 rounded transition-colors"
+                                title="Approve RSVP"
+                              >
+                                <UserCheck className="w-3 h-3" />
+                              </button>
+                              <button 
+                                onClick={() => handleRejectRSVP(rsvp.id)}
+                                className="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/40 p-1 rounded transition-colors"
+                                title="Reject RSVP"
+                              >
+                                <UserX className="w-3 h-3" />
+                              </button>
+                            </>
+                          )}
+                          {rsvp.approved === false && (
+                            <button 
+                              onClick={() => handleApproveRSVP(rsvp.id)}
+                              className="text-green-400 hover:text-green-300 bg-green-900/20 hover:bg-green-900/40 p-1 rounded transition-colors text-xs"
+                              title="Re-approve RSVP"
+                            >
+                              Re-approve
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => handleDeleteRSVP(rsvp.id)}
+                            className="text-gray-400 hover:text-gray-300 bg-gray-700 hover:bg-gray-600 p-1 rounded transition-colors"
+                            title="Remove from list"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <button className="text-blue-400 hover:text-blue-300">
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => handleCheckInAll(selectedEventForManagement.id)}
+                  className="bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-semibold transition-colors"
+                >
+                  Check-in All
+                </button>
+                <button 
+                  onClick={() => handleExportGuestList(selectedEventForManagement.id)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold transition-colors"
+                >
+                  Export List
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Event Modal */}
+        {showCreateEvent && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 border border-red-900/30 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-white">Create New Event</h3>
+                <button onClick={() => setShowCreateEvent(false)} className="text-gray-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Event Title</label>
+                  <input
+                    type="text"
+                    placeholder="Enter event name..."
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Venue</label>
+                  <select className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500">
+                    <option>Keys on Sunset</option>
+                    <option>Poppy</option>
+                    <option>Bootsy Bellows</option>
+                    <option>Other...</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Date</label>
+                    <input
+                      type="date"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Time</label>
+                    <input
+                      type="time"
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Description</label>
+                  <textarea
+                    placeholder="Describe your event..."
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => setShowCreateEvent(false)}
+                  className="flex-1 py-2 border border-gray-600 text-gray-400 rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateEvent(false);
+                    addNotification("Event created successfully! 🎉", "success");
+                  }}
+                  className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                >
+                  Create Event
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Navigation for Promoter */}
+        <div className="bg-black/95 backdrop-blur-sm border-t border-red-900/30 p-4">
+          <div className="flex justify-around">
+            {[
+              { id: "dashboard", icon: BarChart3, label: "Dashboard" },
+              { id: "events", icon: Calendar, label: "Events" },
+              { id: "guests", icon: Users, label: "Guests" },
+              { id: "analytics", icon: Target, label: "Analytics" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setPromoterActiveTab(tab.id)}
+                className={`flex flex-col items-center py-3 px-4 rounded-2xl transition-all duration-300 relative ${
+                  promoterActiveTab === tab.id 
+                    ? "text-red-400 bg-red-900/30 scale-105 shadow-lg" 
+                    : "text-gray-400 hover:text-red-400 hover:bg-red-900/20"
+                }`}
+              >
+                <tab.icon className="w-6 h-6 mb-1" />
+                <span className="text-xs font-medium">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative font-sans">
+      {appMode === "consumer" ? <ConsumerApp /> : <PromoterApp />}
+      
+      {/* Guided Tour Overlay */}
+      {showTour && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-red-500 rounded-xl p-6 w-full max-w-md text-center">
+            <div className="mb-4">
+              <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Play className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">{tourSteps[tourStep].title}</h3>
+              <p className="text-gray-400 text-sm">{tourSteps[tourStep].description}</p>
+            </div>
+            
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              {tourSteps.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === tourStep ? 'bg-red-500' : 'bg-gray-600'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowTour(false)}
+                className="flex-1 py-2 border border-gray-600 text-gray-400 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Skip Tour
+              </button>
+              <button
+                onClick={runTourAction}
+                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>{tourSteps[tourStep].action}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* RSVP Modal */}
+      {showRSVPModal && selectedEvent && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-red-900/30 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-white">RSVP to Event</h3>
+              <button onClick={() => setShowRSVPModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <h4 className="text-white font-semibold mb-1">{selectedEvent.title}</h4>
+              <p className="text-gray-400 text-sm">{selectedEvent.venue.name}</p>
+              <p className="text-gray-400 text-sm">
+                {new Date(selectedEvent.date).toLocaleDateString()} at {new Date(selectedEvent.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              </p>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <label className="block text-sm font-medium text-gray-400">Select Ticket Type</label>
+              {selectedEvent.ticketTypes.map(ticket => (
+                <button
+                  key={ticket.id}
+                  onClick={() => setSelectedTicketType(ticket)}
+                  className={`w-full p-4 rounded-lg border text-left transition-colors ${
+                    selectedTicketType?.id === ticket.id
+                      ? 'border-red-500 bg-red-900/30'
+                      : 'border-gray-600 bg-gray-800 hover:border-red-500/50'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-white font-semibold">{ticket.name}</p>
+                      <p className="text-red-400 font-bold">
+                        {ticket.price === 0 ? 'FREE' : `${ticket.price}`}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-400 text-sm">{ticket.available}</p>
+                      <p className="text-gray-500 text-xs">available</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {ticket.perks.map(perk => (
+                      <span key={perk} className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">
+                        {perk}
+                      </span>
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-400 mb-2">Number of Guests</label>
+              <select
+                value={guestCount}
+                onChange={(e) => setGuestCount(parseInt(e.target.value))}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+              >
+                {[1, 2, 3, 4, 5].map(num => (
+                  <option key={num} value={num}>{num} {num === 1 ? 'Guest' : 'Guests'}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowRSVPModal(false)}
+                className="flex-1 py-2 border border-gray-600 text-gray-400 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRSVP}
+                disabled={!selectedTicketType || loading}
+                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                <span>Confirm RSVP</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && selectedRSVP && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-red-900/30 rounded-xl p-6 w-full max-w-sm text-center">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">Your QR Code</h3>
+              <button onClick={() => setShowQRModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg mb-4 mx-auto w-48 h-48 flex items-center justify-center">
+              <div className="text-center">
+                <QrCode className="w-24 h-24 text-black mx-auto mb-2" />
+                <p className="text-black text-xs font-mono break-all">{selectedRSVP.qrCode}</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4 mb-4">
+              <h4 className="text-white font-semibold mb-2">{selectedRSVP.event.title}</h4>
+              <div className="space-y-1 text-sm text-gray-400">
+                <p className="flex items-center justify-center space-x-2">
+                  <MapPin className="w-4 h-4" />
+                  <span>{selectedRSVP.event.venue.name}</span>
+                </p>
+                <p className="flex items-center justify-center space-x-2">
+                  <Clock className="w-4 h-4" />
+                  <span>{new Date(selectedRSVP.event.date).toLocaleDateString()} at {new Date(selectedRSVP.event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </p>
+                <p className="flex items-center justify-center space-x-2">
+                  <Users className="w-4 h-4" />
+                  <span>{selectedRSVP.ticketType} - {selectedRSVP.guestCount} guest{selectedRSVP.guestCount > 1 ? 's' : ''}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                <Download className="w-4 h-4" />
+                <span>Save QR Code</span>
+              </button>
+              <button className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Notifications */}
+      {notifications.length > 0 && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 space-y-2">
+          {notifications.map(notification => (
+            <div
+              key={notification.id}
+              className={`px-4 py-2 rounded-lg text-white font-medium max-w-sm ${
+                notification.type === 'success' ? 'bg-green-600' :
+                notification.type === 'error' ? 'bg-red-600' :
+                'bg-blue-600'
+              }`}
+            >
+              {notification.message}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SceneRSVPApp;
