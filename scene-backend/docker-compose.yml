@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:
