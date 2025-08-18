@@ -1,0 +1,12 @@
+{
+  "build": {
+    "development": {
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "cli": {
+    "version": ">= 3.0.0"
+  }
+}

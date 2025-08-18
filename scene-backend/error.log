@@ -1,0 +1,13 @@
+[2025-08-12 06:15:22.902 PM] [31merror[39m: 	[31mUnable to connect to the database:[39m
+[2025-08-12 06:16:24.720 PM] [31merror[39m: 	[31mUnable to connect to the database:[39m
+[2025-08-15 01:19:52.801 PM] [31merror[39m: 	[31mTypeError: Cannot assign to read only property 'writeQueueSize' of object '#<TCP>'[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:16)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:175:25)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m
+[31m    at _clone (C:\Users\jonat\projects\daSCENE\scene-backend\node_modules\clone\clone.js:162:18)[39m

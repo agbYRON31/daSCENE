@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { profile } = require("winston");
 
 const venueSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
@@ -71,6 +72,27 @@ const promotionSchema = Joi.object({
   ),
 });
 
+const profileUpdateSchema = Joi.object({
+  name: Joi.string().min(2).max(50),
+  email: Joi.string().email(),
+  profile: Joi.object({
+    totalCheckins: Joi.number().integer().min(0),
+    photosShared: Joi.number().integer().min(0),
+    sceneScore: Joi.number().min(0),
+  }),
+  preferences: Joi.object({
+    notifications: Joi.object({
+      checkins: Joi.boolean(),
+      promotions: Joi.boolean(),
+      photos: Joi.boolean(),
+    }),
+    privacy: Joi.object({
+      shareLocation: Joi.boolean(),
+      shareCheckins: Joi.boolean(),
+    }),
+  }),
+}).min(1); // At least one field required
+
 module.exports = {
   venueSchema,
   registerSchema,
@@ -78,5 +100,6 @@ module.exports = {
   checkinSchema,
   photoSchema,
   promotionSchema,
+  profileUpdateSchema,
   // Add other schemas...
 };

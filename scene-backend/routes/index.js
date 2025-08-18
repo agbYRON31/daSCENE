@@ -8,6 +8,7 @@ const photoRoutes = require("./photoRoutes");
 const promotionRoutes = require("./promotionRoutes");
 const analyticsRoutes = require("./analyticsRoutes");
 const profileRoutes = require("./profileRoutes");
+const rsvpRoutes = require("./rsvpRoutes");
 
 router.use("/auth", authRoutes);
 router.use("/venues", venueRoutes);
@@ -16,5 +17,6 @@ router.use("/photos", photoRoutes);
 router.use("/promotions", promotionRoutes);
 router.use("/analytics", analyticsRoutes);
 router.use("/profile", profileRoutes);
+router.use("/rsvps", rsvpRoutes);
 
 module.exports = router;

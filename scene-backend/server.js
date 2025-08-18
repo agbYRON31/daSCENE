@@ -1,38 +1,54 @@
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
 const fs = require("fs");
-const cors = require("cors");
-const rateLimit = require("express-rate-limit");
-const swaggerUi = require("swagger-ui-express");
-const YAML = require("yamljs");
+const cors = require("cors"); // ✅ only once
+const bcrypt = require("bcrypt");
 
 const app = express();
 const server = http.createServer(app);
+
+// Import rate limiter correctly
+const { limiter } = require("./config/rateLimiter");
 const io = require("./config/websocket")(server);
 const routes = require("./routes");
 const { errorHandler } = require("./middleware/errorHandler");
-const limiter = require("./config/rateLimiter");
-const { connectDB } = require("./config/database");
+const { connectDB, sequelize } = require("./config");
 const { setupSwagger } = require("./config/swagger");
 
-// // Database connection
-// connectDB();
-
-// Middleware
-// app.use(cors());
-// Update CORS middleware to:
+// ===== CORS CONFIG =====
 app.use(
   cors({
-    origin: ["http://localhost:19006", "exp://192.168.1.100:19000"], // Add your Expo URLs
+    origin: (origin, callback) => {
+      // Allow requests without origin (e.g., mobile apps, curl)
+      if (!origin) return callback(null, true);
+
+      if (process.env.NODE_ENV === "development") {
+        // Dev: allow localhost and LAN
+        if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+          return callback(null, true);
+        }
+        const lanPattern = /^https?:\/\/(192\.168|10)\.\d+\.\d+(:\d+)?$/;
+        if (lanPattern.test(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS (dev mode)"));
+      } else {
+        // Prod: allow only env CORS_ORIGIN
+        if (origin === process.env.CORS_ORIGIN) {
+          return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS (prod mode)"));
+      }
+    },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
+
+// Security + parsing
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -45,40 +61,41 @@ const accessLogStream = fs.createWriteStream(
 );
 app.use(morgan("combined", { stream: accessLogStream }));
 
-// Rate limiting
+// Rate limiter
 app.use(limiter);
 
-// WebSocket setup
+// WebSocket
 app.set("io", io);
+
+app.get("/test", (req, res) => {
+  res.json({ message: "Server is working!" });
+});
 
 // Routes
 app.use("/api", routes);
 
-// Swagger documentation
+// Swagger docs
 setupSwagger(app);
 
-// Error handling
+// Error handler
 app.use(errorHandler);
 
-// Create uploads directory if it doesn't exist
+// Ensure uploads dir exists
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
 
-// Add this before server.listen()
+// ===== DATABASE SEED =====
 const seedDatabase = async () => {
   if (process.env.NODE_ENV !== "production") {
     const { User, Venue, Event, CheckIn, Promotion } = require("./models");
-
     try {
-      // Clear existing data
       await CheckIn.destroy({ where: {} });
       await Promotion.destroy({ where: {} });
       await Event.destroy({ where: {} });
       await Venue.destroy({ where: {} });
       await User.destroy({ where: {} });
 
-      // Create users
       const users = await User.bulkCreate([
         {
           email: "john@email.com",
@@ -102,7 +119,6 @@ const seedDatabase = async () => {
         },
       ]);
 
-      // Create venues
       const venues = await Venue.bulkCreate([
         {
           name: "Keys on Sunset",
@@ -135,8 +151,7 @@ const seedDatabase = async () => {
         },
       ]);
 
-      // Create events
-      const events = await Event.bulkCreate([
+      await Event.bulkCreate([
         {
           title: "Saturday Night Fever",
           description:
@@ -176,13 +191,11 @@ const seedDatabase = async () => {
         },
       ]);
 
-      // Create check-ins
       await CheckIn.bulkCreate([
         { userId: users[0].id, venueId: venues[0].id, checkedInAt: new Date() },
         { userId: users[1].id, venueId: venues[0].id, checkedInAt: new Date() },
       ]);
 
-      // Create promotions
       await Promotion.bulkCreate([
         {
           venueId: venues[0].id,
@@ -203,10 +216,13 @@ const seedDatabase = async () => {
   }
 };
 
-// Call the seed function after DB connection
+// Connect DB and seed
 connectDB().then(seedDatabase);
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Local access: http://localhost:${PORT}`);
+  console.log(`Network access: http://10.0.0.21:${PORT}`); // Your actual IP
+  console.log(`Test endpoint: http://10.0.0.21:${PORT}/test`);
 });

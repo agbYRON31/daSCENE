@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: Event RSVP API
+  description: API for managing event check-ins, checkouts, and current attendees.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CheckinRequest:
+      type: object
+      required:
+        - eventId
+      properties:
+        eventId:
+          type: integer
+          example: 42
+    CheckoutRequest:
+      type: object
+      required:
+        - eventId
+      properties:
+        eventId:
+          type: integer
+          example: 42
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation successful.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /checkin:
+    post:
+      summary: Check in a user to an event
+      description: Marks the user as checked in for the specified event.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckinRequest"
+      responses:
+        "200":
+          description: Successfully checked in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Invalid request.
+        "401":
+          description: Unauthorized (missing or invalid token).
+
+  /checkout:
+    post:
+      summary: Check out a user from an event
+      description: Marks the user as checked out from the specified event.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
+      responses:
+        "200":
+          description: Successfully checked out.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Invalid request.
+        "401":
+          description: Unauthorized.
+
+  /current:
+    get:
+      summary: Get the list of currently checked-in attendees
+      description: Returns all attendees currently checked in to events.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Successfully retrieved attendee list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    userId:
+                      type: integer
+                      example: 101
+                    eventId:
+                      type: integer
+                      example: 42
+                    checkedInAt:
+                      type: string
+                      format: date-time
+                      example: "2025-08-12T15:30:00Z"
+        "401":
+          description: Unauthorized.

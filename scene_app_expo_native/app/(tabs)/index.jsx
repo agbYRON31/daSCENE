@@ -23,14 +23,19 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { NavigationContainer } from "@react-navigation/native";
 import { LineChart, BarChart } from "react-native-chart-kit";
 import axios from "axios";
 import io from "socket.io-client";
-import * as SecureStore from "expo-secure-store";
+// import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const LAN_IP = "10.0.0.21";
+const BACKEND_PORT = 3001;
+
+const API_BASE_URL = `http://${LAN_IP}:${BACKEND_PORT}/api`;
 
 // Socket.io connection
-const socket = io("http://your-server-ip:3001", {
+const socket = io(`http://${LAN_IP}:${BACKEND_PORT}`, {
   transports: ["websocket"],
   autoConnect: false,
 });
@@ -38,9 +43,6 @@ const socket = io("http://your-server-ip:3001", {
 // Tab Navigator
 const Tab = createBottomTabNavigator();
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
-// API configuration
-const API_BASE_URL = "http://your-server-ip:3001/api";
 
 const SceneAppComplete = () => {
   const [appMode, setAppMode] = useState("consumer"); // 'consumer' or 'promoter'
@@ -110,7 +112,7 @@ const SceneAppComplete = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync("authToken");
+        const storedToken = await AsyncStorage.getItem("authToken");
         if (storedToken) {
           setToken(storedToken);
           fetchUserProfile(storedToken);
@@ -267,8 +269,8 @@ const SceneAppComplete = () => {
         password,
       });
 
-      // Store token securely
-      await SecureStore.setItemAsync("authToken", response.data.token);
+      // Store token
+      await AsyncStorage.setItem("authToken", response.data.token);
 
       setToken(response.data.token);
       setUser(response.data.user);
@@ -290,8 +292,8 @@ const SceneAppComplete = () => {
         role,
       });
 
-      // Store token securely
-      await SecureStore.setItemAsync("authToken", response.data.token);
+      // Store token using AsyncStorage
+      await AsyncStorage.setItem("authToken", response.data.token);
 
       setToken(response.data.token);
       setUser(response.data.user);
@@ -1372,10 +1374,14 @@ const SceneAppComplete = () => {
       <Tab.Screen name="Profile">
         {() => (
           <Profile
-            onLogout={() => {
-              SecureStore.deleteItemAsync("authToken");
-              setToken(null);
-              setUser(null);
+            onLogout={async () => {
+              try {
+                await AsyncStorage.removeItem("authToken");
+                setToken(null);
+                setUser(null);
+              } catch (error) {
+                console.error("Failed to remove token", error);
+              }
             }}
           />
         )}
@@ -1417,10 +1423,14 @@ const SceneAppComplete = () => {
       <Tab.Screen name="Profile">
         {() => (
           <Profile
-            onLogout={() => {
-              SecureStore.deleteItemAsync("authToken");
-              setToken(null);
-              setUser(null);
+            onLogout={async () => {
+              try {
+                await AsyncStorage.removeItem("authToken");
+                setToken(null);
+                setUser(null);
+              } catch (error) {
+                console.error("Failed to remove token", error);
+              }
             }}
           />
         )}
@@ -1520,7 +1530,7 @@ const SceneAppComplete = () => {
   }
 
   return (
-    <NavigationContainer>
+    <>
       {/* View Mode Toggle for promoter */}
       {user?.role === "venue_manager" && (
         <View style={styles.modeToggleContainer}>
@@ -1564,7 +1574,7 @@ const SceneAppComplete = () => {
 
       {/* Modals */}
       <RSVPModal />
-    </NavigationContainer>
+    </>
   );
 };
 

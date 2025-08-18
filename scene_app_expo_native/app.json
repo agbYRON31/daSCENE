@@ -12,11 +12,13 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.yourname.sceneappexponative",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "permissions": [],
+      "edgeToEdge": true
     },
     "web": {
       "bundler": "metro",
@@ -33,10 +35,23 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "updates": {
+      "url": "https://u.expo.dev/YOUR_PROJECT_ID"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "dd429ddc-fb7d-4f6d-bb05-7b17905f39b2"
+      }
     }
   }
 }
