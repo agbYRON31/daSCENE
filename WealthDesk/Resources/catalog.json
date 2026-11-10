@@ -1,5 +1,484 @@
 [
  {
+  "id": "percentages",
+  "name": "Percentages",
+  "category": "Everyday math",
+  "fields": [
+   {
+    "id": "pct",
+    "label": "Percent",
+    "unit": "%",
+    "example": "15",
+    "hint": "Enter 7 for 7%, or type 7%."
+   },
+   {
+    "id": "of",
+    "label": "…of this number",
+    "unit": "x",
+    "example": "240",
+    "hint": "A plain number."
+   },
+   {
+    "id": "part",
+    "label": "Part",
+    "unit": "x",
+    "example": "45",
+    "hint": "A plain number."
+   },
+   {
+    "id": "whole",
+    "label": "…as a share of whole",
+    "unit": "x",
+    "example": "180",
+    "hint": "A plain number."
+   },
+   {
+    "id": "old",
+    "label": "Old value",
+    "unit": "x",
+    "example": "80",
+    "hint": "A plain number."
+   },
+   {
+    "id": "new",
+    "label": "New value",
+    "unit": "x",
+    "example": "92",
+    "hint": "A plain number."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Percent of number",
+    "expression": "pct*of",
+    "format": "number",
+    "excel": "={pct}*{of}",
+    "expected": 36.0
+   },
+   {
+    "id": "1",
+    "label": "Part as % of whole",
+    "expression": "part/whole",
+    "format": "percent",
+    "excel": "={part}/{whole}",
+    "expected": 0.25
+   },
+   {
+    "id": "2",
+    "label": "% change old → new",
+    "expression": "(new-old)/abs(old)",
+    "format": "percent",
+    "excel": "=({new}-{old})/ABS({old})",
+    "expected": 0.15
+   },
+   {
+    "id": "3",
+    "label": "Number increased by percent",
+    "expression": "of*(1+pct)",
+    "format": "number",
+    "excel": "={of}*(1+{pct})",
+    "expected": 276.0
+   },
+   {
+    "id": "4",
+    "label": "Number decreased by percent",
+    "expression": "of*(1-pct)",
+    "format": "number",
+    "excel": "={of}*(1-{pct})",
+    "expected": 204.0
+   }
+  ],
+  "math": "x% of y = x/100 × y; part ÷ whole; (new − old) ÷ |old|",
+  "summary": "The everyday percentage questions in one place.",
+  "aliases": "percent of percentage change increase decrease share ratio",
+  "acronym": "",
+  "assumptions": "Plain arithmetic.",
+  "interpretation": "Percentage change is relative to the old value; a change in a rate (e.g. 4% → 5%) is also 1 percentage point.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "whole",
+    "relation": "!=",
+    "right": "0",
+    "message": "Whole can't be zero."
+   },
+   {
+    "left": "old",
+    "relation": "!=",
+    "right": "0",
+    "message": "Old value can't be zero."
+   }
+  ],
+  "common": true,
+  "sources": []
+ },
+ {
+  "id": "tip_split",
+  "name": "Tip & bill split",
+  "category": "Everyday math",
+  "fields": [
+   {
+    "id": "bill",
+    "label": "Bill (before tip)",
+    "unit": "$",
+    "example": "184.50",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "tip",
+    "label": "Tip",
+    "unit": "%",
+    "example": "20",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "tax",
+    "label": "Tax already in the bill",
+    "unit": "$",
+    "example": "15.20",
+    "hint": "Tip is calculated on the bill minus this tax; 0 to tip on the full bill.",
+    "min": 0
+   },
+   {
+    "id": "people",
+    "label": "People",
+    "unit": "count",
+    "example": "4",
+    "hint": "A whole number.",
+    "min": 1,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Tip",
+    "expression": "(bill-tax)*tip",
+    "format": "currency",
+    "excel": "=({bill}-{tax})*{tip}",
+    "expected": 33.86000000000001
+   },
+   {
+    "id": "1",
+    "label": "Total",
+    "expression": "bill+(bill-tax)*tip",
+    "format": "currency",
+    "excel": "={bill}+({bill}-{tax})*{tip}",
+    "expected": 218.36
+   },
+   {
+    "id": "2",
+    "label": "Per person",
+    "expression": "(bill+(bill-tax)*tip)/people",
+    "format": "currency",
+    "excel": "=({bill}+({bill}-{tax})*{tip})/{people}",
+    "expected": 54.59
+   }
+  ],
+  "math": "Tip = (bill − tax) × rate; per person = total ÷ people",
+  "summary": "Tip, total and each person's share.",
+  "aliases": "tip gratuity restaurant split check",
+  "acronym": "",
+  "assumptions": "Plain arithmetic; rounding to the cent is up to you.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "tax",
+    "relation": "<=",
+    "right": "bill",
+    "message": "Tax can't exceed the bill."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "discount",
+  "name": "Discount & sales tax",
+  "category": "Everyday math",
+  "fields": [
+   {
+    "id": "price",
+    "label": "List price",
+    "unit": "$",
+    "example": "250",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "d1",
+    "label": "Discount",
+    "unit": "%",
+    "example": "30",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "d2",
+    "label": "Extra discount (applied after)",
+    "unit": "%",
+    "example": "10",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "tax",
+    "label": "Sales tax",
+    "unit": "%",
+    "example": "8.25",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Sale price",
+    "expression": "price*(1-d1)*(1-d2)",
+    "format": "currency",
+    "excel": "={price}*(1-{d1})*(1-{d2})",
+    "expected": 157.5
+   },
+   {
+    "id": "1",
+    "label": "You save",
+    "expression": "price-price*(1-d1)*(1-d2)",
+    "format": "currency",
+    "excel": "={price}-{price}*(1-{d1})*(1-{d2})",
+    "expected": 92.5
+   },
+   {
+    "id": "2",
+    "label": "Effective total discount",
+    "expression": "1-(1-d1)*(1-d2)",
+    "format": "percent",
+    "excel": "=1-(1-{d1})*(1-{d2})",
+    "expected": 0.37
+   },
+   {
+    "id": "3",
+    "label": "Total with tax",
+    "expression": "price*(1-d1)*(1-d2)*(1+tax)",
+    "format": "currency",
+    "excel": "={price}*(1-{d1})*(1-{d2})*(1+{tax})",
+    "expected": 170.49375
+   }
+  ],
+  "math": "Price × (1 − d₁)(1 − d₂) × (1 + tax)",
+  "summary": "Stacked discounts, what you save, and the total after sales tax.",
+  "aliases": "sale discount percent off coupon sales tax",
+  "acronym": "",
+  "assumptions": "Discounts stack multiplicatively (30% then 10% is 37% off, not 40%). Tax applies to the discounted price.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "unit_price",
+  "name": "Unit price comparison",
+  "category": "Everyday math",
+  "fields": [
+   {
+    "id": "pa",
+    "label": "Price of option A",
+    "unit": "$",
+    "example": "8.99",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "qa",
+    "label": "Quantity in A",
+    "unit": "x",
+    "example": "24",
+    "hint": "Ounces, count, etc.",
+    "min": 1e-07
+   },
+   {
+    "id": "pb",
+    "label": "Price of option B",
+    "unit": "$",
+    "example": "13.49",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "qb",
+    "label": "Quantity in B",
+    "unit": "x",
+    "example": "40",
+    "hint": "Same unit as A.",
+    "min": 1e-07
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Unit price A",
+    "expression": "pa/qa",
+    "format": "currency",
+    "excel": "={pa}/{qa}",
+    "expected": 0.3745833333333333
+   },
+   {
+    "id": "1",
+    "label": "Unit price B",
+    "expression": "pb/qb",
+    "format": "currency",
+    "excel": "={pb}/{qb}",
+    "expected": 0.33725
+   },
+   {
+    "id": "2",
+    "label": "B vs. A per unit (− = B cheaper)",
+    "expression": "(pb/qb)/(pa/qa)-1",
+    "format": "percent",
+    "excel": "=({pb}/{qb})/({pa}/{qa})-1",
+    "expected": -0.09966629588431586
+   }
+  ],
+  "math": "Price ÷ quantity",
+  "summary": "Which size or package is the better deal per unit.",
+  "aliases": "unit price per ounce bulk compare cheaper",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "weighted_avg",
+  "name": "Weighted average (grades)",
+  "category": "Everyday math",
+  "fields": [
+   {
+    "id": "x",
+    "label": "Scores",
+    "unit": "series",
+    "example": "92; 85; 78; 88",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "w",
+    "label": "Weights (% or points)",
+    "unit": "series",
+    "example": "20; 30; 15; 35",
+    "hint": "Separate values with semicolons or new lines."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Weighted average",
+    "expression": "sumproduct(x,w)/sum(w)",
+    "format": "number",
+    "excel": "=SUMPRODUCT({x},{w})/SUM({w})",
+    "expected": 86.4
+   },
+   {
+    "id": "1",
+    "label": "Simple average",
+    "expression": "avg(x)",
+    "format": "number",
+    "excel": "=AVERAGE({x})",
+    "expected": 85.75
+   },
+   {
+    "id": "2",
+    "label": "Total weight",
+    "expression": "sum(w)",
+    "format": "number",
+    "excel": "=SUM({w})",
+    "expected": 100.0
+   }
+  ],
+  "math": "Σ(score × weight) ÷ Σ weight",
+  "summary": "Course grade or any average where items count differently.",
+  "aliases": "weighted average grade gpa course final exam",
+  "acronym": "",
+  "assumptions": "Weights don't need to add to 100; they're normalized.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": "==",
+    "right": "count(w)",
+    "message": "Enter the same number of scores and weights."
+   },
+   {
+    "left": "sum(w)",
+    "relation": ">",
+    "right": "0",
+    "message": "Weights must add up to more than zero."
+   }
+  ],
+  "common": true,
+  "sources": []
+ },
+ {
+  "id": "grade_needed",
+  "name": "Final exam score needed",
+  "category": "Everyday math",
+  "fields": [
+   {
+    "id": "cur",
+    "label": "Current grade (before final)",
+    "unit": "x",
+    "example": "84",
+    "hint": "A plain number."
+   },
+   {
+    "id": "wf",
+    "label": "Final exam weight",
+    "unit": "%",
+    "example": "30",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001,
+    "max": 1
+   },
+   {
+    "id": "target",
+    "label": "Target course grade",
+    "unit": "x",
+    "example": "88",
+    "hint": "A plain number."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Score needed on the final",
+    "expression": "(target-cur*(1-wf))/wf",
+    "format": "number",
+    "excel": "=({target}-{cur}*(1-{wf}))/{wf}",
+    "expected": 97.33333333333334
+   }
+  ],
+  "math": "(target − current × (1 − w)) ÷ w",
+  "summary": "What you need on the final to reach a target course grade.",
+  "aliases": "final exam grade needed what do i need",
+  "acronym": "",
+  "assumptions": "Current grade covers everything except the final, on the same scale as the target.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
   "id": "fv_lump",
   "name": "Future value of a lump sum",
   "category": "Growth & time value",
@@ -1248,7 +1727,7 @@
   "aliases": "rmd required minimum distribution ira uniform lifetime",
   "acronym": "RMD",
   "assumptions": "Uses the Uniform Lifetime Table. A spouse more than 10 years younger and sole beneficiary uses the Joint Life table instead. Inherited accounts follow different rules.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
   "excelNotes": "Excel needs the IRS Uniform Lifetime Table on a sheet named UniformTable (age in column A, factor in column B).",
   "rules": [],
   "common": true,
@@ -1330,7 +1809,7 @@
   "aliases": "401k 403b ira catch up max out limits",
   "acronym": "",
   "assumptions": "Employee deferral limits only; excludes employer contributions, the overall annual-additions limit, Roth IRA income phase-outs, and the Roth catch-up requirement for higher earners.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
   "excelNotes": "Limits come from the app's dated tax table; there is no Excel formula.",
   "rules": [],
   "common": false,
@@ -1852,7 +2331,7 @@
   "aliases": "brackets marginal effective tax rate",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
   "excelNotes": "Bracket math needs a bracket table in Excel; the app uses its dated tax table.",
   "rules": [],
   "common": true,
@@ -1939,7 +2418,7 @@
   "aliases": "standard deduction itemize",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -2106,7 +2585,7 @@
   "aliases": "capital gains qualified dividends 15% 20%",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance. NIIT is a separate calculator.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. NIIT is a separate calculator.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -2185,7 +2664,7 @@
   "aliases": "3.8% surtax medicare investment",
   "acronym": "NIIT",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -2365,7 +2844,7 @@
   "aliases": "fill the bracket conversion",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -7764,7 +8243,7 @@
   "aliases": "estate tax exemption gift portability",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance. Uses the top 40% rate as an approximation; state estate taxes are excluded.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. Uses the top 40% rate as an approximation; state estate taxes are excluded.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,

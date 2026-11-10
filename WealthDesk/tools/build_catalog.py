@@ -17,7 +17,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-TAX = json.load(open(os.path.join(ROOT, "Resources", "taxdata.json")))
+TAXDATA = json.load(open(os.path.join(ROOT, "Resources", "taxdata.json")))
+# Expected values are computed with the reference year; the self-test selects the same year.
+TAX = next(t for t in TAXDATA["tables"] if t["taxYear"] == TAXDATA["referenceYear"])
 
 # ---------------------------------------------------------------------------
 # Reference math (independent of the Swift engine)
@@ -519,8 +521,8 @@ DEFAULT_INTERP = ("This is a mathematical result under the stated assumptions, n
                   "Actual returns, tax law and personal circumstances vary.")
 EXCEL_NOTES = ("Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, "
                "so some formulas carry a minus sign to show a positive result.")
-TAX_INTERP = ("Uses the federal figures in the app's tax table for tax year {y}. Excludes state tax, AMT, credits, "
-              "phase-outs and payroll taxes. Confirm against current IRS guidance.").format(y=TAX["taxYear"])
+TAX_INTERP = ("Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). "
+              "Excludes state tax, AMT, credits, phase-outs and payroll taxes.")
 
 HINTS = {
     "$": "Dollar amount; k and m suffixes work (250k, 1.2m).",
@@ -594,6 +596,7 @@ def calc(id, name, category, fields, outputs, math, summary, aliases="", acronym
     })
 
 
+EV = "Everyday math"
 G = "Growth & time value"
 RET = "Retirement & income"
 TX = "Tax"
@@ -603,6 +606,66 @@ SB = "Stocks & bonds"
 ST = "Statistics & econometrics"
 EC = "Economics"
 PL = "Planning & protection"
+
+# --- Everyday math --------------------------------------------------------------------
+calc("percentages", "Percentages", EV,
+     [F("pct", "Percent", "%", "15", min=None, max=None), F("of", "…of this number", "x", "240", min=None),
+      F("part", "Part", "x", "45", min=None), F("whole", "…as a share of whole", "x", "180", min=None),
+      F("old", "Old value", "x", "80", min=None), F("new", "New value", "x", "92", min=None)],
+     [O("0", "Percent of number", "pct*of", "number", "={pct}*{of}"),
+      O("1", "Part as % of whole", "part/whole", "percent", "={part}/{whole}"),
+      O("2", "% change old → new", "(new-old)/abs(old)", "percent", "=({new}-{old})/ABS({old})"),
+      O("3", "Number increased by percent", "of*(1+pct)", "number", "={of}*(1+{pct})"),
+      O("4", "Number decreased by percent", "of*(1-pct)", "number", "={of}*(1-{pct})")],
+     "x% of y = x/100 × y; part ÷ whole; (new − old) ÷ |old|",
+     "The everyday percentage questions in one place.", "percent of percentage change increase decrease share ratio",
+     common=True, rules=[R("whole", "!=", "0", "Whole can't be zero."), R("old", "!=", "0", "Old value can't be zero.")],
+     assumptions="Plain arithmetic.", interpretation="Percentage change is relative to the old value; a change in a rate (e.g. 4% → 5%) is also 1 percentage point.")
+
+calc("tip_split", "Tip & bill split", EV,
+     [F("bill", "Bill (before tip)", "$", "184.50"), F("tip", "Tip", "%", "20", max=1),
+      F("tax", "Tax already in the bill", "$", "15.20", hint="Tip is calculated on the bill minus this tax; 0 to tip on the full bill."),
+      F("people", "People", "count", "4", min=1)],
+     [O("0", "Tip", "(bill-tax)*tip", "currency", "=({bill}-{tax})*{tip}"),
+      O("1", "Total", "bill+(bill-tax)*tip", "currency", "={bill}+({bill}-{tax})*{tip}"),
+      O("2", "Per person", "(bill+(bill-tax)*tip)/people", "currency", "=({bill}+({bill}-{tax})*{tip})/{people}")],
+     "Tip = (bill − tax) × rate; per person = total ÷ people", "Tip, total and each person's share.",
+     "tip gratuity restaurant split check", rules=[R("tax", "<=", "bill", "Tax can't exceed the bill.")], assumptions="Plain arithmetic; rounding to the cent is up to you.")
+
+calc("discount", "Discount & sales tax", EV,
+     [F("price", "List price", "$", "250"), F("d1", "Discount", "%", "30", max=1),
+      F("d2", "Extra discount (applied after)", "%", "10", max=1), F("tax", "Sales tax", "%", "8.25", max=1)],
+     [O("0", "Sale price", "price*(1-d1)*(1-d2)", "currency", "={price}*(1-{d1})*(1-{d2})"),
+      O("1", "You save", "price-price*(1-d1)*(1-d2)", "currency", "={price}-{price}*(1-{d1})*(1-{d2})"),
+      O("2", "Effective total discount", "1-(1-d1)*(1-d2)", "percent", "=1-(1-{d1})*(1-{d2})"),
+      O("3", "Total with tax", "price*(1-d1)*(1-d2)*(1+tax)", "currency", "={price}*(1-{d1})*(1-{d2})*(1+{tax})")],
+     "Price × (1 − d₁)(1 − d₂) × (1 + tax)", "Stacked discounts, what you save, and the total after sales tax.",
+     "sale discount percent off coupon sales tax", assumptions="Discounts stack multiplicatively (30% then 10% is 37% off, not 40%). Tax applies to the discounted price.")
+
+calc("unit_price", "Unit price comparison", EV,
+     [F("pa", "Price of option A", "$", "8.99"), F("qa", "Quantity in A", "x", "24", min=0.0000001, hint="Ounces, count, etc."),
+      F("pb", "Price of option B", "$", "13.49"), F("qb", "Quantity in B", "x", "40", min=0.0000001, hint="Same unit as A.")],
+     [O("0", "Unit price A", "pa/qa", "currency", "={pa}/{qa}"),
+      O("1", "Unit price B", "pb/qb", "currency", "={pb}/{qb}"),
+      O("2", "B vs. A per unit (− = B cheaper)", "(pb/qb)/(pa/qa)-1", "percent", "=({pb}/{qb})/({pa}/{qa})-1")],
+     "Price ÷ quantity", "Which size or package is the better deal per unit.", "unit price per ounce bulk compare cheaper")
+
+calc("weighted_avg", "Weighted average (grades)", EV,
+     [F("x", "Scores", "series", "92; 85; 78; 88", min=None), F("w", "Weights (% or points)", "series", "20; 30; 15; 35", min=None)],
+     [O("0", "Weighted average", "sumproduct(x,w)/sum(w)", "number", "=SUMPRODUCT({x},{w})/SUM({w})"),
+      O("1", "Simple average", "avg(x)", "number", "=AVERAGE({x})"),
+      O("2", "Total weight", "sum(w)", "number", "=SUM({w})")],
+     "Σ(score × weight) ÷ Σ weight", "Course grade or any average where items count differently.",
+     "weighted average grade gpa course final exam", common=True,
+     rules=[R("count(x)", "==", "count(w)", "Enter the same number of scores and weights."), R("sum(w)", ">", "0", "Weights must add up to more than zero.")],
+     assumptions="Weights don't need to add to 100; they're normalized.")
+
+calc("grade_needed", "Final exam score needed", EV,
+     [F("cur", "Current grade (before final)", "x", "84", min=None), F("wf", "Final exam weight", "%", "30", min=0.0001, max=1),
+      F("target", "Target course grade", "x", "88", min=None)],
+     [O("0", "Score needed on the final", "(target-cur*(1-wf))/wf", "number", "=({target}-{cur}*(1-{wf}))/{wf}")],
+     "(target − current × (1 − w)) ÷ w", "What you need on the final to reach a target course grade.",
+     "final exam grade needed what do i need", assumptions="Current grade covers everything except the final, on the same scale as the target.")
 
 # --- Growth & time value ----------------------------------------------------
 calc("fv_lump", "Future value of a lump sum", G,

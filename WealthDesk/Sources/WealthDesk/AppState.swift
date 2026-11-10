@@ -29,6 +29,15 @@ struct Workspace: Codable {
     var pinned = false
     var lastSelection: String? = nil
     var watchlist: [String] = ["SPY", "VTI", "BND", "AGG"]
+    /// Tax year chosen by the user; nil follows the calendar year.
+    var taxYear: Int? = nil
+    var checkIRS = true
+    var irsCheckedAt: Date? = nil
+    var irsPublished: IRSCheck.Published? = nil
+    var tape: [TapeEntry] = []
+    var variables: [String: Double] = [:]
+    var calcDegrees = true
+    var calcScientific = false
 
     init() {}
 
@@ -44,11 +53,28 @@ struct Workspace: Codable {
         pinned = try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? d.pinned
         lastSelection = try c.decodeIfPresent(String.self, forKey: .lastSelection)
         watchlist = try c.decodeIfPresent([String].self, forKey: .watchlist) ?? d.watchlist
+        taxYear = try c.decodeIfPresent(Int.self, forKey: .taxYear)
+        checkIRS = try c.decodeIfPresent(Bool.self, forKey: .checkIRS) ?? d.checkIRS
+        irsCheckedAt = try c.decodeIfPresent(Date.self, forKey: .irsCheckedAt)
+        irsPublished = try c.decodeIfPresent(IRSCheck.Published.self, forKey: .irsPublished)
+        tape = try c.decodeIfPresent([TapeEntry].self, forKey: .tape) ?? d.tape
+        variables = try c.decodeIfPresent([String: Double].self, forKey: .variables) ?? d.variables
+        calcDegrees = try c.decodeIfPresent(Bool.self, forKey: .calcDegrees) ?? d.calcDegrees
+        calcScientific = try c.decodeIfPresent(Bool.self, forKey: .calcScientific) ?? d.calcScientific
     }
+}
+
+struct TapeEntry: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var expression: String
+    var result: Double
+    var assigned: String?
+    var date = Date()
 }
 
 enum SidebarItem: Hashable {
     case calc(String)
+    case calculator
     case markets
     case scenarios
     case history
@@ -62,6 +88,8 @@ final class AppState: ObservableObject {
     @Published var selection: SidebarItem? = .calc("fv_lump")
     @Published var search = ""
     @Published var toast: String?
+    @Published var irsChecking = false
+    @Published var irsError: String?
 
     private var saveWork: DispatchWorkItem?
     private var toastWork: DispatchWorkItem?
@@ -81,6 +109,55 @@ final class AppState: ObservableObject {
         if let last = workspace.lastSelection, engine?.calculator(last) != nil {
             selection = .calc(last)
         }
+        if let y = workspace.taxYear, engine?.selectTaxYear(y) != true { workspace.taxYear = nil }
+        if workspace.checkIRS { Task { await checkIRS(force: false) } }
+    }
+
+    // MARK: Tax year & IRS check
+
+    var taxYears: [Int] { engine?.taxData?.years ?? [] }
+    var taxTable: TaxTable? { engine?.tax }
+
+    func setTaxYear(_ year: Int) {
+        guard engine?.selectTaxYear(year) == true else { return }
+        let def = engine?.taxData?.defaultYear()
+        workspace.taxYear = (year == def) ? nil : year
+    }
+
+    /// Warnings from the latest IRS.gov check (empty when up to date or not yet checked).
+    var irsWarnings: [String] {
+        guard let pub = workspace.irsPublished, let data = engine?.taxData else { return [] }
+        return IRSCheck.compare(pub, data: data).filter { $0 != .upToDate }.map(IRSCheck.message)
+    }
+
+    /// Reads IRS.gov release pages (at most once a day unless forced) to see whether
+    /// newer tax figures exist than the ones shipped in taxdata.json.
+    func checkIRS(force: Bool) async {
+        if !force, let last = workspace.irsCheckedAt, Date().timeIntervalSince(last) < 86_400 { return }
+        guard !irsChecking else { return }
+        irsChecking = true
+        defer { irsChecking = false }
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 20
+        config.httpAdditionalHeaders = ["User-Agent": "Mozilla/5.0 (Macintosh) WealthDesk"]
+        let session = URLSession(configuration: config)
+        var found = IRSCheck.Published()
+        var reached = 0
+        for url in IRSCheck.pages {
+            if let (data, resp) = try? await session.data(from: url), (resp as? HTTPURLResponse)?.statusCode == 200 {
+                reached += 1
+                found = found.merged(with: IRSCheck.parse(html: String(decoding: data, as: UTF8.self)))
+            }
+        }
+        guard reached > 0 else {
+            irsError = "Couldn't reach IRS.gov to check for newer tax figures."
+            return
+        }
+        irsError = nil
+        workspace.irsPublished = found
+        workspace.irsCheckedAt = Date()
+        let warnings = irsWarnings
+        if !warnings.isEmpty { flash(warnings[0]) }
     }
 
     // MARK: Resources

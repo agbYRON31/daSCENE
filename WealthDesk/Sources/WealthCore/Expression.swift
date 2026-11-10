@@ -43,7 +43,11 @@ private enum Token: Equatable {
 
 private func tokenize(_ s: String) throws -> [Token] {
     var out: [Token] = []
-    let chars = Array(s)
+    let normalized = s.replacingOccurrences(of: "×", with: "*")
+        .replacingOccurrences(of: "÷", with: "/")
+        .replacingOccurrences(of: "−", with: "-")
+        .replacingOccurrences(of: "π", with: "pi")
+    let chars = Array(normalized)
     var i = 0
     while i < chars.count {
         let c = chars[i]
@@ -170,12 +174,12 @@ public struct Expression {
         guard p.peek == .end else { throw EvalError.message("Malformed formula: \(source)") }
     }
 
-    public func evaluate(_ scope: [String: Value], tax: TaxTable) throws -> Value {
-        try Evaluator(scope: scope, tax: tax).eval(root)
+    public func evaluate(_ scope: [String: Value], tax: TaxTable, degrees: Bool = false) throws -> Value {
+        try Evaluator(scope: scope, tax: tax, degrees: degrees).eval(root)
     }
 
-    public func number(_ scope: [String: Value], tax: TaxTable) throws -> Double {
-        try evaluate(scope, tax: tax).num("Result")
+    public func number(_ scope: [String: Value], tax: TaxTable, degrees: Bool = false) throws -> Double {
+        try evaluate(scope, tax: tax, degrees: degrees).num("Result")
     }
 }
 
@@ -184,6 +188,10 @@ public struct Expression {
 private struct Evaluator {
     let scope: [String: Value]
     let tax: TaxTable
+    var degrees = false
+
+    /// Radians per angle unit for trig input (and its inverse for asin/acos/atan output).
+    var angle: Double { degrees ? Double.pi / 180 : 1 }
 
     func eval(_ n: Node) throws -> Value {
         switch n {
@@ -297,6 +305,37 @@ private struct Evaluator {
             guard !args.isEmpty else { throw EvalError.message("max() needs arguments.") }
             return .number(try args.flatMap { try $0.list(name) }.max()!)
         case "abs": try need(1); return try map(args[0]) { Swift.abs($0) }
+        // scientific
+        case "sin": try need(1); return try map(args[0]) { Foundation.sin($0 * angle) }
+        case "cos": try need(1); return try map(args[0]) { Foundation.cos($0 * angle) }
+        case "tan": try need(1); return try map(args[0]) { Foundation.tan($0 * angle) }
+        case "asin": try need(1); return try map(args[0]) { Foundation.asin($0) / angle }
+        case "acos": try need(1); return try map(args[0]) { Foundation.acos($0) / angle }
+        case "atan": try need(1); return try map(args[0]) { Foundation.atan($0) / angle }
+        case "sinh": try need(1); return try map(args[0]) { Foundation.sinh($0) }
+        case "cosh": try need(1); return try map(args[0]) { Foundation.cosh($0) }
+        case "tanh": try need(1); return try map(args[0]) { Foundation.tanh($0) }
+        case "log":
+            if args.count == 2 { return .number(Foundation.log(try n(0)) / Foundation.log(try n(1))) }
+            try need(1); return try map(args[0]) { Foundation.log10($0) }
+        case "log2": try need(1); return try map(args[0]) { Foundation.log2($0) }
+        case "cbrt": try need(1); return try map(args[0]) { Foundation.cbrt($0) }
+        case "e": try need(0); return .number(M_E)
+        case "mod":
+            try need(2)
+            let a = try n(0), b = try n(1)
+            guard b != 0 else { throw EvalError.message("mod() by zero.") }
+            return .number(a - b * (a / b).rounded(.down))
+        case "round":
+            if args.count == 2 {
+                let f = pow(10.0, (try n(1)).rounded())
+                return .number(((try n(0)) * f).rounded() / f)
+            }
+            try need(1); return try map(args[0]) { $0.rounded() }
+        case "fact":
+            try need(1); return .number(try Scientific.factorial(try n(0)))
+        case "ncr": try need(2); return .number(try Scientific.combinations(try n(0), try n(1)))
+        case "npr": try need(2); return .number(try Scientific.permutations(try n(0), try n(1)))
         case "sqrt": try need(1); return try map(args[0]) { $0.squareRoot() }
         case "ln": try need(1); return try map(args[0]) { Foundation.log($0) }
         case "exp": try need(1); return try map(args[0]) { Foundation.exp($0) }

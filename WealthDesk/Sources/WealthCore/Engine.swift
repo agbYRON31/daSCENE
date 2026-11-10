@@ -26,16 +26,33 @@ public struct Evaluation: Equatable {
 
 public final class Engine {
     public let calculators: [Calculator]
-    public let tax: TaxTable
+    /// Every tax year available; `tax` is the one in use.
+    public let taxData: TaxData?
+    public private(set) var tax: TaxTable
     private var compiled: [String: Expression] = [:]
 
     public init(calculators: [Calculator], tax: TaxTable) {
         self.calculators = calculators
         self.tax = tax
+        self.taxData = nil
     }
 
-    public convenience init(catalogURL: URL, taxURL: URL) throws {
-        self.init(calculators: try CatalogLoader.load(from: catalogURL), tax: try TaxTable.load(from: taxURL))
+    public init(calculators: [Calculator], taxData: TaxData, year: Int? = nil) {
+        self.calculators = calculators
+        self.taxData = taxData
+        self.tax = taxData.table(for: year ?? taxData.defaultYear()) ?? taxData.table(for: taxData.defaultYear())!
+    }
+
+    public convenience init(catalogURL: URL, taxURL: URL, year: Int? = nil) throws {
+        self.init(calculators: try CatalogLoader.load(from: catalogURL), taxData: try TaxData.load(from: taxURL), year: year)
+    }
+
+    /// Switches the tax year used by tax calculators. Returns false if that year isn't loaded.
+    @discardableResult
+    public func selectTaxYear(_ year: Int) -> Bool {
+        guard let t = taxData?.table(for: year) else { return false }
+        tax = t
+        return true
     }
 
     public func calculator(_ id: String) -> Calculator? { calculators.first { $0.id == id } }

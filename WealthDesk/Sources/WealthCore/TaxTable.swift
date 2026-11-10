@@ -11,7 +11,13 @@ public struct TaxTable: Codable {
     }
 
     public let taxYear: Int
-    public let verifyNote: String
+    /// Date (YYYY-MM-DD) these figures were checked against the IRS sources.
+    public let verifiedOn: String
+    public let sources: [Source]
+    /// Caveats, e.g. limits the IRS hasn't published yet.
+    public let notes: [String]
+    /// Year of the retirement-plan limits in this table (may lag `taxYear`).
+    public let limitsYear: Int
     public let statuses: [ChoiceOption]
     public let ordinaryBrackets: [String: [[Double]]]
     public let standardDeduction: [String: Double]
@@ -24,8 +30,9 @@ public struct TaxTable: Codable {
     public let estateTopRate: Double
     public let uniformLifetime: [String: Double]
 
-    public static func load(from url: URL) throws -> TaxTable {
-        try JSONDecoder().decode(TaxTable.self, from: Data(contentsOf: url))
+    /// Combined tax at the start of each bracket, for checking against the IRS "plus" amounts.
+    public func baseAmounts(_ status: Double) throws -> [Double] {
+        try brackets(status).map { try incomeTax($0[0], status) }
     }
 
     private func key(_ status: Double) throws -> String {
@@ -95,5 +102,30 @@ public struct TaxTable: Codable {
 
     public func limitIRA(_ age: Double) -> Double {
         limits.ira + (age >= 50 ? limits.iraCatchUp50 : 0)
+    }
+}
+
+/// All tax years shipped with the app.
+public struct TaxData: Codable {
+    /// Year used to compute the catalog's expected values (self-test).
+    public let referenceYear: Int
+    public let tables: [TaxTable]
+
+    public static func load(from url: URL) throws -> TaxData {
+        let d = try JSONDecoder().decode(TaxData.self, from: Data(contentsOf: url))
+        guard !d.tables.isEmpty else { throw EvalError.message("taxdata.json has no tax years.") }
+        return d
+    }
+
+    public var years: [Int] { tables.map(\.taxYear).sorted() }
+    public var latestYear: Int { years.last! }
+
+    public func table(for year: Int) -> TaxTable? { tables.first { $0.taxYear == year } }
+
+    /// The current calendar year if loaded; otherwise the newest year not after it; otherwise the oldest.
+    public func defaultYear(today: Date = Date()) -> Int {
+        let y = Calendar(identifier: .gregorian).component(.year, from: today)
+        if table(for: y) != nil { return y }
+        return years.last(where: { $0 <= y }) ?? years.first!
     }
 }

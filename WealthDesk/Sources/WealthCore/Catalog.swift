@@ -82,6 +82,14 @@ public struct Calculator: Codable, Hashable, Identifiable {
         Dictionary(uniqueKeysWithValues: fields.map { ($0.id, $0.example) })
     }
 
+    /// True when any formula reads the dated IRS tax table.
+    public var usesTaxTable: Bool {
+        let names = ["incometax(", "margrate(", "bracketroom(", "stddeduction(", "ltcgtax(", "niitthreshold(",
+                     "niitrate(", "rmdfactor(", "limit401k(", "limitira(", "giftexclusion(", "estateexemption(", "estaterate("]
+        let text = (outputs.map(\.expression) + rules.map(\.left) + rules.map(\.right)).joined(separator: " ")
+        return names.contains { text.contains($0) }
+    }
+
     /// Lower-cased text used for search.
     public var searchText: String {
         [name, category, summary, aliases, acronym, math].joined(separator: " ").lowercased()

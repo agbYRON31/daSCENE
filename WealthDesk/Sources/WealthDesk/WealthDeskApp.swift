@@ -41,6 +41,8 @@ struct WealthDeskApp: App {
                     .keyboardShortcut("i", modifiers: [.command, .shift])
             }
             CommandMenu("Calculator") {
+                Button("Calculator") { state.selection = .calculator }
+                    .keyboardShortcut("k", modifiers: [.command, .shift])
                 Button("Markets") { state.selection = .markets }
                     .keyboardShortcut("0", modifiers: [.command, .shift])
                 Button("Scenarios") { state.selection = .scenarios }
@@ -72,6 +74,11 @@ struct MenuBarContent: View {
             openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
         }
+        Button("Calculator") {
+            state.selection = .calculator
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Toggle("Keep Window on Top", isOn: $state.workspace.pinned)
         let favorites = state.workspace.favorites.compactMap { state.calculator($0) }
         if !favorites.isEmpty {
@@ -100,10 +107,7 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Tax data") {
-                if let tax = state.engine?.tax {
-                    LabeledContent("Tax year", value: String(tax.taxYear))
-                    Text(tax.verifyNote).font(.caption).foregroundStyle(.secondary)
-                }
+                TaxDataPanel()
             }
             Section("Saved work") {
                 HStack {
@@ -122,7 +126,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460)
+        .frame(width: 520)
         .padding(.vertical, 8)
     }
 }

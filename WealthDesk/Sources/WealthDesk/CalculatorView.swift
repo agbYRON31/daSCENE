@@ -13,7 +13,6 @@ struct CalculatorView: View {
     @State private var scenarioName = ""
 
     private var inputs: [String: String] { state.inputs(for: calc) }
-    private var isTax: Bool { calc.category == "Tax" || calc.interpretation.contains("tax table") }
 
     /// Simple calculators evaluate instantly; projections run off the main thread.
     private var evaluation: Evaluation? {
@@ -25,11 +24,7 @@ struct CalculatorView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
-                if isTax, let tax = state.engine?.tax {
-                    Label("Uses \(String(tax.taxYear)) federal figures from the app's tax table. Verify against current IRS guidance.",
-                          systemImage: "calendar.badge.exclamationmark")
-                        .font(.callout).foregroundStyle(.secondary)
-                }
+                if calc.usesTaxTable { TaxYearBanner() }
                 InputsCard(calc: calc, inputs: inputs, errors: evaluation?.fieldErrors ?? [:])
                 if let rules = evaluation?.ruleErrors, !rules.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
@@ -426,5 +421,94 @@ struct Card<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
+    }
+}
+
+
+// MARK: - Tax year banner & panel
+
+/// Shown on calculators that read the IRS tax table: year picker, provenance, and any IRS.gov warnings.
+struct TaxYearBanner: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        if let t = state.taxTable {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.seal").foregroundStyle(Color.wealthAccent)
+                    Text("IRS figures for tax year")
+                    Picker("", selection: Binding(get: { t.taxYear }, set: { state.setTaxYear($0) })) {
+                        ForEach(state.taxYears, id: \.self) { Text(String($0)).tag($0) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    Text("· verified \(TaxDataPanel.prettyDate(t.verifiedOn)) against \(t.sources.first?.title.components(separatedBy: " (").first ?? "IRS publications")")
+                        .foregroundStyle(.secondary)
+                }
+                .font(.callout)
+                ForEach(t.notes, id: \.self) { note in
+                    Label(note, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
+                }
+                ForEach(state.irsWarnings, id: \.self) { w in
+                    Label(w, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.wealthAccent.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+}
+
+/// Settings section: choose the year, see exactly which IRS documents back it, and run the IRS.gov check.
+struct TaxDataPanel: View {
+    @EnvironmentObject var state: AppState
+
+    static func prettyDate(_ ymd: String) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        guard let d = f.date(from: ymd) else { return ymd }
+        return d.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    var body: some View {
+        if let t = state.taxTable {
+            Picker("Tax year", selection: Binding(get: { t.taxYear }, set: { state.setTaxYear($0) })) {
+                ForEach(state.taxYears, id: \.self) { Text(String($0)).tag($0) }
+            }
+            LabeledContent("Verified against IRS on", value: Self.prettyDate(t.verifiedOn))
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(t.sources, id: \.url) { s in
+                    if let u = URL(string: s.url) { Link(s.title, destination: u).font(.caption) }
+                }
+            }
+            ForEach(t.notes, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
+            if t.limitsYear != t.taxYear {
+                Text("401(k)/IRA limits shown are the \(String(t.limitsYear)) limits.").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        Toggle("Check IRS.gov for newer tax figures at launch (once a day)", isOn: $state.workspace.checkIRS)
+        HStack {
+            Button(state.irsChecking ? "Checking…" : "Check IRS.gov now") {
+                Task { await state.checkIRS(force: true) }
+            }
+            .disabled(state.irsChecking)
+            if let at = state.workspace.irsCheckedAt {
+                Text("Last checked \(at.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        if let err = state.irsError {
+            Label(err, systemImage: "wifi.exclamationmark").font(.caption).foregroundStyle(.secondary)
+        } else if state.workspace.irsCheckedAt != nil {
+            let warnings = state.irsWarnings
+            if warnings.isEmpty {
+                Label("Up to date with the newest IRS releases.", systemImage: "checkmark.circle").font(.caption).foregroundStyle(.green)
+            } else {
+                ForEach(warnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
+            }
+        }
+        Text("The check reads public IRS.gov release pages only; nothing about you is sent.")
+            .font(.caption2).foregroundStyle(.tertiary)
     }
 }
