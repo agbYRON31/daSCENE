@@ -1,0 +1,4169 @@
+[
+ {
+  "id": "fv_lump",
+  "name": "Future value of a lump sum",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "p",
+    "label": "Amount invested today",
+    "unit": "$",
+    "example": "100000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "20",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Future value",
+    "expression": "p*(1+r)^n",
+    "format": "currency",
+    "excel": "=FV({r},{n},0,-{p})",
+    "expected": 386968.44624861836
+   },
+   {
+    "id": "1",
+    "label": "Total growth",
+    "expression": "p*(1+r)^n-p",
+    "format": "currency",
+    "excel": "=FV({r},{n},0,-{p})-{p}",
+    "expected": 286968.44624861836
+   }
+  ],
+  "math": "Amount × (1 + return)^years",
+  "summary": "What a single investment grows to at a steady annual return.",
+  "aliases": "compound growth lump sum",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": true,
+  "sources": [
+   {
+    "title": "Investor.gov • Compound interest calculator",
+    "url": "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator"
+   }
+  ]
+ },
+ {
+  "id": "fv_contrib",
+  "name": "Future value with annual contributions",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "p",
+    "label": "Starting balance",
+    "unit": "$",
+    "example": "50000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "c",
+    "label": "Contribution each year",
+    "unit": "$",
+    "example": "10000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "25",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Future value",
+    "expression": "fv(r,n,c,p)",
+    "format": "currency",
+    "excel": "=FV({r},{n},-{c},-{p})",
+    "expected": 763238.6559444224
+   },
+   {
+    "id": "1",
+    "label": "Total contributed",
+    "expression": "p+c*n",
+    "format": "currency",
+    "excel": "={p}+{c}*{n}",
+    "expected": 300000.0
+   },
+   {
+    "id": "2",
+    "label": "Investment growth",
+    "expression": "fv(r,n,c,p)-p-c*n",
+    "format": "currency",
+    "excel": "=FV({r},{n},-{c},-{p})-{p}-{c}*{n}",
+    "expected": 463238.65594442235
+   }
+  ],
+  "math": "Balance × (1+r)^n + contribution × ((1+r)^n − 1) / r",
+  "summary": "Growth of a balance plus a level contribution at the end of each year.",
+  "aliases": "savings growth annuity 401k ira accumulate",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "Investor.gov • Compound interest calculator",
+    "url": "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator"
+   }
+  ]
+ },
+ {
+  "id": "fv_monthly",
+  "name": "Future value with monthly savings",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "p",
+    "label": "Starting balance",
+    "unit": "$",
+    "example": "25000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "m",
+    "label": "Monthly contribution",
+    "unit": "$",
+    "example": "1000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "y",
+    "label": "Years",
+    "unit": "years",
+    "example": "30",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Future value",
+    "expression": "fv(r/12,y*12,m,p)",
+    "format": "currency",
+    "excel": "=FV({r}/12,{y}*12,-{m},-{p})",
+    "expected": 1422883.4326599366
+   },
+   {
+    "id": "1",
+    "label": "Total contributed",
+    "expression": "p+m*12*y",
+    "format": "currency",
+    "excel": "={p}+{m}*12*{y}",
+    "expected": 385000.0
+   }
+  ],
+  "math": "Monthly rate = annual ÷ 12; FV over years × 12 months",
+  "summary": "Growth of a balance plus monthly deposits, compounded monthly.",
+  "aliases": "monthly savings compound",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": true,
+  "sources": [
+   {
+    "title": "Investor.gov • Compound interest calculator",
+    "url": "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator"
+   }
+  ]
+ },
+ {
+  "id": "pv_goal",
+  "name": "Present value of a future goal",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "g",
+    "label": "Future amount needed",
+    "unit": "$",
+    "example": "250000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "n",
+    "label": "Years until needed",
+    "unit": "years",
+    "example": "15",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Amount to invest today",
+    "expression": "g/(1+r)^n",
+    "format": "currency",
+    "excel": "=PV({r},{n},0,-{g})",
+    "expected": 104316.26518388513
+   }
+  ],
+  "math": "Goal ÷ (1 + r)^years",
+  "summary": "Lump sum needed today to reach a future amount.",
+  "aliases": "discount goal lump sum needed today",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "savings_needed",
+  "name": "Annual savings to reach a goal",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "g",
+    "label": "Goal amount",
+    "unit": "$",
+    "example": "1000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "p",
+    "label": "Saved so far",
+    "unit": "$",
+    "example": "150000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "20",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Required annual savings",
+    "expression": "max(0,(g-p*(1+r)^n)*r/((1+r)^n-1))",
+    "format": "currency",
+    "excel": "=MAX(0,-PMT({r},{n},-{p},{g}))",
+    "expected": 14106.873430323694
+   },
+   {
+    "id": "1",
+    "label": "Monthly equivalent (÷12)",
+    "expression": "max(0,(g-p*(1+r)^n)*r/((1+r)^n-1))/12",
+    "format": "currency",
+    "excel": "=MAX(0,-PMT({r},{n},-{p},{g}))/12",
+    "expected": 1175.572785860308
+   }
+  ],
+  "math": "(Goal − current × (1+r)^n) × r ÷ ((1+r)^n − 1)",
+  "summary": "Level end-of-year saving that closes the gap between what you have and a goal.",
+  "aliases": "sinking fund how much to save",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "r",
+    "relation": ">",
+    "right": "0",
+    "message": "Return must be greater than zero."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "years_to_goal",
+  "name": "Years to reach a goal",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "p",
+    "label": "Current balance",
+    "unit": "$",
+    "example": "200000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "c",
+    "label": "Contribution each year",
+    "unit": "$",
+    "example": "20000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "g",
+    "label": "Goal",
+    "unit": "$",
+    "example": "1000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Years needed",
+    "expression": "nper(r,c,p,g)",
+    "format": "years",
+    "excel": "=NPER({r},-{c},-{p},{g})",
+    "expected": 14.387652837772045
+   }
+  ],
+  "math": "ln((goal × r + c) ÷ (balance × r + c)) ÷ ln(1 + r)",
+  "summary": "How long until a growing balance with steady contributions reaches a target.",
+  "aliases": "time to goal how long nper",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "g",
+    "relation": ">",
+    "right": "p",
+    "message": "Goal must exceed the current balance."
+   },
+   {
+    "left": "r",
+    "relation": ">",
+    "right": "0",
+    "message": "Return must be greater than zero."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "cagr",
+  "name": "Compound annual growth rate",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "s",
+    "label": "Starting value",
+    "unit": "$",
+    "example": "100000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "e",
+    "label": "Ending value",
+    "unit": "$",
+    "example": "180000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "6",
+    "hint": "Number of years.",
+    "min": 0.01
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "CAGR",
+    "expression": "(e/s)^(1/n)-1",
+    "format": "percent",
+    "excel": "=({e}/{s})^(1/{n})-1",
+    "expected": 0.10292356902673916
+   }
+  ],
+  "math": "(End ÷ start)^(1 ÷ years) − 1",
+  "summary": "Smoothed annual growth between two values.",
+  "aliases": "annualized growth rate",
+  "acronym": "CAGR",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": true,
+  "sources": []
+ },
+ {
+  "id": "real_return",
+  "name": "Real (inflation-adjusted) return",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "r",
+    "label": "Nominal return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "i",
+    "label": "Inflation",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Real return",
+    "expression": "(1+r)/(1+i)-1",
+    "format": "percent",
+    "excel": "=(1+{r})/(1+{i})-1",
+    "expected": 0.03883495145631066
+   },
+   {
+    "id": "1",
+    "label": "Shortcut (nominal − inflation)",
+    "expression": "r-i",
+    "format": "percent",
+    "excel": "={r}-{i}",
+    "expected": 0.04000000000000001
+   }
+  ],
+  "math": "(1 + nominal) ÷ (1 + inflation) − 1",
+  "summary": "Return after removing inflation's effect on purchasing power.",
+  "aliases": "fisher purchasing power inflation adjusted",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "rule72",
+  "name": "Doubling time (Rule of 72)",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "8",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Rule-of-72 estimate",
+    "expression": "72/(r*100)",
+    "format": "years",
+    "excel": "=72/({r}*100)",
+    "expected": 9.0
+   },
+   {
+    "id": "1",
+    "label": "Exact doubling time",
+    "expression": "ln(2)/ln(1+r)",
+    "format": "years",
+    "excel": "=LN(2)/LN(1+{r})",
+    "expected": 9.006468342000588
+   }
+  ],
+  "math": "72 ÷ rate in percent (exact: ln 2 ÷ ln(1+r))",
+  "summary": "How many years it takes money to double.",
+  "aliases": "double money rule of 72",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "inflation_cost",
+  "name": "Future cost with inflation",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "c",
+    "label": "Cost in today's dollars",
+    "unit": "$",
+    "example": "80000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "i",
+    "label": "Inflation",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "20",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Future cost",
+    "expression": "c*(1+i)^n",
+    "format": "currency",
+    "excel": "={c}*(1+{i})^{n}",
+    "expected": 144488.8987735532
+   },
+   {
+    "id": "1",
+    "label": "Today's value of the same dollars then",
+    "expression": "c/(1+i)^n",
+    "format": "currency",
+    "excel": "={c}/(1+{i})^{n}",
+    "expected": 44294.06033490676
+   }
+  ],
+  "math": "Cost × (1 + inflation)^years",
+  "summary": "What today's expense costs later, and what the same dollar amount buys then.",
+  "aliases": "purchasing power inflation future dollars",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "effective_rate",
+  "name": "Nominal to effective annual rate",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "r",
+    "label": "Nominal annual rate (APR)",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "m",
+    "label": "Compounding periods per year",
+    "unit": "count",
+    "example": "12",
+    "hint": "A whole number.",
+    "min": 1,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Effective annual rate (APY)",
+    "expression": "(1+r/m)^m-1",
+    "format": "percent",
+    "excel": "=EFFECT({r},{m})",
+    "expected": 0.051161897881732976
+   }
+  ],
+  "math": "(1 + APR ÷ periods)^periods − 1",
+  "summary": "Annual yield once compounding is included.",
+  "aliases": "apy apr effective yield",
+  "acronym": "APY",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "nest_egg",
+  "name": "Retirement nest egg needed",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "s",
+    "label": "Annual spending in retirement",
+    "unit": "$",
+    "example": "120000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "o",
+    "label": "Other income (Social Security, pension)",
+    "unit": "$",
+    "example": "40000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "w",
+    "label": "Withdrawal rate",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Portfolio needed",
+    "expression": "max(0,s-o)/w",
+    "format": "currency",
+    "excel": "=MAX(0,{s}-{o})/{w}",
+    "expected": 2000000.0
+   },
+   {
+    "id": "1",
+    "label": "Annual draw from portfolio",
+    "expression": "max(0,s-o)",
+    "format": "currency",
+    "excel": "=MAX(0,{s}-{o})",
+    "expected": 80000.0
+   }
+  ],
+  "math": "(Spending − other income) ÷ withdrawal rate",
+  "summary": "Portfolio size that supports a spending gap at a chosen withdrawal rate.",
+  "aliases": "4% rule safe withdrawal target number",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "A withdrawal rate is an assumption, not a guarantee. Lower rates are more conservative; use the Monte Carlo and timeline tools to test a plan.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": true,
+  "sources": []
+ },
+ {
+  "id": "retire_gap",
+  "name": "Retirement savings gap",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "s",
+    "label": "Annual spending in retirement",
+    "unit": "$",
+    "example": "120000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "o",
+    "label": "Other income",
+    "unit": "$",
+    "example": "40000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "w",
+    "label": "Withdrawal rate",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001,
+    "max": 1
+   },
+   {
+    "id": "b",
+    "label": "Saved today",
+    "unit": "$",
+    "example": "600000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "c",
+    "label": "Saving each year until retirement",
+    "unit": "$",
+    "example": "30000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Return until retirement",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "n",
+    "label": "Years until retirement",
+    "unit": "years",
+    "example": "15",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Portfolio needed",
+    "expression": "max(0,s-o)/w",
+    "format": "currency",
+    "excel": "=MAX(0,{s}-{o})/{w}",
+    "expected": 2000000.0
+   },
+   {
+    "id": "1",
+    "label": "Projected portfolio",
+    "expression": "fv(r,n,c,b)",
+    "format": "currency",
+    "excel": "=FV({r},{n},-{c},-{b})",
+    "expected": 2136214.012409661
+   },
+   {
+    "id": "2",
+    "label": "Surplus (+) / shortfall (−)",
+    "expression": "fv(r,n,c,b)-max(0,s-o)/w",
+    "format": "currency",
+    "excel": "=FV({r},{n},-{c},-{b})-MAX(0,{s}-{o})/{w}",
+    "expected": 136214.01240966097
+   }
+  ],
+  "math": "Projected FV of savings − spending gap ÷ withdrawal rate",
+  "summary": "Compares what you're on track to have against what the spending goal needs.",
+  "aliases": "on track shortfall surplus",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "withdrawal_rate",
+  "name": "Current withdrawal rate",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "w",
+    "label": "Annual withdrawals",
+    "unit": "$",
+    "example": "60000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "b",
+    "label": "Portfolio balance",
+    "unit": "$",
+    "example": "1500000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Withdrawal rate",
+    "expression": "w/b",
+    "format": "percent",
+    "excel": "={w}/{b}",
+    "expected": 0.04
+   }
+  ],
+  "math": "Withdrawals ÷ balance",
+  "summary": "Share of the portfolio taken out each year.",
+  "aliases": "spending rate draw",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "level_withdrawal",
+  "name": "Level withdrawal over a set period",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "b",
+    "label": "Starting balance",
+    "unit": "$",
+    "example": "1000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "n",
+    "label": "Years it must last",
+    "unit": "years",
+    "example": "30",
+    "hint": "Number of years.",
+    "min": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Annual withdrawal (end of year)",
+    "expression": "pmt(r,n,b)",
+    "format": "currency",
+    "excel": "=PMT({r},{n},-{b})",
+    "expected": 65051.43508027656
+   }
+  ],
+  "math": "Balance × r ÷ (1 − (1+r)^−n)",
+  "summary": "Fixed yearly amount that spends a balance to zero over a set number of years.",
+  "aliases": "annuity payout drawdown spend down",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "longevity",
+  "name": "How long money lasts",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "b",
+    "label": "Starting balance",
+    "unit": "$",
+    "example": "800000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "w",
+    "label": "Withdrawal each year",
+    "unit": "$",
+    "example": "60000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Years until depleted",
+    "expression": "nper(r,-w,b,0)",
+    "format": "years",
+    "excel": "=NPER({r},{w},-{b})",
+    "expected": 22.517085305411022
+   }
+  ],
+  "math": "ln(w ÷ (w − balance × r)) ÷ ln(1 + r)",
+  "summary": "Years a balance supports a fixed end-of-year withdrawal. Withdrawals at or below the return never run out.",
+  "aliases": "depletion runway last",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "w",
+    "relation": ">",
+    "right": "b*r",
+    "message": "Withdrawal must exceed the balance's annual return, or the money never runs out."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "growing_annuity",
+  "name": "Funding inflation-adjusted spending",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "s",
+    "label": "First-year spending",
+    "unit": "$",
+    "example": "80000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "n",
+    "label": "Years of spending",
+    "unit": "years",
+    "example": "30",
+    "hint": "Number of years.",
+    "min": 1
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "g",
+    "label": "Annual spending increase",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Amount needed at the start",
+    "expression": "if(r==g, s*n/(1+r), s/(r-g)*(1-((1+g)/(1+r))^n))",
+    "format": "currency",
+    "excel": "=IF({r}={g},{s}*{n}/(1+{r}),{s}/({r}-{g})*(1-((1+{g})/(1+{r}))^{n}))",
+    "expected": 1753544.8087920945
+   }
+  ],
+  "math": "Spending ÷ (r − g) × (1 − ((1+g) ÷ (1+r))^n)",
+  "summary": "Present value of spending that rises each year, first payment at the end of year one.",
+  "aliases": "growing annuity present value inflation adjusted income",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "ss_breakeven",
+  "name": "Social Security claiming break-even",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "e",
+    "label": "Earlier claiming age",
+    "unit": "age",
+    "example": "62",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "integer": true
+   },
+   {
+    "id": "a1",
+    "label": "Monthly benefit at earlier age",
+    "unit": "$",
+    "example": "2100",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "l",
+    "label": "Later claiming age",
+    "unit": "age",
+    "example": "70",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "integer": true
+   },
+   {
+    "id": "a2",
+    "label": "Monthly benefit at later age",
+    "unit": "$",
+    "example": "3720",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Break-even age",
+    "expression": "(a2*l-a1*e)/(a2-a1)",
+    "format": "age",
+    "excel": "=({a2}*{l}-{a1}*{e})/({a2}-{a1})",
+    "expected": 80.37037037037037
+   },
+   {
+    "id": "1",
+    "label": "Benefits forgone by waiting",
+    "expression": "a1*12*(l-e)",
+    "format": "currency",
+    "excel": "={a1}*12*({l}-{e})",
+    "expected": 201600.0
+   }
+  ],
+  "math": "(Later benefit × later age − earlier benefit × earlier age) ÷ (later − earlier benefit)",
+  "summary": "Age at which cumulative benefits from waiting catch up with claiming early.",
+  "aliases": "claiming age delay benefits break even",
+  "acronym": "",
+  "assumptions": "Ignores cost-of-living increases, taxes, investment returns on early benefits, and spousal or survivor benefits.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "l",
+    "relation": ">",
+    "right": "e",
+    "message": "Later age must exceed earlier age."
+   },
+   {
+    "left": "a2",
+    "relation": ">",
+    "right": "a1",
+    "message": "Later benefit must exceed earlier benefit."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "SSA • Benefit reduction for early retirement",
+    "url": "https://www.ssa.gov/benefits/retirement/planner/agereduction.html"
+   }
+  ]
+ },
+ {
+  "id": "pension_value",
+  "name": "Pension: lump sum vs. monthly annuity",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "b",
+    "label": "Monthly pension",
+    "unit": "$",
+    "example": "3000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "n",
+    "label": "Years of payments expected",
+    "unit": "years",
+    "example": "25",
+    "hint": "Number of years.",
+    "min": 1
+   },
+   {
+    "id": "r",
+    "label": "Discount rate",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "l",
+    "label": "Lump sum offered",
+    "unit": "$",
+    "example": "500000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Present value of the annuity",
+    "expression": "pv(r/12,n*12,b)",
+    "format": "currency",
+    "excel": "=PV({r}/12,{n}*12,-{b})",
+    "expected": 513180.14112271665
+   },
+   {
+    "id": "1",
+    "label": "Lump sum minus annuity value",
+    "expression": "l-pv(r/12,n*12,b)",
+    "format": "currency",
+    "excel": "={l}-PV({r}/12,{n}*12,-{b})",
+    "expected": -13180.141122716654
+   },
+   {
+    "id": "2",
+    "label": "Return the lump sum must earn to match",
+    "expression": "rate(n*12,b,l)*12",
+    "format": "percent",
+    "excel": "=RATE({n}*12,{b},-{l})*12",
+    "expected": 0.05262747258294759
+   }
+  ],
+  "math": "PV of monthly payments at discount rate ÷ 12",
+  "summary": "Compares a pension lump sum with the value of its monthly payments.",
+  "aliases": "lump sum annuity election pension buyout",
+  "acronym": "",
+  "assumptions": "Level payments with no cost-of-living adjustment, paid at month end, for a fixed number of years. Ignores survivor options and insurer or plan credit risk.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "rmd",
+  "name": "Required minimum distribution",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "b",
+    "label": "Balance on Dec 31 of prior year",
+    "unit": "$",
+    "example": "900000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "a",
+    "label": "Age at end of this year",
+    "unit": "age",
+    "example": "75",
+    "hint": "Age in whole years.",
+    "min": 72,
+    "max": 120,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "RMD for the year",
+    "expression": "b/rmdfactor(a)",
+    "format": "currency",
+    "excel": "={b}/VLOOKUP({a},UniformTable,2,FALSE)",
+    "expected": 36585.365853658535
+   },
+   {
+    "id": "1",
+    "label": "Distribution period (factor)",
+    "expression": "rmdfactor(a)",
+    "format": "number",
+    "excel": "=VLOOKUP({a},UniformTable,2,FALSE)",
+    "expected": 24.6
+   },
+   {
+    "id": "2",
+    "label": "As a share of the balance",
+    "expression": "1/rmdfactor(a)",
+    "format": "percent",
+    "excel": "=1/VLOOKUP({a},UniformTable,2,FALSE)",
+    "expected": 0.04065040650406504
+   }
+  ],
+  "math": "Prior year-end balance ÷ Uniform Lifetime Table factor",
+  "summary": "Minimum withdrawal from IRAs and similar accounts using the IRS Uniform Lifetime Table.",
+  "aliases": "rmd required minimum distribution ira uniform lifetime",
+  "acronym": "RMD",
+  "assumptions": "Uses the Uniform Lifetime Table. A spouse more than 10 years younger and sole beneficiary uses the Joint Life table instead. Inherited accounts follow different rules.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "excelNotes": "Excel needs the IRS Uniform Lifetime Table on a sheet named UniformTable (age in column A, factor in column B).",
+  "rules": [],
+  "common": true,
+  "sources": [
+   {
+    "title": "IRS • Publication 590-B (distributions from IRAs)",
+    "url": "https://www.irs.gov/publications/p590b"
+   }
+  ]
+ },
+ {
+  "id": "contrib_limits",
+  "name": "Contribution limits (401(k) and IRA)",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Age at end of year",
+    "unit": "age",
+    "example": "61",
+    "hint": "Age in whole years.",
+    "min": 18,
+    "max": 120,
+    "integer": true
+   },
+   {
+    "id": "k",
+    "label": "401(k) deferrals so far",
+    "unit": "$",
+    "example": "10000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "i",
+    "label": "IRA contributions so far",
+    "unit": "$",
+    "example": "0",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "401(k) employee limit",
+    "expression": "limit401k(a)",
+    "format": "currency",
+    "excel": null,
+    "expected": 35750.0
+   },
+   {
+    "id": "1",
+    "label": "401(k) room left",
+    "expression": "max(0,limit401k(a)-k)",
+    "format": "currency",
+    "excel": null,
+    "expected": 25750.0
+   },
+   {
+    "id": "2",
+    "label": "IRA limit",
+    "expression": "limitira(a)",
+    "format": "currency",
+    "excel": null,
+    "expected": 8600.0
+   },
+   {
+    "id": "3",
+    "label": "IRA room left",
+    "expression": "max(0,limitira(a)-i)",
+    "format": "currency",
+    "excel": null,
+    "expected": 8600.0
+   }
+  ],
+  "math": "Base limit + age-based catch-up (age 60–63 uses the larger catch-up)",
+  "summary": "Employee 401(k)/403(b) deferral and IRA limits for the tax year, including catch-up contributions.",
+  "aliases": "401k 403b ira catch up max out limits",
+  "acronym": "",
+  "assumptions": "Employee deferral limits only; excludes employer contributions, the overall annual-additions limit, Roth IRA income phase-outs, and the Roth catch-up requirement for higher earners.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "excelNotes": "Limits come from the app's dated tax table; there is no Excel formula.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • 401(k) contribution limits",
+    "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-401k-and-profit-sharing-plan-contribution-limits"
+   },
+   {
+    "title": "IRS • IRA contribution limits",
+    "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-ira-contribution-limits"
+   }
+  ]
+ },
+ {
+  "id": "employer_match",
+  "name": "Employer match",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "s",
+    "label": "Salary",
+    "unit": "$",
+    "example": "150000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "c",
+    "label": "Your contribution rate",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "m",
+    "label": "Employer matches this share",
+    "unit": "%",
+    "example": "50",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "id": "cap",
+    "label": "…of contributions up to",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Employer match per year",
+    "expression": "s*min(c,cap)*m",
+    "format": "currency",
+    "excel": "={s}*MIN({c},{cap})*{m}",
+    "expected": 3000.0
+   },
+   {
+    "id": "1",
+    "label": "Match left unclaimed",
+    "expression": "s*max(0,cap-c)*m",
+    "format": "currency",
+    "excel": "={s}*MAX(0,{cap}-{c})*{m}",
+    "expected": 1499.9999999999998
+   }
+  ],
+  "math": "Salary × min(your rate, cap) × match share",
+  "summary": "Employer contribution earned and any match left on the table.",
+  "aliases": "401k match free money",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "retirement_timeline",
+  "name": "Retirement timeline",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "age",
+    "label": "Current age",
+    "unit": "age",
+    "example": "45",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 110,
+    "integer": true
+   },
+   {
+    "id": "retire",
+    "label": "Retirement age",
+    "unit": "age",
+    "example": "65",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 110,
+    "integer": true
+   },
+   {
+    "id": "plan",
+    "label": "Plan through age",
+    "unit": "age",
+    "example": "95",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 120,
+    "integer": true
+   },
+   {
+    "id": "bal",
+    "label": "Invested today",
+    "unit": "$",
+    "example": "750000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "c",
+    "label": "Saving each year while working",
+    "unit": "$",
+    "example": "30000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "cg",
+    "label": "Annual increase in saving",
+    "unit": "%",
+    "example": "2",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "rpre",
+    "label": "Return before retirement",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "rpost",
+    "label": "Return in retirement",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "spend",
+    "label": "Retirement spending (today's $)",
+    "unit": "$",
+    "example": "110000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "infl",
+    "label": "Inflation",
+    "unit": "%",
+    "example": "2.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "other",
+    "label": "Other income in retirement (today's $)",
+    "unit": "$",
+    "example": "45000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "oage",
+    "label": "Other income starts at age",
+    "unit": "age",
+    "example": "67",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 120,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Balance at retirement",
+    "expression": "p_retire_balance",
+    "format": "currency",
+    "excel": null,
+    "expected": 3773696.124766056
+   },
+   {
+    "id": "1",
+    "label": "First-year withdrawal (nominal)",
+    "expression": "p_first_withdrawal",
+    "format": "currency",
+    "excel": null,
+    "expected": 180247.80843194335
+   },
+   {
+    "id": "2",
+    "label": "Balance at end of plan",
+    "expression": "p_end_balance",
+    "format": "currency",
+    "excel": null,
+    "expected": 5729335.420403106
+   },
+   {
+    "id": "3",
+    "label": "Age money runs out",
+    "expression": "p_depletion_age",
+    "format": "age",
+    "excel": null,
+    "expected": -1.0
+   },
+   {
+    "id": "4",
+    "label": "Total withdrawn",
+    "expression": "p_total_withdrawn",
+    "format": "currency",
+    "excel": null,
+    "expected": 4825398.849595648
+   }
+  ],
+  "math": "Each year: (start + saving − withdrawal) × (1 + return); spending and other income grow with inflation",
+  "summary": "Year-by-year projection from today through the end of the plan.",
+  "aliases": "projection cash flow plan retirement income timeline",
+  "acronym": "",
+  "assumptions": "Saving is added and withdrawals taken at the start of each year, then the year's return applies. Spending and other income are in today's dollars and grow with inflation; other income only offsets spending once retired. Pre-tax and after-tax money are not distinguished, and taxes are excluded.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "This is a year-by-year table, not a single formula. Use Copy table and paste into Excel.",
+  "rules": [
+   {
+    "left": "plan",
+    "relation": ">",
+    "right": "age",
+    "message": "Plan age must exceed current age."
+   },
+   {
+    "left": "retire",
+    "relation": ">=",
+    "right": "age",
+    "message": "Retirement age can't be before current age."
+   },
+   {
+    "left": "plan-age",
+    "relation": "<=",
+    "right": "100",
+    "message": "Projection is limited to 100 years."
+   }
+  ],
+  "common": true,
+  "sources": [],
+  "projection": "retirement",
+  "table": {
+   "columns": [
+    {
+     "label": "Age",
+     "format": "age"
+    },
+    {
+     "label": "Start balance",
+     "format": "currency"
+    },
+    {
+     "label": "Contributions",
+     "format": "currency"
+    },
+    {
+     "label": "Withdrawals",
+     "format": "currency"
+    },
+    {
+     "label": "Growth",
+     "format": "currency"
+    },
+    {
+     "label": "End balance",
+     "format": "currency"
+    }
+   ],
+   "chartColumns": [
+    5
+   ]
+  }
+ },
+ {
+  "id": "monte_carlo",
+  "name": "Monte Carlo withdrawal test",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "bal",
+    "label": "Starting portfolio",
+    "unit": "$",
+    "example": "2000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "w",
+    "label": "First-year withdrawal",
+    "unit": "$",
+    "example": "80000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "years",
+    "label": "Years",
+    "unit": "years",
+    "example": "30",
+    "hint": "Number of years.",
+    "min": 1,
+    "max": 100,
+    "integer": true
+   },
+   {
+    "id": "mean",
+    "label": "Average annual return",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "sd",
+    "label": "Volatility (standard deviation)",
+    "unit": "%",
+    "example": "12",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "infl",
+    "label": "Withdrawal increase each year",
+    "unit": "%",
+    "example": "2.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "sims",
+    "label": "Number of simulations",
+    "unit": "count",
+    "example": "2000",
+    "hint": "A whole number.",
+    "min": 100,
+    "max": 20000,
+    "integer": true
+   },
+   {
+    "id": "seed",
+    "label": "Random seed",
+    "unit": "count",
+    "example": "42",
+    "hint": "Same seed gives the same result; change it to see a different draw.",
+    "min": 0,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Success rate",
+    "expression": "p_success",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.691
+   },
+   {
+    "id": "1",
+    "label": "Ending balance: 10th percentile",
+    "expression": "p_end_p10",
+    "format": "currency",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "2",
+    "label": "Ending balance: median",
+    "expression": "p_end_p50",
+    "format": "currency",
+    "excel": null,
+    "expected": 1331166.9615977434
+   },
+   {
+    "id": "3",
+    "label": "Ending balance: 90th percentile",
+    "expression": "p_end_p90",
+    "format": "currency",
+    "excel": null,
+    "expected": 8193635.789303834
+   }
+  ],
+  "math": "Each year: draw return ~ Normal(mean, sd); withdraw, then grow; success = every withdrawal fully met",
+  "summary": "Simulates many market paths to estimate how often a withdrawal plan lasts.",
+  "aliases": "probability of success simulation sequence risk stochastic",
+  "acronym": "",
+  "assumptions": "Returns are independent, normally distributed annual draws. Real markets have fatter tails and streaks. Withdrawals happen at the start of each year and rise by the stated rate. Taxes and fees are excluded.",
+  "interpretation": "A success rate summarizes simulated outcomes under the assumptions entered. It is not a probability forecast or a recommendation.",
+  "excelNotes": "Simulation results aren't a cell formula. Use Copy table for the percentile paths.",
+  "rules": [],
+  "common": true,
+  "sources": [],
+  "projection": "montecarlo",
+  "table": {
+   "columns": [
+    {
+     "label": "Year",
+     "format": "number"
+    },
+    {
+     "label": "10th percentile",
+     "format": "currency"
+    },
+    {
+     "label": "Median",
+     "format": "currency"
+    },
+    {
+     "label": "90th percentile",
+     "format": "currency"
+    }
+   ],
+   "chartColumns": [
+    1,
+    2,
+    3
+   ]
+  }
+ },
+ {
+  "id": "income_tax",
+  "name": "Federal income tax",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "ti",
+    "label": "Taxable ordinary income",
+    "unit": "$",
+    "example": "250000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Federal tax",
+    "expression": "incometax(ti,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 45196.0
+   },
+   {
+    "id": "1",
+    "label": "Marginal rate",
+    "expression": "margrate(ti,status)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.24
+   },
+   {
+    "id": "2",
+    "label": "Effective rate",
+    "expression": "if(ti>0,incometax(ti,status)/ti,0)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.180784
+   },
+   {
+    "id": "3",
+    "label": "Room left in this bracket",
+    "expression": "bracketroom(ti,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 153550.0
+   }
+  ],
+  "math": "Tax each slice of income at its bracket rate",
+  "summary": "Ordinary federal income tax with marginal and effective rates.",
+  "aliases": "brackets marginal effective tax rate",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "excelNotes": "Bracket math needs a bracket table in Excel; the app uses its dated tax table.",
+  "rules": [],
+  "common": true,
+  "sources": [
+   {
+    "title": "IRS • Federal income tax rates and brackets",
+    "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
+   }
+  ]
+ },
+ {
+  "id": "taxable_income",
+  "name": "Taxable income from gross income",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "g",
+    "label": "Adjusted gross income",
+    "unit": "$",
+    "example": "320000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "it",
+    "label": "Itemized deductions",
+    "unit": "$",
+    "example": "28000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Deduction used",
+    "expression": "max(it,stddeduction(status))",
+    "format": "currency",
+    "excel": null,
+    "expected": 32200.0
+   },
+   {
+    "id": "1",
+    "label": "Taxable income",
+    "expression": "max(0,g-max(it,stddeduction(status)))",
+    "format": "currency",
+    "excel": null,
+    "expected": 287800.0
+   },
+   {
+    "id": "2",
+    "label": "Federal tax on it",
+    "expression": "incometax(max(0,g-max(it,stddeduction(status))),status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 54268.0
+   }
+  ],
+  "math": "AGI − larger of itemized or standard deduction",
+  "summary": "Applies the larger of itemized or standard deduction.",
+  "aliases": "standard deduction itemize",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Federal income tax rates and brackets",
+    "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
+   }
+  ]
+ },
+ {
+  "id": "after_tax_return",
+  "name": "After-tax return",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "r",
+    "label": "Pre-tax return",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "t",
+    "label": "Tax rate on the return",
+    "unit": "%",
+    "example": "32",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "After-tax return",
+    "expression": "r*(1-t)",
+    "format": "percent",
+    "excel": "={r}*(1-{t})",
+    "expected": 0.040799999999999996
+   }
+  ],
+  "math": "Return × (1 − tax rate)",
+  "summary": "Return kept after tax, if the whole return is taxed each year.",
+  "aliases": "net of tax yield",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "tey",
+  "name": "Tax-equivalent yield",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "y",
+    "label": "Tax-free yield (municipal bond)",
+    "unit": "%",
+    "example": "3.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "t",
+    "label": "Combined marginal tax rate",
+    "unit": "%",
+    "example": "37",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.99
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Taxable yield needed to match",
+    "expression": "y/(1-t)",
+    "format": "percent",
+    "excel": "={y}/(1-{t})",
+    "expected": 0.05555555555555556
+   }
+  ],
+  "math": "Tax-free yield ÷ (1 − tax rate)",
+  "summary": "Taxable yield that leaves you with the same income as a tax-free bond.",
+  "aliases": "muni municipal bond tax free",
+  "acronym": "TEY",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "ltcg_tax",
+  "name": "Long-term capital gains tax",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "ord",
+    "label": "Taxable ordinary income",
+    "unit": "$",
+    "example": "180000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "gain",
+    "label": "Long-term gain / qualified dividends",
+    "unit": "$",
+    "example": "100000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Capital gains tax",
+    "expression": "ltcgtax(ord,gain,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 15000.0
+   },
+   {
+    "id": "1",
+    "label": "Effective rate on the gain",
+    "expression": "if(gain>0,ltcgtax(ord,gain,status)/gain,0)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.15
+   }
+  ],
+  "math": "Gains stack on ordinary income through the 0% / 15% / 20% thresholds",
+  "summary": "Federal tax on long-term gains and qualified dividends, layered on top of ordinary income.",
+  "aliases": "capital gains qualified dividends 15% 20%",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance. NIIT is a separate calculator.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Topic 409, Capital gains and losses",
+    "url": "https://www.irs.gov/taxtopics/tc409"
+   }
+  ]
+ },
+ {
+  "id": "niit",
+  "name": "Net investment income tax",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "magi",
+    "label": "Modified AGI",
+    "unit": "$",
+    "example": "320000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "nii",
+    "label": "Net investment income",
+    "unit": "$",
+    "example": "90000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "NIIT",
+    "expression": "niitrate()*min(nii,max(0,magi-niitthreshold(status)))",
+    "format": "currency",
+    "excel": null,
+    "expected": 2660.0
+   },
+   {
+    "id": "1",
+    "label": "Amount over the threshold",
+    "expression": "max(0,magi-niitthreshold(status))",
+    "format": "currency",
+    "excel": null,
+    "expected": 70000.0
+   }
+  ],
+  "math": "3.8% × lesser of investment income or MAGI over the threshold",
+  "summary": "Medicare surtax on investment income for higher earners.",
+  "aliases": "3.8% surtax medicare investment",
+  "acronym": "NIIT",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Net investment income tax",
+    "url": "https://www.irs.gov/individuals/net-investment-income-tax"
+   }
+  ]
+ },
+ {
+  "id": "roth_vs_trad",
+  "name": "Roth vs. traditional contribution",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "c",
+    "label": "Pre-tax dollars available",
+    "unit": "$",
+    "example": "10000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "tn",
+    "label": "Tax rate today",
+    "unit": "%",
+    "example": "32",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "tr",
+    "label": "Tax rate in retirement",
+    "unit": "%",
+    "example": "24",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "n",
+    "label": "Years invested",
+    "unit": "years",
+    "example": "25",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Traditional, after tax at withdrawal",
+    "expression": "c*(1+r)^n*(1-tr)",
+    "format": "currency",
+    "excel": "={c}*(1+{r})^{n}*(1-{tr})",
+    "expected": 41248.48806493402
+   },
+   {
+    "id": "1",
+    "label": "Roth, after paying tax today",
+    "expression": "c*(1-tn)*(1+r)^n",
+    "format": "currency",
+    "excel": "={c}*(1-{tn})*(1+{r})^{n}",
+    "expected": 36906.541952835694
+   },
+   {
+    "id": "2",
+    "label": "Roth minus traditional",
+    "expression": "c*(1-tn)*(1+r)^n-c*(1+r)^n*(1-tr)",
+    "format": "currency",
+    "excel": "={c}*(1-{tn})*(1+{r})^{n}-{c}*(1+{r})^{n}*(1-{tr})",
+    "expected": -4341.946112098325
+   }
+  ],
+  "math": "Traditional: C × growth × (1 − future rate); Roth: C × (1 − today's rate) × growth",
+  "summary": "Compares the after-tax result of the same pre-tax dollars in each account type.",
+  "aliases": "roth conversion traditional pretax",
+  "acronym": "",
+  "assumptions": "Same return in both accounts; the whole traditional balance is taxed at one rate on withdrawal. Ignores RMDs, state tax and the value of investing the tax savings.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "roth_conversion",
+  "name": "Roth conversion: tax and bracket room",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "ti",
+    "label": "Taxable income before conversion",
+    "unit": "$",
+    "example": "150000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "x",
+    "label": "Amount to convert",
+    "unit": "$",
+    "example": "50000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Extra federal tax from conversion",
+    "expression": "incometax(ti+x,status)-incometax(ti,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 11000.0
+   },
+   {
+    "id": "1",
+    "label": "Average rate on the conversion",
+    "expression": "if(x>0,(incometax(ti+x,status)-incometax(ti,status))/x,0)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.22
+   },
+   {
+    "id": "2",
+    "label": "Room left in current bracket",
+    "expression": "bracketroom(ti,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 61400.0
+   },
+   {
+    "id": "3",
+    "label": "Marginal rate after conversion",
+    "expression": "margrate(ti+x,status)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.22
+   }
+  ],
+  "math": "Tax(income + conversion) − tax(income)",
+  "summary": "Incremental tax from converting pre-tax money to Roth.",
+  "aliases": "fill the bracket conversion",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Federal income tax rates and brackets",
+    "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
+   }
+  ]
+ },
+ {
+  "id": "tlh",
+  "name": "Tax-loss harvesting value",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "loss",
+    "label": "Losses harvested",
+    "unit": "$",
+    "example": "40000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "gains",
+    "label": "Capital gains this year",
+    "unit": "$",
+    "example": "25000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "cg",
+    "label": "Capital gains tax rate",
+    "unit": "%",
+    "example": "18.8",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "ord",
+    "label": "Ordinary income tax rate",
+    "unit": "%",
+    "example": "32",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Tax saved this year",
+    "expression": "min(loss,gains)*cg+min(3000,max(0,loss-gains))*ord",
+    "format": "currency",
+    "excel": "=MIN({loss},{gains})*{cg}+MIN(3000,MAX(0,{loss}-{gains}))*{ord}",
+    "expected": 5660.0
+   },
+   {
+    "id": "1",
+    "label": "Loss carried forward",
+    "expression": "max(0,loss-gains-3000)",
+    "format": "currency",
+    "excel": "=MAX(0,{loss}-{gains}-3000)",
+    "expected": 12000.0
+   }
+  ],
+  "math": "Losses offset gains, then up to $3,000 of ordinary income; the rest carries forward",
+  "summary": "Current-year tax value of realized losses.",
+  "aliases": "harvest losses offset carryforward",
+  "acronym": "",
+  "assumptions": "All gains taxed at one rate; ignores the short/long-term netting order, wash-sale rules, and the lower basis that comes with harvesting ($1,500 ordinary offset if married filing separately).",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Topic 409, Capital gains and losses",
+    "url": "https://www.irs.gov/taxtopics/tc409"
+   }
+  ]
+ },
+ {
+  "id": "tax_deferral",
+  "name": "Tax-deferred vs. taxable growth",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Amount invested",
+    "unit": "$",
+    "example": "100000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "t",
+    "label": "Tax rate",
+    "unit": "%",
+    "example": "24",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "20",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Taxable account (taxed yearly)",
+    "expression": "a*(1+r*(1-t))^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r}*(1-{t}))^{n}",
+    "expected": 281979.1575440556
+   },
+   {
+    "id": "1",
+    "label": "Deferred, gain taxed at the end",
+    "expression": "a*(1+r)^n-(a*(1+r)^n-a)*t",
+    "format": "currency",
+    "excel": "={a}*(1+{r})^{n}-({a}*(1+{r})^{n}-{a})*{t}",
+    "expected": 318096.01914894994
+   },
+   {
+    "id": "2",
+    "label": "Benefit of deferral",
+    "expression": "a*(1+r)^n-(a*(1+r)^n-a)*t-a*(1+r*(1-t))^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r})^{n}-({a}*(1+{r})^{n}-{a})*{t}-{a}*(1+{r}*(1-{t}))^{n}",
+    "expected": 36116.86160489434
+   }
+  ],
+  "math": "Taxable: (1 + r(1−t))^n; Deferred: growth taxed once at the end",
+  "summary": "Shows the cost of tax drag compared with deferring tax on the same after-tax principal.",
+  "aliases": "tax drag deferral annuity nonqualified",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "weighted_return",
+  "name": "Portfolio expected return",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "w",
+    "label": "Weights or dollar amounts",
+    "unit": "series",
+    "example": "60; 30; 10",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "r",
+    "label": "Expected return of each (%)",
+    "unit": "series",
+    "example": "7; 4; 2",
+    "hint": "Percentages, one per holding, same order: 7; 4; 2"
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Weighted expected return",
+    "expression": "sumproduct(w,r)/sum(w)/100",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.055999999999999994
+   }
+  ],
+  "math": "Σ(weight × return) ÷ Σ weight",
+  "summary": "Blended expected return of an allocation.",
+  "aliases": "blended allocation return mix",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Put weights in one row and returns in the next, then use =SUMPRODUCT(weights,returns)/SUM(weights).",
+  "rules": [
+   {
+    "left": "count(w)",
+    "relation": "==",
+    "right": "count(r)",
+    "message": "Enter the same number of weights and returns."
+   },
+   {
+    "left": "sum(w)",
+    "relation": ">",
+    "right": "0",
+    "message": "Weights must add up to more than zero."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "two_asset",
+  "name": "Two-asset portfolio risk",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "w",
+    "label": "Weight in asset A",
+    "unit": "%",
+    "example": "60",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "ra",
+    "label": "Expected return A",
+    "unit": "%",
+    "example": "8",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "rb",
+    "label": "Expected return B",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "sa",
+    "label": "Volatility A",
+    "unit": "%",
+    "example": "16",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "sb",
+    "label": "Volatility B",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "rho",
+    "label": "Correlation",
+    "unit": "x",
+    "example": "0.1",
+    "hint": "Between −1 and 1.",
+    "min": -1,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Expected return",
+    "expression": "w*ra+(1-w)*rb",
+    "format": "percent",
+    "excel": "={w}*{ra}+(1-{w})*{rb}",
+    "expected": 0.064
+   },
+   {
+    "id": "1",
+    "label": "Portfolio volatility",
+    "expression": "sqrt(w^2*sa^2+(1-w)^2*sb^2+2*w*(1-w)*rho*sa*sb)",
+    "format": "percent",
+    "excel": "=SQRT({w}^2*{sa}^2+(1-{w})^2*{sb}^2+2*{w}*(1-{w})*{rho}*{sa}*{sb})",
+    "expected": 0.10125611092669914
+   }
+  ],
+  "math": "σp = √(w²σA² + (1−w)²σB² + 2w(1−w)ρσAσB)",
+  "summary": "Return and volatility of a two-asset mix, including diversification.",
+  "aliases": "stock bond mix diversification correlation standard deviation",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "sharpe",
+  "name": "Sharpe ratio",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "r",
+    "label": "Portfolio return",
+    "unit": "%",
+    "example": "9",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "rf",
+    "label": "Risk-free rate",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.1
+   },
+   {
+    "id": "sd",
+    "label": "Volatility (standard deviation)",
+    "unit": "%",
+    "example": "14",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Sharpe ratio",
+    "expression": "(r-rf)/sd",
+    "format": "number",
+    "excel": "=({r}-{rf})/{sd}",
+    "expected": 0.3571428571428571
+   }
+  ],
+  "math": "(Return − risk-free) ÷ volatility",
+  "summary": "Excess return earned per unit of total risk.",
+  "aliases": "risk adjusted return",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "sortino",
+  "name": "Sortino ratio",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "r",
+    "label": "Portfolio return",
+    "unit": "%",
+    "example": "9",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "t",
+    "label": "Target / minimum return",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "dd",
+    "label": "Downside deviation",
+    "unit": "%",
+    "example": "8",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Sortino ratio",
+    "expression": "(r-t)/dd",
+    "format": "number",
+    "excel": "=({r}-{t})/{dd}",
+    "expected": 0.75
+   }
+  ],
+  "math": "(Return − target) ÷ downside deviation",
+  "summary": "Excess return per unit of downside risk only.",
+  "aliases": "downside risk adjusted",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "capm",
+  "name": "CAPM expected return",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "rf",
+    "label": "Risk-free rate",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.1
+   },
+   {
+    "id": "b",
+    "label": "Beta",
+    "unit": "x",
+    "example": "1.2",
+    "hint": "A plain number.",
+    "min": -5
+   },
+   {
+    "id": "rm",
+    "label": "Expected market return",
+    "unit": "%",
+    "example": "9",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Expected return",
+    "expression": "rf+b*(rm-rf)",
+    "format": "percent",
+    "excel": "={rf}+{b}*({rm}-{rf})",
+    "expected": 0.09999999999999999
+   }
+  ],
+  "math": "Risk-free + beta × (market − risk-free)",
+  "summary": "Required return given market sensitivity.",
+  "aliases": "beta capital asset pricing",
+  "acronym": "CAPM",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "rebalance",
+  "name": "Rebalancing trade",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "v",
+    "label": "Total portfolio value",
+    "unit": "$",
+    "example": "2000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "a",
+    "label": "Current value of the asset",
+    "unit": "$",
+    "example": "1450000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "t",
+    "label": "Target weight",
+    "unit": "%",
+    "example": "60",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Current weight",
+    "expression": "a/v",
+    "format": "percent",
+    "excel": "={a}/{v}",
+    "expected": 0.725
+   },
+   {
+    "id": "1",
+    "label": "Drift from target",
+    "expression": "a/v-t",
+    "format": "percent",
+    "excel": "={a}/{v}-{t}",
+    "expected": 0.125
+   },
+   {
+    "id": "2",
+    "label": "Buy (+) / sell (−) to reach target",
+    "expression": "v*t-a",
+    "format": "currency",
+    "excel": "={v}*{t}-{a}",
+    "expected": -250000.0
+   }
+  ],
+  "math": "Target value − current value",
+  "summary": "Trade that brings one holding back to its target weight.",
+  "aliases": "drift allocation rebalance trade",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "a",
+    "relation": "<=",
+    "right": "v",
+    "message": "Asset value can't exceed the total portfolio."
+   }
+  ],
+  "common": true,
+  "sources": []
+ },
+ {
+  "id": "drawdown",
+  "name": "Loss recovery",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "l",
+    "label": "Decline",
+    "unit": "%",
+    "example": "30",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.9999
+   },
+   {
+    "id": "r",
+    "label": "Expected annual return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Gain needed to recover",
+    "expression": "1/(1-l)-1",
+    "format": "percent",
+    "excel": "=1/(1-{l})-1",
+    "expected": 0.4285714285714286
+   },
+   {
+    "id": "1",
+    "label": "Years to recover at that return",
+    "expression": "ln(1/(1-l))/ln(1+r)",
+    "format": "years",
+    "excel": "=LN(1/(1-{l}))/LN(1+{r})",
+    "expected": 5.271682955310172
+   }
+  ],
+  "math": "1 ÷ (1 − loss) − 1",
+  "summary": "Gain needed to get back to even after a drawdown.",
+  "aliases": "drawdown bear market recovery",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "hpr",
+  "name": "Holding-period return",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "b",
+    "label": "Beginning value",
+    "unit": "$",
+    "example": "100000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "e",
+    "label": "Ending value",
+    "unit": "$",
+    "example": "118000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "i",
+    "label": "Income received (dividends, interest)",
+    "unit": "$",
+    "example": "3000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "n",
+    "label": "Years held",
+    "unit": "years",
+    "example": "2",
+    "hint": "Number of years.",
+    "min": 0.01
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Total return",
+    "expression": "(e+i-b)/b",
+    "format": "percent",
+    "excel": "=({e}+{i}-{b})/{b}",
+    "expected": 0.21
+   },
+   {
+    "id": "1",
+    "label": "Annualized",
+    "expression": "((e+i)/b)^(1/n)-1",
+    "format": "percent",
+    "excel": "=(({e}+{i})/{b})^(1/{n})-1",
+    "expected": 0.10000000000000009
+   }
+  ],
+  "math": "(End + income − begin) ÷ begin",
+  "summary": "Total and annualized return including income.",
+  "aliases": "total return annualized",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "irr",
+  "name": "Money-weighted return (IRR)",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "cf",
+    "label": "Cash flows by period",
+    "unit": "series",
+    "example": "-100000; -20000; 5000; 8000; 160000",
+    "hint": "Negative = money in, positive = money out. Last value includes the ending balance."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Return per period",
+    "expression": "irr(cf)",
+    "format": "percent",
+    "excel": "=IRR({cf})",
+    "expected": 0.10309293133454156
+   }
+  ],
+  "math": "Rate where the net present value of the cash flows is zero",
+  "summary": "Return that accounts for the timing and size of deposits and withdrawals.",
+  "aliases": "internal rate of return money weighted dollar weighted",
+  "acronym": "IRR",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(cf)",
+    "relation": ">=",
+    "right": "2",
+    "message": "Enter at least two cash flows."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "dca",
+  "name": "Dollar-cost averaging",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Amount invested each time",
+    "unit": "series",
+    "example": "1000; 1000; 1000; 1000",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "p",
+    "label": "Price each time",
+    "unit": "series",
+    "example": "50; 40; 45; 55",
+    "hint": "Separate values with semicolons or new lines."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Shares bought",
+    "expression": "sum(a/p)",
+    "format": "number",
+    "excel": null,
+    "expected": 85.4040404040404
+   },
+   {
+    "id": "1",
+    "label": "Average cost per share",
+    "expression": "sum(a)/sum(a/p)",
+    "format": "currency",
+    "excel": null,
+    "expected": 46.836191602602014
+   },
+   {
+    "id": "2",
+    "label": "Simple average price",
+    "expression": "avg(p)",
+    "format": "currency",
+    "excel": null,
+    "expected": 47.5
+   }
+  ],
+  "math": "Total invested ÷ total shares",
+  "summary": "Average cost from investing on a schedule, compared with the average price.",
+  "aliases": "dca average cost basis periodic",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "With amounts in one row and prices in the next: =SUM(amounts)/SUMPRODUCT(amounts/prices).",
+  "rules": [
+   {
+    "left": "count(a)",
+    "relation": "==",
+    "right": "count(p)",
+    "message": "Enter the same number of amounts and prices."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "fee_drag",
+  "name": "Cost of fees over time",
+  "category": "Fees & costs",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Amount invested",
+    "unit": "$",
+    "example": "1000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Return before fees",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "f",
+    "label": "Annual fee",
+    "unit": "%",
+    "example": "1",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.2
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "25",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Value with no fee",
+    "expression": "a*(1+r)^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r})^{n}",
+    "expected": 5427432.640122897
+   },
+   {
+    "id": "1",
+    "label": "Value after fees",
+    "expression": "a*(1+r-f)^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r}-{f})^{n}",
+    "expected": 4291870.719743488
+   },
+   {
+    "id": "2",
+    "label": "Cost of fees",
+    "expression": "a*(1+r)^n-a*(1+r-f)^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r})^{n}-{a}*(1+{r}-{f})^{n}",
+    "expected": 1135561.9203794086
+   },
+   {
+    "id": "3",
+    "label": "Share of ending value lost",
+    "expression": "1-((1+r-f)/(1+r))^n",
+    "format": "percent",
+    "excel": "=1-((1+{r}-{f})/(1+{r}))^{n}",
+    "expected": 0.20922634985548072
+   }
+  ],
+  "math": "Amount × (1 + r)^n − amount × (1 + r − fee)^n",
+  "summary": "Total cost of an annual fee, including the growth the fee money would have earned.",
+  "aliases": "advisory fee expense ratio drag compounding cost",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": true,
+  "sources": [
+   {
+    "title": "SEC • How fees and expenses affect your portfolio",
+    "url": "https://www.sec.gov/investor/alerts/ib_investmentfees.pdf"
+   }
+  ]
+ },
+ {
+  "id": "fee_compare",
+  "name": "Compare two fee levels",
+  "category": "Fees & costs",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Amount invested",
+    "unit": "$",
+    "example": "500000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Return before fees",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "f1",
+    "label": "Fee option A",
+    "unit": "%",
+    "example": "1.0",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.2
+   },
+   {
+    "id": "f2",
+    "label": "Fee option B",
+    "unit": "%",
+    "example": "0.25",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.2
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "20",
+    "hint": "Number of years.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Ending value, A",
+    "expression": "a*(1+r-f1)^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r}-{f1})^{n}",
+    "expected": 1603567.736106424
+   },
+   {
+    "id": "1",
+    "label": "Ending value, B",
+    "expression": "a*(1+r-f2)^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r}-{f2})^{n}",
+    "expected": 1846408.0217414887
+   },
+   {
+    "id": "2",
+    "label": "Difference (B − A)",
+    "expression": "a*(1+r-f2)^n-a*(1+r-f1)^n",
+    "format": "currency",
+    "excel": "={a}*(1+{r}-{f2})^{n}-{a}*(1+{r}-{f1})^{n}",
+    "expected": 242840.28563506482
+   }
+  ],
+  "math": "Same growth, net of each fee",
+  "summary": "Ending-value gap between two fee levels.",
+  "aliases": "expense ratio fund comparison",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "SEC • How fees and expenses affect your portfolio",
+    "url": "https://www.sec.gov/investor/alerts/ib_investmentfees.pdf"
+   }
+  ]
+ },
+ {
+  "id": "aum_vs_flat",
+  "name": "AUM fee vs. flat fee",
+  "category": "Fees & costs",
+  "fields": [
+   {
+    "id": "v",
+    "label": "Assets under management",
+    "unit": "$",
+    "example": "2500000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "f",
+    "label": "AUM fee",
+    "unit": "%",
+    "example": "0.9",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 1e-05,
+    "max": 0.1
+   },
+   {
+    "id": "flat",
+    "label": "Flat annual fee",
+    "unit": "$",
+    "example": "12000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "AUM fee per year",
+    "expression": "v*f",
+    "format": "currency",
+    "excel": "={v}*{f}",
+    "expected": 22500.000000000004
+   },
+   {
+    "id": "1",
+    "label": "AUM minus flat fee",
+    "expression": "v*f-flat",
+    "format": "currency",
+    "excel": "={v}*{f}-{flat}",
+    "expected": 10500.000000000004
+   },
+   {
+    "id": "2",
+    "label": "Asset level where they're equal",
+    "expression": "flat/f",
+    "format": "currency",
+    "excel": "={flat}/{f}",
+    "expected": 1333333.3333333333
+   },
+   {
+    "id": "3",
+    "label": "Flat fee as % of assets",
+    "expression": "flat/v",
+    "format": "percent",
+    "excel": "={flat}/{v}",
+    "expected": 0.0048
+   }
+  ],
+  "math": "Assets × AUM rate vs. flat fee",
+  "summary": "Compares a percentage-of-assets fee with a fixed fee.",
+  "aliases": "advisor fee assets under management retainer",
+  "acronym": "AUM",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "tiered_fee",
+  "name": "Tiered (breakpoint) advisory fee",
+  "category": "Fees & costs",
+  "fields": [
+   {
+    "id": "v",
+    "label": "Assets",
+    "unit": "$",
+    "example": "3000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "b1",
+    "label": "Tier 1 up to",
+    "unit": "$",
+    "example": "1000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "f1",
+    "label": "Tier 1 rate",
+    "unit": "%",
+    "example": "1.0",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.1
+   },
+   {
+    "id": "b2",
+    "label": "Tier 2 up to",
+    "unit": "$",
+    "example": "5000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "f2",
+    "label": "Tier 2 rate",
+    "unit": "%",
+    "example": "0.75",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.1
+   },
+   {
+    "id": "f3",
+    "label": "Rate above tier 2",
+    "unit": "%",
+    "example": "0.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Annual fee",
+    "expression": "min(v,b1)*f1+max(0,min(v,b2)-b1)*f2+max(0,v-b2)*f3",
+    "format": "currency",
+    "excel": "=MIN({v},{b1})*{f1}+MAX(0,MIN({v},{b2})-{b1})*{f2}+MAX(0,{v}-{b2})*{f3}",
+    "expected": 25000.0
+   },
+   {
+    "id": "1",
+    "label": "Blended rate",
+    "expression": "(min(v,b1)*f1+max(0,min(v,b2)-b1)*f2+max(0,v-b2)*f3)/v",
+    "format": "percent",
+    "excel": "=(MIN({v},{b1})*{f1}+MAX(0,MIN({v},{b2})-{b1})*{f2}+MAX(0,{v}-{b2})*{f3})/{v}",
+    "expected": 0.008333333333333333
+   }
+  ],
+  "math": "Each slice of assets at its tier's rate",
+  "summary": "Fee and blended rate on a breakpoint schedule.",
+  "aliases": "breakpoints blended fee schedule",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "b2",
+    "relation": ">",
+    "right": "b1",
+    "message": "Tier 2 must end above tier 1."
+   },
+   {
+    "left": "v",
+    "relation": ">",
+    "right": "0",
+    "message": "Assets must be greater than zero."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "front_load",
+  "name": "Sales load",
+  "category": "Fees & costs",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Amount paid",
+    "unit": "$",
+    "example": "100000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "l",
+    "label": "Front-end load",
+    "unit": "%",
+    "example": "5.75",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.2
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Amount actually invested",
+    "expression": "a*(1-l)",
+    "format": "currency",
+    "excel": "={a}*(1-{l})",
+    "expected": 94250.0
+   },
+   {
+    "id": "1",
+    "label": "Load paid",
+    "expression": "a*l",
+    "format": "currency",
+    "excel": "={a}*{l}",
+    "expected": 5750.0
+   },
+   {
+    "id": "2",
+    "label": "Gain needed to break even",
+    "expression": "1/(1-l)-1",
+    "format": "percent",
+    "excel": "=1/(1-{l})-1",
+    "expected": 0.0610079575596818
+   }
+  ],
+  "math": "Amount × (1 − load)",
+  "summary": "What a front-end sales charge takes off the top.",
+  "aliases": "mutual fund class a load commission",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "SEC • How fees and expenses affect your portfolio",
+    "url": "https://www.sec.gov/investor/alerts/ib_investmentfees.pdf"
+   }
+  ]
+ },
+ {
+  "id": "net_worth",
+  "name": "Net worth",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "cash",
+    "label": "Cash and savings",
+    "unit": "$",
+    "example": "80000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "inv",
+    "label": "Taxable investments",
+    "unit": "$",
+    "example": "650000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "ret",
+    "label": "Retirement accounts",
+    "unit": "$",
+    "example": "900000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "re",
+    "label": "Real estate",
+    "unit": "$",
+    "example": "1200000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "oth",
+    "label": "Other assets",
+    "unit": "$",
+    "example": "60000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "mort",
+    "label": "Mortgages",
+    "unit": "$",
+    "example": "600000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "debt",
+    "label": "Other debt",
+    "unit": "$",
+    "example": "40000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Net worth",
+    "expression": "cash+inv+ret+re+oth-mort-debt",
+    "format": "currency",
+    "excel": "={cash}+{inv}+{ret}+{re}+{oth}-{mort}-{debt}",
+    "expected": 2250000.0
+   },
+   {
+    "id": "1",
+    "label": "Total assets",
+    "expression": "cash+inv+ret+re+oth",
+    "format": "currency",
+    "excel": "={cash}+{inv}+{ret}+{re}+{oth}",
+    "expected": 2890000.0
+   },
+   {
+    "id": "2",
+    "label": "Debt-to-assets",
+    "expression": "if(cash+inv+ret+re+oth>0,(mort+debt)/(cash+inv+ret+re+oth),0)",
+    "format": "percent",
+    "excel": "=({mort}+{debt})/({cash}+{inv}+{ret}+{re}+{oth})",
+    "expected": 0.22145328719723184
+   },
+   {
+    "id": "3",
+    "label": "Liquid share of assets (cash + taxable)",
+    "expression": "if(cash+inv+ret+re+oth>0,(cash+inv)/(cash+inv+ret+re+oth),0)",
+    "format": "percent",
+    "excel": "=({cash}+{inv})/({cash}+{inv}+{ret}+{re}+{oth})",
+    "expected": 0.25259515570934254
+   }
+  ],
+  "math": "Assets − liabilities",
+  "summary": "Household balance sheet summary.",
+  "aliases": "balance sheet assets liabilities",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": true,
+  "sources": []
+ },
+ {
+  "id": "savings_rate",
+  "name": "Savings rate",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "s",
+    "label": "Annual savings (including employer match)",
+    "unit": "$",
+    "example": "45000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "i",
+    "label": "Gross income",
+    "unit": "$",
+    "example": "250000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Savings rate",
+    "expression": "s/i",
+    "format": "percent",
+    "excel": "={s}/{i}",
+    "expected": 0.18
+   }
+  ],
+  "math": "Savings ÷ gross income",
+  "summary": "Share of income being saved.",
+  "aliases": "save percent of income",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "emergency_fund",
+  "name": "Emergency fund",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "e",
+    "label": "Monthly essential expenses",
+    "unit": "$",
+    "example": "9000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "m",
+    "label": "Months of coverage",
+    "unit": "x",
+    "example": "6",
+    "hint": "Months, e.g. 6.",
+    "min": 0
+   },
+   {
+    "id": "h",
+    "label": "Cash on hand",
+    "unit": "$",
+    "example": "30000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Target",
+    "expression": "e*m",
+    "format": "currency",
+    "excel": "={e}*{m}",
+    "expected": 54000.0
+   },
+   {
+    "id": "1",
+    "label": "Gap (+) / excess (−)",
+    "expression": "e*m-h",
+    "format": "currency",
+    "excel": "={e}*{m}-{h}",
+    "expected": 24000.0
+   },
+   {
+    "id": "2",
+    "label": "Months currently covered",
+    "expression": "if(e>0,h/e,0)",
+    "format": "number",
+    "excel": "={h}/{e}",
+    "expected": 3.3333333333333335
+   }
+  ],
+  "math": "Monthly expenses × months",
+  "summary": "Cash reserve target and how far current cash goes.",
+  "aliases": "rainy day reserve liquidity",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "college",
+  "name": "College savings (529)",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "c",
+    "label": "Annual cost today",
+    "unit": "$",
+    "example": "40000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "i",
+    "label": "College cost inflation",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   },
+   {
+    "id": "n",
+    "label": "Years until college starts",
+    "unit": "years",
+    "example": "10",
+    "hint": "Number of years.",
+    "min": 1
+   },
+   {
+    "id": "y",
+    "label": "Years of college",
+    "unit": "years",
+    "example": "4",
+    "hint": "Number of years.",
+    "min": 1
+   },
+   {
+    "id": "p",
+    "label": "Saved so far",
+    "unit": "$",
+    "example": "30000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Total projected cost",
+    "expression": "c*(1+i)^n*((1+i)^y-1)/i",
+    "format": "currency",
+    "excel": "={c}*(1+{i})^{n}*((1+{i})^{y}-1)/{i}",
+    "expected": 280829.57812956517
+   },
+   {
+    "id": "1",
+    "label": "Current savings at college start",
+    "expression": "p*(1+r/12)^(n*12)",
+    "format": "currency",
+    "excel": "=FV({r}/12,{n}*12,0,-{p})",
+    "expected": 54581.9020209687
+   },
+   {
+    "id": "2",
+    "label": "Monthly saving needed",
+    "expression": "max(0,(c*(1+i)^n*((1+i)^y-1)/i-p*(1+r/12)^(n*12))*(r/12)/((1+r/12)^(n*12)-1))",
+    "format": "currency",
+    "excel": "=MAX(0,-PMT({r}/12,{n}*12,-{p},{c}*(1+{i})^{n}*((1+{i})^{y}-1)/{i}))",
+    "expected": 1380.5746759278682
+   }
+  ],
+  "math": "Cost grows with inflation each year; full cost funded by the first day of college",
+  "summary": "Projected cost of college and the monthly saving to cover it.",
+  "aliases": "529 education tuition saving",
+  "acronym": "",
+  "assumptions": "Conservative simplification: the whole multi-year cost is funded by the start of college, and the balance earns nothing extra during school. Ignores financial aid and tax benefits.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "life_insurance",
+  "name": "Life insurance need",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "inc",
+    "label": "Income to replace each year",
+    "unit": "$",
+    "example": "200000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "n",
+    "label": "Years to replace it",
+    "unit": "years",
+    "example": "20",
+    "hint": "Number of years.",
+    "min": 1
+   },
+   {
+    "id": "r",
+    "label": "Return on the payout",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "debt",
+    "label": "Debts to pay off",
+    "unit": "$",
+    "example": "500000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "edu",
+    "label": "Education and other goals",
+    "unit": "$",
+    "example": "300000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "cov",
+    "label": "Existing coverage",
+    "unit": "$",
+    "example": "1000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "assets",
+    "label": "Assets available",
+    "unit": "$",
+    "example": "400000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Coverage needed",
+    "expression": "max(0,pv(r,n,inc)+debt+edu-cov-assets)",
+    "format": "currency",
+    "excel": "=MAX(0,PV({r},{n},-{inc})+{debt}+{edu}-{cov}-{assets})",
+    "expected": 2118065.2689935393
+   },
+   {
+    "id": "1",
+    "label": "Income replacement (present value)",
+    "expression": "pv(r,n,inc)",
+    "format": "currency",
+    "excel": "=PV({r},{n},-{inc})",
+    "expected": 2718065.2689935393
+   }
+  ],
+  "math": "PV(income) + debts + goals − existing coverage − assets",
+  "summary": "Needs-based estimate of additional life insurance.",
+  "aliases": "insurance needs analysis term life",
+  "acronym": "",
+  "assumptions": "Income replacement is a level end-of-year amount; ignores taxes, inflation, Social Security survivor benefits and final expenses unless included in goals.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "estate_exposure",
+  "name": "Estate tax exposure",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "e",
+    "label": "Estate value",
+    "unit": "$",
+    "example": "22000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "g",
+    "label": "Lifetime taxable gifts already made",
+    "unit": "$",
+    "example": "2000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "m",
+    "label": "Married with portability?",
+    "unit": "choice",
+    "example": "1",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "No (one exemption)"
+     },
+     {
+      "value": 2,
+      "label": "Yes (two exemptions)"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Exemption available",
+    "expression": "max(0,estateexemption()*m-g)",
+    "format": "currency",
+    "excel": null,
+    "expected": 13000000.0
+   },
+   {
+    "id": "1",
+    "label": "Amount over the exemption",
+    "expression": "max(0,e-max(0,estateexemption()*m-g))",
+    "format": "currency",
+    "excel": null,
+    "expected": 9000000.0
+   },
+   {
+    "id": "2",
+    "label": "Approximate federal estate tax",
+    "expression": "estaterate()*max(0,e-max(0,estateexemption()*m-g))",
+    "format": "currency",
+    "excel": null,
+    "expected": 3600000.0
+   },
+   {
+    "id": "3",
+    "label": "Annual gift exclusion per recipient",
+    "expression": "giftexclusion()",
+    "format": "currency",
+    "excel": null,
+    "expected": 19000.0
+   }
+  ],
+  "math": "Top rate × (estate − remaining exemption)",
+  "summary": "Rough federal estate tax exposure using the current exemption.",
+  "aliases": "estate tax exemption gift portability",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Uses the federal figures in the app's tax table for tax year 2026. Excludes state tax, AMT, credits, phase-outs and payroll taxes. Confirm against current IRS guidance. Uses the top 40% rate as an approximation; state estate taxes are excluded.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Estate tax",
+    "url": "https://www.irs.gov/businesses/small-businesses-self-employed/estate-tax"
+   },
+   {
+    "title": "IRS • Gift tax FAQs",
+    "url": "https://www.irs.gov/businesses/small-businesses-self-employed/frequently-asked-questions-on-gift-taxes"
+   }
+  ]
+ },
+ {
+  "id": "debt_vs_invest",
+  "name": "Pay down debt or invest",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "d",
+    "label": "Debt interest rate",
+    "unit": "%",
+    "example": "6.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "dt",
+    "label": "Tax benefit on interest (rate deducted)",
+    "unit": "%",
+    "example": "0",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "r",
+    "label": "Expected investment return",
+    "unit": "%",
+    "example": "7",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "t",
+    "label": "Tax rate on the return",
+    "unit": "%",
+    "example": "15",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "After-tax cost of the debt",
+    "expression": "d*(1-dt)",
+    "format": "percent",
+    "excel": "={d}*(1-{dt})",
+    "expected": 0.065
+   },
+   {
+    "id": "1",
+    "label": "After-tax investment return",
+    "expression": "r*(1-t)",
+    "format": "percent",
+    "excel": "={r}*(1-{t})",
+    "expected": 0.059500000000000004
+   },
+   {
+    "id": "2",
+    "label": "Investing minus paying down",
+    "expression": "r*(1-t)-d*(1-dt)",
+    "format": "percent",
+    "excel": "={r}*(1-{t})-{d}*(1-{dt})",
+    "expected": -0.005499999999999998
+   }
+  ],
+  "math": "After-tax return − after-tax debt cost",
+  "summary": "Compares the guaranteed return of paying down debt with an expected (uncertain) investment return.",
+  "aliases": "prepay mortgage extra payments invest",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Paying down debt earns its rate with certainty; the investment return is an expectation with risk. A positive number is not a recommendation to invest.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "loan_payment",
+  "name": "Loan payment",
+  "category": "Planning & protection",
+  "fields": [
+   {
+    "id": "p",
+    "label": "Loan amount",
+    "unit": "$",
+    "example": "800000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Interest rate",
+    "unit": "%",
+    "example": "6.25",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "y",
+    "label": "Term in years",
+    "unit": "years",
+    "example": "30",
+    "hint": "Number of years.",
+    "min": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Monthly payment",
+    "expression": "pmt(r/12,y*12,p)",
+    "format": "currency",
+    "excel": "=PMT({r}/12,{y}*12,-{p})",
+    "expected": 4925.737603411156
+   },
+   {
+    "id": "1",
+    "label": "Total interest",
+    "expression": "pmt(r/12,y*12,p)*y*12-p",
+    "format": "currency",
+    "excel": "=PMT({r}/12,{y}*12,-{p})*{y}*12-{p}",
+    "expected": 973265.5372280162
+   }
+  ],
+  "math": "Principal × i ÷ (1 − (1+i)^−n), monthly",
+  "summary": "Fully amortizing monthly payment and lifetime interest.",
+  "aliases": "mortgage amortization monthly payment",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ }
+]
