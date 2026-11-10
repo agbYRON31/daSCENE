@@ -21,11 +21,13 @@ extension Color {
 struct WealthDeskApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var state = AppState()
+    @StateObject private var market = MarketStore()
 
     var body: some Scene {
         Window("Wealth Desk", id: "main") {
             ContentView()
                 .environmentObject(state)
+                .environmentObject(market)
                 .frame(minWidth: 860, minHeight: 560)
                 .tint(.wealthAccent)
         }
@@ -39,6 +41,8 @@ struct WealthDeskApp: App {
                     .keyboardShortcut("i", modifiers: [.command, .shift])
             }
             CommandMenu("Calculator") {
+                Button("Markets") { state.selection = .markets }
+                    .keyboardShortcut("0", modifiers: [.command, .shift])
                 Button("Scenarios") { state.selection = .scenarios }
                     .keyboardShortcut("1", modifiers: [.command, .shift])
                 Button("History") { state.selection = .history }
@@ -113,7 +117,7 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("About") {
-                Text("No account, network service or telemetry. Every calculation runs on this Mac. Wealth Desk does math. It is not investment, tax or legal advice.")
+                Text("No account or telemetry. Every calculation runs on this Mac. The Markets page fetches Treasury yields (Treasury.gov) and quotes (Yahoo Finance) only when you open it or press Refresh. Wealth Desk does math. It is not investment, tax or legal advice.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

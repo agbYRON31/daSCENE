@@ -46,6 +46,55 @@ public enum Finance {
         return total
     }
 
+    // MARK: Bonds (priced on a coupon date, no accrued interest)
+
+    static func periods(_ years: Double, _ freq: Double) -> Int {
+        Int((years * freq + 0.5).rounded(.down))
+    }
+
+    public static func bondPrice(_ face: Double, _ cpn: Double, _ ytm: Double, _ years: Double, _ freq: Double) -> Double {
+        let n = Double(periods(years, freq))
+        let i = ytm / freq
+        let c = face * cpn / freq
+        if i == 0 { return c * n + face }
+        return c * (1 - pow(1 + i, -n)) / i + face * pow(1 + i, -n)
+    }
+
+    public static func bondYTM(_ price: Double, _ face: Double, _ cpn: Double, _ years: Double, _ freq: Double) -> Double {
+        var lo = -0.5, hi = 1.0
+        for _ in 0..<300 {
+            let mid = (lo + hi) / 2
+            if bondPrice(face, cpn, mid, years, freq) > price { lo = mid } else { hi = mid }
+        }
+        return (lo + hi) / 2
+    }
+
+    public static func macaulayDuration(_ face: Double, _ cpn: Double, _ ytm: Double, _ years: Double, _ freq: Double) -> Double {
+        let n = periods(years, freq)
+        guard n >= 1 else { return .nan }
+        let i = ytm / freq
+        let c = face * cpn / freq
+        var total = 0.0
+        for k in 1...n {
+            let cf = c + (k == n ? face : 0.0)
+            total += (Double(k) / freq) * cf / pow(1 + i, Double(k))
+        }
+        return total / bondPrice(face, cpn, ytm, years, freq)
+    }
+
+    public static func convexity(_ face: Double, _ cpn: Double, _ ytm: Double, _ years: Double, _ freq: Double) -> Double {
+        let n = periods(years, freq)
+        guard n >= 1 else { return .nan }
+        let i = ytm / freq
+        let c = face * cpn / freq
+        var total = 0.0
+        for k in 1...n {
+            let cf = c + (k == n ? face : 0.0)
+            total += cf * Double(k) * Double(k + 1) / pow(1 + i, Double(k + 2))
+        }
+        return total / (bondPrice(face, cpn, ytm, years, freq) * freq * freq)
+    }
+
     /// Number of sign changes, ignoring zeros.
     public static func signChanges(_ cf: [Double]) -> Int {
         var changes = 0

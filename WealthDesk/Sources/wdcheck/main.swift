@@ -58,6 +58,28 @@ expect((try? Expression("-2^2").number([:], tax: engine.tax)) == -4, "-2^2 = -4"
 expect((try? Expression("2^3^2").number([:], tax: engine.tax)) == 512, "^ is right-associative")
 expect((try? Finance.irr([-100, 50, -20, 90])) == nil, "IRR rejects multiple sign changes")
 
+// Market data parsers (sample payloads in the real formats)
+let sampleCSV = """
+Date,"1 Mo","1.5 Month","2 Mo","3 Mo","4 Mo","6 Mo","1 Yr","2 Yr","3 Yr","5 Yr","7 Yr","10 Yr","20 Yr","30 Yr"
+11/10/2026,4.05,4.16,4.21,4.30,4.28,4.38,4.56,4.73,4.74,4.81,4.89,4.98,5.39,5.35
+11/09/2026,4.04,4.13,4.19,4.24,4.20,4.26,4.38,4.56,4.58,4.67,4.76,4.88,5.29,5.26
+"""
+let curve = MarketParsers.parseTreasuryCSV(sampleCSV)
+expect(curve?.date == "11/10/2026", "Treasury CSV: latest date")
+expect(curve?.points.count == 14, "Treasury CSV: 14 maturities")
+expect(curve.flatMap { $0.rate("10 Yr") }.map { abs($0 - 0.0498) < 1e-12 } == true, "Treasury CSV: 10 Yr = 4.98%")
+expect(curve.flatMap { $0.spread("10 Yr", "2 Yr") }.map { abs($0 - 0.0025) < 1e-12 } == true, "Treasury CSV: 10Y-2Y spread")
+expect(curve?.prior["10 Yr"].map { abs($0 - 0.0488) < 1e-12 } == true, "Treasury CSV: prior day")
+expect(curve?.points.first?.label == "1 Mo" && curve?.points.last?.label == "30 Yr", "Treasury CSV: sorted by maturity")
+expect(MarketParsers.parseTreasuryCSV("Date,\"1 Mo\"\n") == nil, "Treasury CSV: empty year returns nil")
+let sampleQuote = #"{"chart":{"result":[{"meta":{"currency":"USD","symbol":"VTI","regularMarketPrice":369.55,"chartPreviousClose":370.9,"regularMarketDayHigh":370.555,"regularMarketDayLow":367.06,"fiftyTwoWeekHigh":385.12,"fiftyTwoWeekLow":310.4,"longName":"Vanguard Total Stock Market ETF","regularMarketTime":1794344400}}],"error":null}}"#
+let q = try? MarketParsers.parseQuote(Data(sampleQuote.utf8))
+expect(q?.price == 369.55 && q?.symbol == "VTI", "Quote: price and symbol")
+expect(q.map { abs($0.change - (369.55 - 370.9)) < 1e-9 } == true, "Quote: change vs previous close")
+let missing = #"{"chart":{"result":null,"error":{"code":"Not Found","description":"No data found, symbol may be delisted"}}}"#
+expect((try? MarketParsers.parseQuote(Data(missing.utf8))) == nil, "Quote: unknown symbol throws")
+expect(MarketParsers.quoteURL(symbol: "^GSPC") != nil && MarketParsers.quoteURL(symbol: "a/b") == nil, "Quote URL: symbol validation")
+
 // Every Excel template references only known fields
 for calc in engine.calculators {
     let ids = Set(calc.fields.map(\.id))

@@ -126,7 +126,8 @@ public final class Engine {
                 case ">": ok = l > r
                 case ">=": ok = l >= r
                 case "==": ok = l == r
-                default: ok = true
+                case "!=": ok = l != r
+                default: ok = false
                 }
                 if !ok { result.ruleErrors.append(rule.message) }
             } catch {

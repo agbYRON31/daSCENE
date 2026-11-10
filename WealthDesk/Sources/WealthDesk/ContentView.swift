@@ -21,6 +21,7 @@ struct ContentView: View {
                         } else {
                             ContentUnavailable(title: "Not found", message: "That calculator isn't in this catalog.", symbol: "questionmark")
                         }
+                    case .markets?: MarketsView()
                     case .scenarios?: ScenariosView()
                     case .history?: HistoryView()
                     case nil:
@@ -60,6 +61,8 @@ struct SidebarView: View {
                 }
             } else {
                 Section {
+                    Label("Markets", systemImage: "chart.xyaxis.line")
+                        .tag(SidebarItem.markets)
                     Label("Saved scenarios", systemImage: "tray.full")
                         .badge(state.workspace.scenarios.count)
                         .tag(SidebarItem.scenarios)

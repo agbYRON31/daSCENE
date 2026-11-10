@@ -28,10 +28,28 @@ struct Workspace: Codable {
     var history: [HistoryItem] = []
     var pinned = false
     var lastSelection: String? = nil
+    var watchlist: [String] = ["SPY", "VTI", "BND", "AGG"]
+
+    init() {}
+
+    /// Every field is optional on read so saved work from older versions still loads.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = Workspace()
+        version = try c.decodeIfPresent(Int.self, forKey: .version) ?? d.version
+        favorites = try c.decodeIfPresent([String].self, forKey: .favorites) ?? d.favorites
+        working = try c.decodeIfPresent([String: [String: String]].self, forKey: .working) ?? d.working
+        scenarios = try c.decodeIfPresent([SavedScenario].self, forKey: .scenarios) ?? d.scenarios
+        history = try c.decodeIfPresent([HistoryItem].self, forKey: .history) ?? d.history
+        pinned = try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? d.pinned
+        lastSelection = try c.decodeIfPresent(String.self, forKey: .lastSelection)
+        watchlist = try c.decodeIfPresent([String].self, forKey: .watchlist) ?? d.watchlist
+    }
 }
 
 enum SidebarItem: Hashable {
     case calc(String)
+    case markets
     case scenarios
     case history
 }
@@ -113,6 +131,15 @@ final class AppState: ObservableObject {
         var blank: [String: String] = [:]
         for f in calc.fields { blank[f.id] = f.isChoice ? f.example : "" }
         workspace.working[calc.id] = blank
+    }
+
+    /// Opens a calculator with some inputs replaced (e.g. a live yield or price).
+    func openCalculator(_ id: String, setting values: [String: String]) {
+        guard let calc = calculator(id) else { return }
+        var current = inputs(for: calc)
+        for (k, v) in values where calc.fields.contains(where: { $0.id == k }) { current[k] = v }
+        workspace.working[id] = current
+        select(calc)
     }
 
     func select(_ calc: Calculator) {
@@ -243,6 +270,7 @@ final class AppState: ObservableObject {
             let incoming = try Self.decoder.decode(Workspace.self, from: Data(contentsOf: url))
             var w = workspace
             for f in incoming.favorites where !w.favorites.contains(f) { w.favorites.append(f) }
+            for t in incoming.watchlist where !w.watchlist.contains(t) { w.watchlist.append(t) }
             for (k, v) in incoming.working where w.working[k] == nil { w.working[k] = v }
             let existing = Set(w.scenarios.map(\.id))
             w.scenarios += incoming.scenarios.filter { !existing.contains($0.id) }

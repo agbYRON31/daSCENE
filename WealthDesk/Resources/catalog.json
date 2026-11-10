@@ -3537,6 +3537,3755 @@
   ]
  },
  {
+  "id": "bond_price",
+  "name": "Bond price from yield",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "face",
+    "label": "Face value",
+    "unit": "$",
+    "example": "1000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "cpn",
+    "label": "Coupon rate",
+    "unit": "%",
+    "example": "4.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "ytm",
+    "label": "Yield to maturity",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "years",
+    "label": "Years to maturity",
+    "unit": "years",
+    "example": "10",
+    "hint": "Number of years.",
+    "min": 0.01
+   },
+   {
+    "id": "freq",
+    "label": "Coupon payments",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Annual"
+     },
+     {
+      "value": 2,
+      "label": "Semiannual"
+     },
+     {
+      "value": 4,
+      "label": "Quarterly"
+     },
+     {
+      "value": 12,
+      "label": "Monthly"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Price",
+    "expression": "bondprice(face,cpn,ytm,years,freq)",
+    "format": "currency",
+    "excel": "=PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})",
+    "expected": 961.0270942858831
+   },
+   {
+    "id": "1",
+    "label": "Price as % of face",
+    "expression": "bondprice(face,cpn,ytm,years,freq)/face",
+    "format": "percent",
+    "excel": "=PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})/{face}",
+    "expected": 0.9610270942858831
+   },
+   {
+    "id": "2",
+    "label": "Current yield",
+    "expression": "face*cpn/bondprice(face,cpn,ytm,years,freq)",
+    "format": "percent",
+    "excel": "={face}*{cpn}/PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})",
+    "expected": 0.046824902510619076
+   },
+   {
+    "id": "3",
+    "label": "Premium (+) / discount (−) to face",
+    "expression": "bondprice(face,cpn,ytm,years,freq)-face",
+    "format": "currency",
+    "excel": "=PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})-{face}",
+    "expected": -38.972905714116905
+   }
+  ],
+  "math": "Coupon × (1 − (1+i)^−n) ÷ i + face × (1+i)^−n, with i = yield ÷ payments per year",
+  "summary": "What a fixed-rate bond is worth at a given market yield.",
+  "aliases": "bond pricing treasury corporate muni coupon present value",
+  "acronym": "",
+  "assumptions": "Priced on a coupon date (no accrued interest), fixed coupons, held to maturity, every payment made in full. Ignores call features, taxes and transaction costs.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "years*freq",
+    "relation": ">=",
+    "right": "0.5",
+    "message": "Maturity must be at least one coupon period."
+   }
+  ],
+  "common": true,
+  "sources": [
+   {
+    "title": "Investor.gov • Bonds",
+    "url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products/bonds"
+   },
+   {
+    "title": "U.S. Treasury • Daily par yield curve rates",
+    "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve"
+   }
+  ]
+ },
+ {
+  "id": "bond_ytm",
+  "name": "Yield to maturity from price",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "price",
+    "label": "Price paid",
+    "unit": "$",
+    "example": "960",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "face",
+    "label": "Face value",
+    "unit": "$",
+    "example": "1000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "cpn",
+    "label": "Coupon rate",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "years",
+    "label": "Years to maturity",
+    "unit": "years",
+    "example": "7",
+    "hint": "Number of years.",
+    "min": 0.01
+   },
+   {
+    "id": "freq",
+    "label": "Coupon payments",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Annual"
+     },
+     {
+      "value": 2,
+      "label": "Semiannual"
+     },
+     {
+      "value": 4,
+      "label": "Quarterly"
+     },
+     {
+      "value": 12,
+      "label": "Monthly"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Yield to maturity",
+    "expression": "bondytm(price,face,cpn,years,freq)",
+    "format": "percent",
+    "excel": "=RATE(ROUND({years}*{freq},0),{face}*{cpn}/{freq},-{price},{face})*{freq}",
+    "expected": 0.04676652535819703
+   },
+   {
+    "id": "1",
+    "label": "Current yield",
+    "expression": "face*cpn/price",
+    "format": "percent",
+    "excel": "={face}*{cpn}/{price}",
+    "expected": 0.041666666666666664
+   }
+  ],
+  "math": "Yield at which the bond's cash flows are worth exactly the price",
+  "summary": "Annual return from buying a bond at a price and holding it to maturity.",
+  "aliases": "ytm bond yield return price discount premium",
+  "acronym": "YTM",
+  "assumptions": "Priced on a coupon date (no accrued interest), fixed coupons, held to maturity, every payment made in full. Ignores call features, taxes and transaction costs. YTM assumes coupons are reinvested at the same yield.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "years*freq",
+    "relation": ">=",
+    "right": "0.5",
+    "message": "Maturity must be at least one coupon period."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "Investor.gov • Bonds",
+    "url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products/bonds"
+   }
+  ]
+ },
+ {
+  "id": "bond_duration",
+  "name": "Duration & rate shock",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "face",
+    "label": "Face value",
+    "unit": "$",
+    "example": "1000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "cpn",
+    "label": "Coupon rate",
+    "unit": "%",
+    "example": "4.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "ytm",
+    "label": "Yield to maturity",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "years",
+    "label": "Years to maturity",
+    "unit": "years",
+    "example": "10",
+    "hint": "Number of years.",
+    "min": 0.01
+   },
+   {
+    "id": "freq",
+    "label": "Coupon payments",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Annual"
+     },
+     {
+      "value": 2,
+      "label": "Semiannual"
+     },
+     {
+      "value": 4,
+      "label": "Quarterly"
+     },
+     {
+      "value": 12,
+      "label": "Monthly"
+     }
+    ]
+   },
+   {
+    "id": "dy",
+    "label": "Change in yield",
+    "unit": "%",
+    "example": "1",
+    "hint": "Enter 1 for +1% (100 bp), −0.5 for −0.5%.",
+    "min": -0.1,
+    "max": 0.1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Macaulay duration",
+    "expression": "macdur(face,cpn,ytm,years,freq)",
+    "format": "years",
+    "excel": null,
+    "expected": 8.117119791414419
+   },
+   {
+    "id": "1",
+    "label": "Modified duration",
+    "expression": "macdur(face,cpn,ytm,years,freq)/(1+ytm/freq)",
+    "format": "years",
+    "excel": "=MDURATION(DATE(2000,1,1),EDATE(DATE(2000,1,1),12*{years}),{cpn},{ytm},{freq})",
+    "expected": 7.919141259916507
+   },
+   {
+    "id": "2",
+    "label": "Convexity",
+    "expression": "bondconvexity(face,cpn,ytm,years,freq)",
+    "format": "number",
+    "excel": null,
+    "expected": 75.29958076997525
+   },
+   {
+    "id": "3",
+    "label": "Estimated price change",
+    "expression": "-macdur(face,cpn,ytm,years,freq)/(1+ytm/freq)*dy+0.5*bondconvexity(face,cpn,ytm,years,freq)*dy^2",
+    "format": "percent",
+    "excel": null,
+    "expected": -0.0754264335606663
+   },
+   {
+    "id": "4",
+    "label": "Exact price change",
+    "expression": "bondprice(face,cpn,ytm+dy,years,freq)/bondprice(face,cpn,ytm,years,freq)-1",
+    "format": "percent",
+    "excel": null,
+    "expected": -0.07555266253263437
+   }
+  ],
+  "math": "ΔP/P ≈ −modified duration × Δy + ½ × convexity × Δy²",
+  "summary": "How sensitive a bond's price is to interest-rate moves, with an estimate and the exact repriced change.",
+  "aliases": "interest rate risk sensitivity duration convexity basis points",
+  "acronym": "",
+  "assumptions": "Priced on a coupon date (no accrued interest), fixed coupons, held to maturity, every payment made in full. Ignores call features, taxes and transaction costs.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "MDURATION needs settlement and maturity dates; the formula uses placeholder dates spanning the maturity.",
+  "rules": [
+   {
+    "left": "years*freq",
+    "relation": ">=",
+    "right": "0.5",
+    "message": "Maturity must be at least one coupon period."
+   },
+   {
+    "left": "ytm+dy",
+    "relation": ">",
+    "right": "-0.5",
+    "message": "The shocked yield is too low."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "Investor.gov • Bonds",
+    "url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products/bonds"
+   }
+  ]
+ },
+ {
+  "id": "tbill",
+  "name": "Treasury bill yields",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "face",
+    "label": "Face value",
+    "unit": "$",
+    "example": "10000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "price",
+    "label": "Purchase price",
+    "unit": "$",
+    "example": "9890",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "days",
+    "label": "Days to maturity",
+    "unit": "count",
+    "example": "91",
+    "hint": "A whole number.",
+    "min": 1,
+    "max": 366,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Bank discount yield",
+    "expression": "(face-price)/face*360/days",
+    "format": "percent",
+    "excel": "=({face}-{price})/{face}*360/{days}",
+    "expected": 0.04351648351648352
+   },
+   {
+    "id": "1",
+    "label": "Bond-equivalent yield",
+    "expression": "(face-price)/price*365/days",
+    "format": "percent",
+    "excel": "=({face}-{price})/{price}*365/{days}",
+    "expected": 0.04461160679563106
+   },
+   {
+    "id": "2",
+    "label": "Money-market yield",
+    "expression": "(face-price)/price*360/days",
+    "format": "percent",
+    "excel": "=({face}-{price})/{price}*360/{days}",
+    "expected": 0.044000488894321045
+   },
+   {
+    "id": "3",
+    "label": "Interest earned",
+    "expression": "face-price",
+    "format": "currency",
+    "excel": "={face}-{price}",
+    "expected": 110.0
+   }
+  ],
+  "math": "Discount ÷ face × 360 ÷ days; BEY = discount ÷ price × 365 ÷ days",
+  "summary": "Converts a T-bill price into the different yield conventions quoted in the market.",
+  "aliases": "t-bill treasury bill discount yield bey cash",
+  "acronym": "",
+  "assumptions": "Simple-interest yields for bills of a year or less, held to maturity. Treasury interest is exempt from state income tax.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "price",
+    "relation": "<",
+    "right": "face",
+    "message": "Price must be below face value for a discount bill."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "TreasuryDirect • Treasury bills",
+    "url": "https://www.treasurydirect.gov/marketable-securities/treasury-bills/"
+   }
+  ]
+ },
+ {
+  "id": "stock_valuation",
+  "name": "Dividend yield, P/E & payout",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "price",
+    "label": "Share price",
+    "unit": "$",
+    "example": "185",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "div",
+    "label": "Annual dividend per share",
+    "unit": "$",
+    "example": "3.40",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "eps",
+    "label": "Earnings per share (trailing 12 months)",
+    "unit": "$",
+    "example": "9.25",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m)."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Dividend yield",
+    "expression": "div/price",
+    "format": "percent",
+    "excel": "={div}/{price}",
+    "expected": 0.018378378378378378
+   },
+   {
+    "id": "1",
+    "label": "Price / earnings (P/E)",
+    "expression": "if(eps>0,price/eps,nan())",
+    "format": "multiple",
+    "excel": "={price}/{eps}",
+    "expected": 20.0
+   },
+   {
+    "id": "2",
+    "label": "Earnings yield",
+    "expression": "eps/price",
+    "format": "percent",
+    "excel": "={eps}/{price}",
+    "expected": 0.05
+   },
+   {
+    "id": "3",
+    "label": "Payout ratio",
+    "expression": "if(eps>0,div/eps,nan())",
+    "format": "percent",
+    "excel": "={div}/{eps}",
+    "expected": 0.36756756756756753
+   }
+  ],
+  "math": "Dividend ÷ price; price ÷ EPS; dividend ÷ EPS",
+  "summary": "Core per-share valuation ratios for a stock.",
+  "aliases": "pe ratio valuation dividend yield payout earnings",
+  "acronym": "P/E",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Ratios describe the current price relative to past results. P/E and payout aren't meaningful when earnings are zero or negative (shown as n/a).",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "position_pl",
+  "name": "Position gain/loss",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "shares",
+    "label": "Shares owned",
+    "unit": "x",
+    "example": "250",
+    "hint": "Number of shares; fractions OK.",
+    "min": 0
+   },
+   {
+    "id": "cost",
+    "label": "Average cost per share",
+    "unit": "$",
+    "example": "142",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.0001
+   },
+   {
+    "id": "price",
+    "label": "Current price",
+    "unit": "$",
+    "example": "185",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "divs",
+    "label": "Dividends received (total)",
+    "unit": "$",
+    "example": "1600",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "years",
+    "label": "Years held",
+    "unit": "years",
+    "example": "3.5",
+    "hint": "Number of years.",
+    "min": 0.01
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Market value",
+    "expression": "shares*price",
+    "format": "currency",
+    "excel": "={shares}*{price}",
+    "expected": 46250.0
+   },
+   {
+    "id": "1",
+    "label": "Unrealized gain/loss",
+    "expression": "shares*(price-cost)",
+    "format": "currency",
+    "excel": "={shares}*({price}-{cost})",
+    "expected": 10750.0
+   },
+   {
+    "id": "2",
+    "label": "Total return incl. dividends",
+    "expression": "(shares*price+divs)/(shares*cost)-1",
+    "format": "percent",
+    "excel": "=({shares}*{price}+{divs})/({shares}*{cost})-1",
+    "expected": 0.34788732394366195
+   },
+   {
+    "id": "3",
+    "label": "Annualized total return",
+    "expression": "((shares*price+divs)/(shares*cost))^(1/years)-1",
+    "format": "percent",
+    "excel": "=(({shares}*{price}+{divs})/({shares}*{cost}))^(1/{years})-1",
+    "expected": 0.08904012808365458
+   }
+  ],
+  "math": "Gain = shares × (price − cost); total return adds dividends received",
+  "summary": "Value, gain and annualized return on a stock or fund position.",
+  "aliases": "unrealized gain cost basis holding return portfolio",
+  "acronym": "",
+  "assumptions": "Dividends are counted as cash received, not reinvested. Ignores taxes and trading costs.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "shares",
+    "relation": ">",
+    "right": "0",
+    "message": "Enter a number of shares above zero."
+   }
+  ],
+  "common": true,
+  "sources": []
+ },
+ {
+  "id": "dividend_income",
+  "name": "Dividend income growth",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "amt",
+    "label": "Amount invested",
+    "unit": "$",
+    "example": "250000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "y",
+    "label": "Starting dividend yield",
+    "unit": "%",
+    "example": "3.2",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0
+   },
+   {
+    "id": "g",
+    "label": "Annual dividend growth",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "n",
+    "label": "Years",
+    "unit": "years",
+    "example": "15",
+    "hint": "Number of years.",
+    "min": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Income in year one",
+    "expression": "amt*y",
+    "format": "currency",
+    "excel": "={amt}*{y}",
+    "expected": 8000.0
+   },
+   {
+    "id": "1",
+    "label": "Income in final year",
+    "expression": "amt*y*(1+g)^(n-1)",
+    "format": "currency",
+    "excel": "={amt}*{y}*(1+{g})^({n}-1)",
+    "expected": 18087.23164603541
+   },
+   {
+    "id": "2",
+    "label": "Total income over the period",
+    "expression": "if(g==0,amt*y*n,amt*y*((1+g)^n-1)/g)",
+    "format": "currency",
+    "excel": "=IF({g}=0,{amt}*{y}*{n},{amt}*{y}*((1+{g})^{n}-1)/{g})",
+    "expected": 186207.7590799589
+   },
+   {
+    "id": "3",
+    "label": "Yield on original cost in final year",
+    "expression": "y*(1+g)^(n-1)",
+    "format": "percent",
+    "excel": "={y}*(1+{g})^({n}-1)",
+    "expected": 0.07234892658414163
+   }
+  ],
+  "math": "Year-k income = amount × yield × (1 + growth)^(k−1)",
+  "summary": "Projects the income from a dividend portfolio whose payouts grow, without reinvesting.",
+  "aliases": "dividend growth income yield on cost",
+  "acronym": "",
+  "assumptions": "Dividends are spent, not reinvested, and grow at a steady rate. Dividends can be cut.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "ddm",
+  "name": "Dividend discount model",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "d0",
+    "label": "Current annual dividend",
+    "unit": "$",
+    "example": "3.40",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "g",
+    "label": "Long-run dividend growth",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "r",
+    "label": "Required return",
+    "unit": "%",
+    "example": "9",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   },
+   {
+    "id": "price",
+    "label": "Current price (optional compare)",
+    "unit": "$",
+    "example": "185",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Next year's dividend",
+    "expression": "d0*(1+g)",
+    "format": "currency",
+    "excel": "={d0}*(1+{g})",
+    "expected": 3.57
+   },
+   {
+    "id": "1",
+    "label": "Fair value",
+    "expression": "d0*(1+g)/(r-g)",
+    "format": "currency",
+    "excel": "={d0}*(1+{g})/({r}-{g})",
+    "expected": 89.25000000000001
+   },
+   {
+    "id": "2",
+    "label": "Price ÷ fair value",
+    "expression": "price/(d0*(1+g)/(r-g))",
+    "format": "percent",
+    "excel": "={price}/({d0}*(1+{g})/({r}-{g}))",
+    "expected": 2.072829131652661
+   },
+   {
+    "id": "3",
+    "label": "Return implied by today's price",
+    "expression": "d0*(1+g)/price+g",
+    "format": "percent",
+    "excel": "={d0}*(1+{g})/{price}+{g}",
+    "expected": 0.0692972972972973
+   }
+  ],
+  "math": "Value = next dividend ÷ (required return − growth)",
+  "summary": "Gordon growth model: values a stock from a dividend that grows forever at a steady rate.",
+  "aliases": "gordon growth intrinsic value dividend discount",
+  "acronym": "DDM",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Highly sensitive to the growth and return inputs. Small changes move the value a lot. It's a framework, not a price target.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "r",
+    "relation": ">",
+    "right": "g",
+    "message": "Required return must exceed growth."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "position_size",
+  "name": "Position sizing",
+  "category": "Stocks & bonds",
+  "fields": [
+   {
+    "id": "v",
+    "label": "Portfolio value",
+    "unit": "$",
+    "example": "800000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "w",
+    "label": "Target weight",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "price",
+    "label": "Share price",
+    "unit": "$",
+    "example": "185",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "held",
+    "label": "Shares already owned",
+    "unit": "x",
+    "example": "0",
+    "hint": "Number of shares.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Target dollar amount",
+    "expression": "v*w",
+    "format": "currency",
+    "excel": "={v}*{w}",
+    "expected": 40000.0
+   },
+   {
+    "id": "1",
+    "label": "Whole shares at target",
+    "expression": "floor(v*w/price)",
+    "format": "number",
+    "excel": "=ROUNDDOWN({v}*{w}/{price},0)",
+    "expected": 216.0
+   },
+   {
+    "id": "2",
+    "label": "Shares to buy (+) / sell (−)",
+    "expression": "floor(v*w/price)-held",
+    "format": "number",
+    "excel": "=ROUNDDOWN({v}*{w}/{price},0)-{held}",
+    "expected": 216.0
+   },
+   {
+    "id": "3",
+    "label": "Cost of the trade",
+    "expression": "(floor(v*w/price)-held)*price",
+    "format": "currency",
+    "excel": "=(ROUNDDOWN({v}*{w}/{price},0)-{held})*{price}",
+    "expected": 39960.0
+   }
+  ],
+  "math": "Whole shares = floor(portfolio × weight ÷ price)",
+  "summary": "How many shares make up a target weight, and the trade to get there.",
+  "aliases": "how many shares buy allocation weight",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "descriptive",
+  "name": "Descriptive statistics",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "x",
+    "label": "Data",
+    "unit": "series",
+    "example": "2.1; 3.4; 2.9; 4.2; 3.8; 3.1; 2.7; 3.9; 3.3; 4.6",
+    "hint": "Separate values with semicolons or new lines, or paste a column from Excel."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Count (n)",
+    "expression": "count(x)",
+    "format": "number",
+    "excel": "=COUNT({x})",
+    "expected": 10.0
+   },
+   {
+    "id": "1",
+    "label": "Mean",
+    "expression": "avg(x)",
+    "format": "number",
+    "excel": "=AVERAGE({x})",
+    "expected": 3.4
+   },
+   {
+    "id": "2",
+    "label": "Median",
+    "expression": "median(x)",
+    "format": "number",
+    "excel": "=MEDIAN({x})",
+    "expected": 3.3499999999999996
+   },
+   {
+    "id": "3",
+    "label": "Standard deviation (sample)",
+    "expression": "sd(x)",
+    "format": "number",
+    "excel": "=STDEV.S({x})",
+    "expected": 0.7468452167469358
+   },
+   {
+    "id": "4",
+    "label": "Variance (sample)",
+    "expression": "var(x)",
+    "format": "number",
+    "excel": "=VAR.S({x})",
+    "expected": 0.5577777777777776
+   },
+   {
+    "id": "5",
+    "label": "Standard error of the mean",
+    "expression": "sd(x)/sqrt(count(x))",
+    "format": "number",
+    "excel": "=STDEV.S({x})/SQRT(COUNT({x}))",
+    "expected": 0.2361731944522446
+   },
+   {
+    "id": "6",
+    "label": "Minimum",
+    "expression": "min(x)",
+    "format": "number",
+    "excel": "=MIN({x})",
+    "expected": 2.1
+   },
+   {
+    "id": "7",
+    "label": "Maximum",
+    "expression": "max(x)",
+    "format": "number",
+    "excel": "=MAX({x})",
+    "expected": 4.6
+   },
+   {
+    "id": "8",
+    "label": "Coefficient of variation",
+    "expression": "sd(x)/avg(x)",
+    "format": "percent",
+    "excel": "=STDEV.S({x})/AVERAGE({x})",
+    "expected": 0.21966035786674584
+   }
+  ],
+  "math": "Mean = Σx ÷ n; s = √(Σ(x − x̄)² ÷ (n − 1))",
+  "summary": "Summary statistics for a list of numbers.",
+  "aliases": "mean median mode standard deviation variance summary stats average",
+  "acronym": "",
+  "assumptions": "Observations are independent draws from the population. Sample statistics use n − 1.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": ">=",
+    "right": "2",
+    "message": "Enter at least two values."
+   }
+  ],
+  "common": true,
+  "sources": [
+   {
+    "title": "OpenStax • Introductory Statistics",
+    "url": "https://openstax.org/details/books/introductory-statistics-2e"
+   }
+  ]
+ },
+ {
+  "id": "normal_prob",
+  "name": "Normal probability & z-score",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "v",
+    "label": "Value (x)",
+    "unit": "x",
+    "example": "130",
+    "hint": "A plain number."
+   },
+   {
+    "id": "m",
+    "label": "Mean (μ)",
+    "unit": "x",
+    "example": "100",
+    "hint": "A plain number."
+   },
+   {
+    "id": "s",
+    "label": "Standard deviation (σ)",
+    "unit": "x",
+    "example": "15",
+    "hint": "A plain number.",
+    "min": 1e-07
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "z-score",
+    "expression": "(v-m)/s",
+    "format": "number",
+    "excel": "=STANDARDIZE({v},{m},{s})",
+    "expected": 2.0
+   },
+   {
+    "id": "1",
+    "label": "P(X < x)",
+    "expression": "normcdf((v-m)/s)",
+    "format": "percent",
+    "excel": "=NORM.DIST({v},{m},{s},TRUE)",
+    "expected": 0.9772498680518208
+   },
+   {
+    "id": "2",
+    "label": "P(X > x)",
+    "expression": "1-normcdf((v-m)/s)",
+    "format": "percent",
+    "excel": "=1-NORM.DIST({v},{m},{s},TRUE)",
+    "expected": 0.02275013194817921
+   },
+   {
+    "id": "3",
+    "label": "P(|Z| > |z|), two-tailed",
+    "expression": "2*(1-normcdf(abs((v-m)/s)))",
+    "format": "percent",
+    "excel": "=2*(1-NORM.S.DIST(ABS(STANDARDIZE({v},{m},{s})),TRUE))",
+    "expected": 0.04550026389635842
+   }
+  ],
+  "math": "z = (x − μ) ÷ σ; P from the standard normal CDF",
+  "summary": "Converts a value to a z-score and finds normal-curve probabilities.",
+  "aliases": "z score normal distribution bell curve probability percentile",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "normal_between",
+  "name": "Normal probability between two values",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Lower value",
+    "unit": "x",
+    "example": "85",
+    "hint": "A plain number."
+   },
+   {
+    "id": "b",
+    "label": "Upper value",
+    "unit": "x",
+    "example": "115",
+    "hint": "A plain number."
+   },
+   {
+    "id": "m",
+    "label": "Mean (μ)",
+    "unit": "x",
+    "example": "100",
+    "hint": "A plain number."
+   },
+   {
+    "id": "s",
+    "label": "Standard deviation (σ)",
+    "unit": "x",
+    "example": "15",
+    "hint": "A plain number.",
+    "min": 1e-07
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "P(a < X < b)",
+    "expression": "normcdf((b-m)/s)-normcdf((a-m)/s)",
+    "format": "percent",
+    "excel": "=NORM.DIST({b},{m},{s},TRUE)-NORM.DIST({a},{m},{s},TRUE)",
+    "expected": 0.6826894921370859
+   },
+   {
+    "id": "1",
+    "label": "Outside the range",
+    "expression": "1-(normcdf((b-m)/s)-normcdf((a-m)/s))",
+    "format": "percent",
+    "excel": "=1-(NORM.DIST({b},{m},{s},TRUE)-NORM.DIST({a},{m},{s},TRUE))",
+    "expected": 0.31731050786291415
+   }
+  ],
+  "math": "Φ((b − μ)/σ) − Φ((a − μ)/σ)",
+  "summary": "Probability a normal variable falls between two values.",
+  "aliases": "normal range between probability empirical rule 68 95",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "b",
+    "relation": ">",
+    "right": "a",
+    "message": "Upper value must exceed lower value."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "inverse_normal",
+  "name": "Critical values (z and t)",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "c",
+    "label": "Confidence level",
+    "unit": "%",
+    "example": "95",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.5,
+    "max": 0.9999
+   },
+   {
+    "id": "df",
+    "label": "Degrees of freedom (for t)",
+    "unit": "count",
+    "example": "20",
+    "hint": "A whole number.",
+    "min": 1,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "z* (two-tailed)",
+    "expression": "norminv(1-(1-c)/2)",
+    "format": "number",
+    "excel": "=NORM.S.INV(1-(1-{c})/2)",
+    "expected": 1.9599639845400532
+   },
+   {
+    "id": "1",
+    "label": "t* (two-tailed)",
+    "expression": "tinv(1-(1-c)/2,df)",
+    "format": "number",
+    "excel": "=T.INV.2T(1-{c},{df})",
+    "expected": 2.085963447265864
+   },
+   {
+    "id": "2",
+    "label": "z* (one-tailed)",
+    "expression": "norminv(c)",
+    "format": "number",
+    "excel": "=NORM.S.INV({c})",
+    "expected": 1.6448536269514715
+   },
+   {
+    "id": "3",
+    "label": "t* (one-tailed)",
+    "expression": "tinv(c,df)",
+    "format": "number",
+    "excel": "=T.INV({c},{df})",
+    "expected": 1.724718242920786
+   }
+  ],
+  "math": "z* = Φ⁻¹(1 − α/2); t* = t⁻¹(1 − α/2, df)",
+  "summary": "Critical values for confidence intervals and hypothesis tests.",
+  "aliases": "critical value z table t table alpha significance level inverse",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "pvalue",
+  "name": "p-value from a test statistic",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "stat",
+    "label": "Test statistic (z or t)",
+    "unit": "x",
+    "example": "2.31",
+    "hint": "A plain number."
+   },
+   {
+    "id": "df",
+    "label": "Degrees of freedom (t test)",
+    "unit": "count",
+    "example": "24",
+    "hint": "A whole number.",
+    "min": 1,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Two-tailed p (t)",
+    "expression": "2*(1-tcdf(abs(stat),df))",
+    "format": "percent",
+    "excel": "=T.DIST.2T(ABS({stat}),{df})",
+    "expected": 0.02980124061105216
+   },
+   {
+    "id": "1",
+    "label": "One-tailed p (t, upper)",
+    "expression": "1-tcdf(stat,df)",
+    "format": "percent",
+    "excel": "=T.DIST.RT({stat},{df})",
+    "expected": 0.01490062030552608
+   },
+   {
+    "id": "2",
+    "label": "Two-tailed p (z)",
+    "expression": "2*(1-normcdf(abs(stat)))",
+    "format": "percent",
+    "excel": "=2*(1-NORM.S.DIST(ABS({stat}),TRUE))",
+    "expected": 0.020888154123902103
+   },
+   {
+    "id": "3",
+    "label": "One-tailed p (z, upper)",
+    "expression": "1-normcdf(stat)",
+    "format": "percent",
+    "excel": "=1-NORM.S.DIST({stat},TRUE)",
+    "expected": 0.010444077061951051
+   }
+  ],
+  "math": "p = P(|T| ≥ |t|) from the t or standard normal distribution",
+  "summary": "Probability of a statistic at least this extreme if the null hypothesis is true.",
+  "aliases": "p value hypothesis test significance reject null",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Compare p with your significance level (often 5%). A small p is evidence against the null; it isn't the probability the null is true.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "ci_mean_data",
+  "name": "Confidence interval for a mean (data)",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "x",
+    "label": "Data",
+    "unit": "series",
+    "example": "2.1; 3.4; 2.9; 4.2; 3.8; 3.1; 2.7; 3.9; 3.3; 4.6",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "c",
+    "label": "Confidence level",
+    "unit": "%",
+    "example": "95",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.5,
+    "max": 0.9999
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Mean",
+    "expression": "avg(x)",
+    "format": "number",
+    "excel": "=AVERAGE({x})",
+    "expected": 3.4
+   },
+   {
+    "id": "1",
+    "label": "Margin of error",
+    "expression": "tinv(1-(1-c)/2,count(x)-1)*sd(x)/sqrt(count(x))",
+    "format": "number",
+    "excel": "=CONFIDENCE.T(1-{c},STDEV.S({x}),COUNT({x}))",
+    "expected": 0.5342608834910779
+   },
+   {
+    "id": "2",
+    "label": "Lower bound",
+    "expression": "avg(x)-tinv(1-(1-c)/2,count(x)-1)*sd(x)/sqrt(count(x))",
+    "format": "number",
+    "excel": "=AVERAGE({x})-CONFIDENCE.T(1-{c},STDEV.S({x}),COUNT({x}))",
+    "expected": 2.865739116508922
+   },
+   {
+    "id": "3",
+    "label": "Upper bound",
+    "expression": "avg(x)+tinv(1-(1-c)/2,count(x)-1)*sd(x)/sqrt(count(x))",
+    "format": "number",
+    "excel": "=AVERAGE({x})+CONFIDENCE.T(1-{c},STDEV.S({x}),COUNT({x}))",
+    "expected": 3.9342608834910777
+   }
+  ],
+  "math": "x̄ ± t* × s ÷ √n",
+  "summary": "t-based confidence interval for a population mean from raw data.",
+  "aliases": "confidence interval mean t interval margin of error",
+  "acronym": "",
+  "assumptions": "Observations are independent draws from the population. Sample statistics use n − 1. Population roughly normal or n large.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": ">=",
+    "right": "2",
+    "message": "Enter at least two values."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Introductory Statistics",
+    "url": "https://openstax.org/details/books/introductory-statistics-2e"
+   }
+  ]
+ },
+ {
+  "id": "ci_mean_summary",
+  "name": "Confidence interval for a mean (summary)",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "m",
+    "label": "Sample mean",
+    "unit": "x",
+    "example": "52.3",
+    "hint": "A plain number."
+   },
+   {
+    "id": "s",
+    "label": "Sample standard deviation",
+    "unit": "x",
+    "example": "8.1",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "n",
+    "label": "Sample size",
+    "unit": "count",
+    "example": "36",
+    "hint": "A whole number.",
+    "min": 2,
+    "integer": true
+   },
+   {
+    "id": "c",
+    "label": "Confidence level",
+    "unit": "%",
+    "example": "95",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.5,
+    "max": 0.9999
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Margin of error",
+    "expression": "tinv(1-(1-c)/2,n-1)*s/sqrt(n)",
+    "format": "number",
+    "excel": "=CONFIDENCE.T(1-{c},{s},{n})",
+    "expected": 2.7406457031379667
+   },
+   {
+    "id": "1",
+    "label": "Lower bound",
+    "expression": "m-tinv(1-(1-c)/2,n-1)*s/sqrt(n)",
+    "format": "number",
+    "excel": "={m}-CONFIDENCE.T(1-{c},{s},{n})",
+    "expected": 49.55935429686203
+   },
+   {
+    "id": "2",
+    "label": "Upper bound",
+    "expression": "m+tinv(1-(1-c)/2,n-1)*s/sqrt(n)",
+    "format": "number",
+    "excel": "={m}+CONFIDENCE.T(1-{c},{s},{n})",
+    "expected": 55.04064570313796
+   },
+   {
+    "id": "3",
+    "label": "Standard error",
+    "expression": "s/sqrt(n)",
+    "format": "number",
+    "excel": "={s}/SQRT({n})",
+    "expected": 1.3499999999999999
+   }
+  ],
+  "math": "x̄ ± t* × s ÷ √n",
+  "summary": "Confidence interval for a mean from summary statistics.",
+  "aliases": "confidence interval mean summary statistics",
+  "acronym": "",
+  "assumptions": "Observations are independent draws from the population. Sample statistics use n − 1.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Introductory Statistics",
+    "url": "https://openstax.org/details/books/introductory-statistics-2e"
+   }
+  ]
+ },
+ {
+  "id": "ci_proportion",
+  "name": "Confidence interval for a proportion",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "k",
+    "label": "Successes",
+    "unit": "count",
+    "example": "312",
+    "hint": "A whole number.",
+    "min": 0,
+    "integer": true
+   },
+   {
+    "id": "n",
+    "label": "Sample size",
+    "unit": "count",
+    "example": "600",
+    "hint": "A whole number.",
+    "min": 1,
+    "integer": true
+   },
+   {
+    "id": "c",
+    "label": "Confidence level",
+    "unit": "%",
+    "example": "95",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.5,
+    "max": 0.9999
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Sample proportion",
+    "expression": "k/n",
+    "format": "percent",
+    "excel": "={k}/{n}",
+    "expected": 0.52
+   },
+   {
+    "id": "1",
+    "label": "Margin of error",
+    "expression": "norminv(1-(1-c)/2)*sqrt(k/n*(1-k/n)/n)",
+    "format": "percent",
+    "excel": "=NORM.S.INV(1-(1-{c})/2)*SQRT({k}/{n}*(1-{k}/{n})/{n})",
+    "expected": 0.03997557841243519
+   },
+   {
+    "id": "2",
+    "label": "Lower bound",
+    "expression": "k/n-norminv(1-(1-c)/2)*sqrt(k/n*(1-k/n)/n)",
+    "format": "percent",
+    "excel": "={k}/{n}-NORM.S.INV(1-(1-{c})/2)*SQRT({k}/{n}*(1-{k}/{n})/{n})",
+    "expected": 0.4800244215875648
+   },
+   {
+    "id": "3",
+    "label": "Upper bound",
+    "expression": "k/n+norminv(1-(1-c)/2)*sqrt(k/n*(1-k/n)/n)",
+    "format": "percent",
+    "excel": "={k}/{n}+NORM.S.INV(1-(1-{c})/2)*SQRT({k}/{n}*(1-{k}/{n})/{n})",
+    "expected": 0.5599755784124352
+   }
+  ],
+  "math": "p̂ ± z* × √(p̂(1 − p̂) ÷ n)",
+  "summary": "Wald confidence interval for a population proportion (polls, survey shares).",
+  "aliases": "proportion poll survey margin of error percent",
+  "acronym": "",
+  "assumptions": "Wald interval; reasonable when n·p̂ and n·(1 − p̂) are both at least 10.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "k",
+    "relation": "<=",
+    "right": "n",
+    "message": "Successes can't exceed the sample size."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Introductory Statistics",
+    "url": "https://openstax.org/details/books/introductory-statistics-2e"
+   }
+  ]
+ },
+ {
+  "id": "sample_size",
+  "name": "Sample size needed",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "c",
+    "label": "Confidence level",
+    "unit": "%",
+    "example": "95",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.5,
+    "max": 0.9999
+   },
+   {
+    "id": "s",
+    "label": "Expected standard deviation (for a mean)",
+    "unit": "x",
+    "example": "15",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "e",
+    "label": "Margin of error for the mean",
+    "unit": "x",
+    "example": "2",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "p",
+    "label": "Expected proportion",
+    "unit": "%",
+    "example": "50",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "ep",
+    "label": "Margin of error for a proportion",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "n for a mean",
+    "expression": "ceil((norminv(1-(1-c)/2)*s/e)^2)",
+    "format": "number",
+    "excel": "=ROUNDUP((NORM.S.INV(1-(1-{c})/2)*{s}/{e})^2,0)",
+    "expected": 217.0
+   },
+   {
+    "id": "1",
+    "label": "n for a proportion",
+    "expression": "ceil(norminv(1-(1-c)/2)^2*p*(1-p)/ep^2)",
+    "format": "number",
+    "excel": "=ROUNDUP(NORM.S.INV(1-(1-{c})/2)^2*{p}*(1-{p})/{ep}^2,0)",
+    "expected": 1068.0
+   }
+  ],
+  "math": "n = (z* σ ÷ E)²; n = z*² p(1 − p) ÷ E²",
+  "summary": "Minimum sample size to hit a target margin of error.",
+  "aliases": "sample size survey design how many respondents",
+  "acronym": "",
+  "assumptions": "Uses z (large-sample) critical values and simple random sampling. Use 50% for the proportion when unsure: it's the most conservative.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Introductory Statistics",
+    "url": "https://openstax.org/details/books/introductory-statistics-2e"
+   }
+  ]
+ },
+ {
+  "id": "t_test_one",
+  "name": "One-sample t-test",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "x",
+    "label": "Data",
+    "unit": "series",
+    "example": "2.1; 3.4; 2.9; 4.2; 3.8; 3.1; 2.7; 3.9; 3.3; 4.6",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "mu",
+    "label": "Hypothesized mean (μ₀)",
+    "unit": "x",
+    "example": "3",
+    "hint": "A plain number."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "t statistic",
+    "expression": "(avg(x)-mu)/(sd(x)/sqrt(count(x)))",
+    "format": "number",
+    "excel": "=(AVERAGE({x})-{mu})/(STDEV.S({x})/SQRT(COUNT({x})))",
+    "expected": 1.6936723108129101
+   },
+   {
+    "id": "1",
+    "label": "Degrees of freedom",
+    "expression": "count(x)-1",
+    "format": "number",
+    "excel": "=COUNT({x})-1",
+    "expected": 9.0
+   },
+   {
+    "id": "2",
+    "label": "p-value (two-tailed)",
+    "expression": "2*(1-tcdf(abs((avg(x)-mu)/(sd(x)/sqrt(count(x)))),count(x)-1))",
+    "format": "percent",
+    "excel": "=T.DIST.2T(ABS((AVERAGE({x})-{mu})/(STDEV.S({x})/SQRT(COUNT({x})))),COUNT({x})-1)",
+    "expected": 0.12457344627679667
+   }
+  ],
+  "math": "t = (x̄ − μ₀) ÷ (s ÷ √n), df = n − 1",
+  "summary": "Tests whether a sample mean differs from a hypothesized value.",
+  "aliases": "hypothesis test one sample mean t test",
+  "acronym": "",
+  "assumptions": "Observations are independent draws from the population. Sample statistics use n − 1. Population roughly normal or n large.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": ">=",
+    "right": "2",
+    "message": "Enter at least two values."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "t_test_two",
+  "name": "Two-sample t-test (Welch)",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "x",
+    "label": "Group 1 data",
+    "unit": "series",
+    "example": "23; 25; 28; 30; 26; 27; 24; 29",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "y",
+    "label": "Group 2 data",
+    "unit": "series",
+    "example": "20; 22; 25; 21; 24; 23; 19; 22; 21",
+    "hint": "Separate values with semicolons or new lines."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Difference in means (1 − 2)",
+    "expression": "avg(x)-avg(y)",
+    "format": "number",
+    "excel": "=AVERAGE({x})-AVERAGE({y})",
+    "expected": 4.611111111111111
+   },
+   {
+    "id": "1",
+    "label": "t statistic",
+    "expression": "(avg(x)-avg(y))/sqrt(var(x)/count(x)+var(y)/count(y))",
+    "format": "number",
+    "excel": null,
+    "expected": 4.297577096551531
+   },
+   {
+    "id": "2",
+    "label": "Degrees of freedom (Welch)",
+    "expression": "(var(x)/count(x)+var(y)/count(y))^2/((var(x)/count(x))^2/(count(x)-1)+(var(y)/count(y))^2/(count(y)-1))",
+    "format": "number",
+    "excel": null,
+    "expected": 13.189994108604822
+   },
+   {
+    "id": "3",
+    "label": "p-value (two-tailed)",
+    "expression": "2*(1-tcdf(abs((avg(x)-avg(y))/sqrt(var(x)/count(x)+var(y)/count(y))),(var(x)/count(x)+var(y)/count(y))^2/((var(x)/count(x))^2/(count(x)-1)+(var(y)/count(y))^2/(count(y)-1))))",
+    "format": "percent",
+    "excel": "=T.TEST({x},{y},2,3)",
+    "expected": 0.0008398205897801603
+   }
+  ],
+  "math": "t = (x̄₁ − x̄₂) ÷ √(s₁²/n₁ + s₂²/n₂), Welch–Satterthwaite df",
+  "summary": "Tests whether two groups have different means without assuming equal variances.",
+  "aliases": "two sample t test difference in means welch independent groups treatment control",
+  "acronym": "",
+  "assumptions": "Independent samples; each roughly normal or large.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Excel's T.TEST(…,2,3) returns the Welch two-tailed p-value directly; its df may differ slightly because Excel rounds it.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": ">=",
+    "right": "2",
+    "message": "Group 1 needs at least two values."
+   },
+   {
+    "left": "count(y)",
+    "relation": ">=",
+    "right": "2",
+    "message": "Group 2 needs at least two values."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "correlation",
+  "name": "Correlation",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "x",
+    "label": "X values",
+    "unit": "series",
+    "example": "1; 2; 3; 4; 5; 6; 7; 8; 9; 10",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "y",
+    "label": "Y values",
+    "unit": "series",
+    "example": "3.1; 4.9; 7.2; 8.8; 11.1; 12.7; 15.2; 16.8; 19.3; 20.9",
+    "hint": "Separate values with semicolons or new lines."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Correlation (r)",
+    "expression": "corr(x,y)",
+    "format": "number",
+    "excel": "=CORREL({x},{y})",
+    "expected": 0.9994242254354148
+   },
+   {
+    "id": "1",
+    "label": "R²",
+    "expression": "corr(x,y)^2",
+    "format": "percent",
+    "excel": "=RSQ({y},{x})",
+    "expected": 0.9988487823871788
+   },
+   {
+    "id": "2",
+    "label": "Covariance (sample)",
+    "expression": "cov(x,y)",
+    "format": "number",
+    "excel": "=COVARIANCE.S({x},{y})",
+    "expected": 18.322222222222223
+   },
+   {
+    "id": "3",
+    "label": "p-value for r ≠ 0",
+    "expression": "2*(1-tcdf(abs(corr(x,y)*sqrt((count(x)-2)/(1-corr(x,y)^2))),count(x)-2))",
+    "format": "percent",
+    "excel": null,
+    "expected": 4.805045250577678e-13
+   }
+  ],
+  "math": "r = cov(x, y) ÷ (sₓ s_y); t = r √((n − 2) ÷ (1 − r²))",
+  "summary": "Pearson correlation between two variables and its significance.",
+  "aliases": "pearson correlation coefficient covariance relationship",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": "==",
+    "right": "count(y)",
+    "message": "Enter the same number of X and Y values."
+   },
+   {
+    "left": "count(x)",
+    "relation": ">=",
+    "right": "3",
+    "message": "Enter at least three pairs."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "ols",
+  "name": "Simple linear regression (OLS)",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "x",
+    "label": "X (independent)",
+    "unit": "series",
+    "example": "1; 2; 3; 4; 5; 6; 7; 8; 9; 10",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "y",
+    "label": "Y (dependent)",
+    "unit": "series",
+    "example": "3.1; 4.9; 7.2; 8.8; 11.1; 12.7; 15.2; 16.8; 19.3; 20.9",
+    "hint": "Separate values with semicolons or new lines."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Slope (β₁)",
+    "expression": "(cov(x,y)/var(x))",
+    "format": "number",
+    "excel": "=SLOPE({y},{x})",
+    "expected": 1.998787878787879
+   },
+   {
+    "id": "1",
+    "label": "Intercept (β₀)",
+    "expression": "(avg(y)-cov(x,y)/var(x)*avg(x))",
+    "format": "number",
+    "excel": "=INTERCEPT({y},{x})",
+    "expected": 1.006666666666666
+   },
+   {
+    "id": "2",
+    "label": "R²",
+    "expression": "corr(x,y)^2",
+    "format": "percent",
+    "excel": "=RSQ({y},{x})",
+    "expected": 0.9988487823871788
+   },
+   {
+    "id": "3",
+    "label": "Std. error of slope",
+    "expression": "sqrt(sum((y-(avg(y)-cov(x,y)/var(x)*avg(x))-(cov(x,y)/var(x))*x)^2)/(count(x)-2)/sum((x-avg(x))^2))",
+    "format": "number",
+    "excel": "=INDEX(LINEST({y},{x},TRUE,TRUE),2,1)",
+    "expected": 0.023991121712593367
+   },
+   {
+    "id": "4",
+    "label": "t statistic (slope)",
+    "expression": "(cov(x,y)/var(x))/sqrt(sum((y-(avg(y)-cov(x,y)/var(x)*avg(x))-(cov(x,y)/var(x))*x)^2)/(count(x)-2)/sum((x-avg(x))^2))",
+    "format": "number",
+    "excel": null,
+    "expected": 83.31364838763164
+   },
+   {
+    "id": "5",
+    "label": "p-value (slope)",
+    "expression": "2*(1-tcdf(abs((cov(x,y)/var(x))/sqrt(sum((y-(avg(y)-cov(x,y)/var(x)*avg(x))-(cov(x,y)/var(x))*x)^2)/(count(x)-2)/sum((x-avg(x))^2))),count(x)-2))",
+    "format": "percent",
+    "excel": null,
+    "expected": 4.805045250577678e-13
+   },
+   {
+    "id": "6",
+    "label": "Residual std. error",
+    "expression": "sqrt(sum((y-(avg(y)-cov(x,y)/var(x)*avg(x))-(cov(x,y)/var(x))*x)^2)/(count(x)-2))",
+    "format": "number",
+    "excel": "=STEYX({y},{x})",
+    "expected": 0.217910184444988
+   }
+  ],
+  "math": "β₁ = cov(x, y) ÷ var(x); β₀ = ȳ − β₁x̄; SE(β₁) = √(SSR ÷ (n − 2) ÷ Σ(x − x̄)²)",
+  "summary": "Fits y = β₀ + β₁x by least squares, with the slope's standard error and significance.",
+  "aliases": "regression ols least squares slope intercept linear model econometrics line of best fit",
+  "acronym": "",
+  "assumptions": "Classical linear model: linear relationship, independent errors with constant variance (homoskedastic), errors roughly normal for t-based inference. Standard errors are not robust.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": "==",
+    "right": "count(y)",
+    "message": "Enter the same number of X and Y values."
+   },
+   {
+    "left": "count(x)",
+    "relation": ">=",
+    "right": "3",
+    "message": "Enter at least three pairs."
+   }
+  ],
+  "common": true,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "ols_predict",
+  "name": "Regression prediction",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "x",
+    "label": "X (independent)",
+    "unit": "series",
+    "example": "1; 2; 3; 4; 5; 6; 7; 8; 9; 10",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "y",
+    "label": "Y (dependent)",
+    "unit": "series",
+    "example": "3.1; 4.9; 7.2; 8.8; 11.1; 12.7; 15.2; 16.8; 19.3; 20.9",
+    "hint": "Separate values with semicolons or new lines."
+   },
+   {
+    "id": "x0",
+    "label": "Predict at x =",
+    "unit": "x",
+    "example": "12",
+    "hint": "A plain number."
+   },
+   {
+    "id": "c",
+    "label": "Confidence level",
+    "unit": "%",
+    "example": "95",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.5,
+    "max": 0.9999
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Predicted ŷ",
+    "expression": "(avg(y)-cov(x,y)/var(x)*avg(x))+(cov(x,y)/var(x))*x0",
+    "format": "number",
+    "excel": "=FORECAST.LINEAR({x0},{y},{x})",
+    "expected": 24.992121212121212
+   },
+   {
+    "id": "1",
+    "label": "Prediction interval ±",
+    "expression": "tinv(1-(1-c)/2,count(x)-2)*sqrt(sum((y-(avg(y)-cov(x,y)/var(x)*avg(x))-(cov(x,y)/var(x))*x)^2)/(count(x)-2))*sqrt(1+1/count(x)+(x0-avg(x))^2/sum((x-avg(x))^2))",
+    "format": "number",
+    "excel": null,
+    "expected": 0.6380231783955732
+   },
+   {
+    "id": "2",
+    "label": "Mean-response interval ±",
+    "expression": "tinv(1-(1-c)/2,count(x)-2)*sqrt(sum((y-(avg(y)-cov(x,y)/var(x)*avg(x))-(cov(x,y)/var(x))*x)^2)/(count(x)-2))*sqrt(1/count(x)+(x0-avg(x))^2/sum((x-avg(x))^2))",
+    "format": "number",
+    "excel": null,
+    "expected": 0.3931482300626405
+   }
+  ],
+  "math": "ŷ = β₀ + β₁x₀; PI = ŷ ± t* sₑ √(1 + 1/n + (x₀ − x̄)² ÷ Σ(x − x̄)²)",
+  "summary": "Predicts y at a chosen x, with intervals for a single new observation and for the average response.",
+  "aliases": "forecast prediction interval confidence band regression",
+  "acronym": "",
+  "assumptions": "Same assumptions as OLS. Predictions far outside the observed x range are extrapolation.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "count(x)",
+    "relation": "==",
+    "right": "count(y)",
+    "message": "Enter the same number of X and Y values."
+   },
+   {
+    "left": "count(x)",
+    "relation": ">=",
+    "right": "3",
+    "message": "Enter at least three pairs."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "f_test",
+  "name": "Regression F-test & adjusted R²",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "r2",
+    "label": "R²",
+    "unit": "%",
+    "example": "42",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.9999
+   },
+   {
+    "id": "k",
+    "label": "Number of regressors (excluding constant)",
+    "unit": "count",
+    "example": "3",
+    "hint": "A whole number.",
+    "min": 1,
+    "integer": true
+   },
+   {
+    "id": "n",
+    "label": "Observations",
+    "unit": "count",
+    "example": "60",
+    "hint": "A whole number.",
+    "min": 3,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "F statistic",
+    "expression": "(r2/k)/((1-r2)/(n-k-1))",
+    "format": "number",
+    "excel": "=({r2}/{k})/((1-{r2})/({n}-{k}-1))",
+    "expected": 13.517241379310342
+   },
+   {
+    "id": "1",
+    "label": "p-value",
+    "expression": "1-fcdf((r2/k)/((1-r2)/(n-k-1)),k,n-k-1)",
+    "format": "percent",
+    "excel": "=F.DIST.RT(({r2}/{k})/((1-{r2})/({n}-{k}-1)),{k},{n}-{k}-1)",
+    "expected": 9.536551871525134e-07
+   },
+   {
+    "id": "2",
+    "label": "Adjusted R²",
+    "expression": "1-(1-r2)*(n-1)/(n-k-1)",
+    "format": "percent",
+    "excel": "=1-(1-{r2})*({n}-1)/({n}-{k}-1)",
+    "expected": 0.3889285714285713
+   }
+  ],
+  "math": "F = (R²/k) ÷ ((1 − R²)/(n − k − 1)); adj. R² = 1 − (1 − R²)(n − 1)/(n − k − 1)",
+  "summary": "Joint significance of all regressors in a multiple regression, from its R².",
+  "aliases": "f test overall significance anova adjusted r squared multiple regression econometrics",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "n",
+    "relation": ">",
+    "right": "k+1",
+    "message": "Need more observations than regressors plus one."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "durbin_watson",
+  "name": "Durbin–Watson statistic",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "e",
+    "label": "Residuals in time order",
+    "unit": "series",
+    "example": "0.5; 0.8; 0.3; -0.2; -0.6; -0.4; 0.1; 0.6; 0.4; -0.3; -0.7; -0.2",
+    "hint": "Separate values with semicolons or new lines."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Durbin–Watson d",
+    "expression": "dw(e)",
+    "format": "number",
+    "excel": null,
+    "expected": 0.828996282527881
+   },
+   {
+    "id": "1",
+    "label": "Implied first-order autocorrelation (≈ 1 − d/2)",
+    "expression": "1-dw(e)/2",
+    "format": "number",
+    "excel": null,
+    "expected": 0.5855018587360594
+   }
+  ],
+  "math": "d = Σ(eₜ − eₜ₋₁)² ÷ Σeₜ²",
+  "summary": "Checks regression residuals for first-order serial correlation.",
+  "aliases": "autocorrelation serial correlation time series residuals econometrics",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "d near 2 suggests no first-order autocorrelation; well below 2 suggests positive, well above 2 negative. Compare with Durbin–Watson critical values for formal tests.",
+  "excelNotes": "With residuals in one row: =SUMXMY2(next cells, previous cells)/SUMSQ(all residuals).",
+  "rules": [
+   {
+    "left": "count(e)",
+    "relation": ">=",
+    "right": "3",
+    "message": "Enter at least three residuals."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
+    "url": "https://www.itl.nist.gov/div898/handbook/"
+   }
+  ]
+ },
+ {
+  "id": "log_coef",
+  "name": "Interpreting log-model coefficients",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "b",
+    "label": "Estimated coefficient (β)",
+    "unit": "x",
+    "example": "0.08",
+    "hint": "A plain number."
+   },
+   {
+    "id": "d",
+    "label": "Change in x to interpret",
+    "unit": "x",
+    "example": "1",
+    "hint": "Units for level x; percent for logged x (e.g. 10 for 10%)."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Log-level: % change in y (exact)",
+    "expression": "exp(b*d)-1",
+    "format": "percent",
+    "excel": "=EXP({b}*{d})-1",
+    "expected": 0.08328706767495864
+   },
+   {
+    "id": "1",
+    "label": "Log-level: % change in y (approx.)",
+    "expression": "b*d",
+    "format": "percent",
+    "excel": "={b}*{d}",
+    "expected": 0.08
+   },
+   {
+    "id": "2",
+    "label": "Level-log: change in y for d% change in x",
+    "expression": "b*ln(1+d/100)",
+    "format": "number",
+    "excel": "={b}*LN(1+{d}/100)",
+    "expected": 0.0007960264682534473
+   },
+   {
+    "id": "3",
+    "label": "Log-log: % change in y for d% change in x",
+    "expression": "(1+d/100)^b-1",
+    "format": "percent",
+    "excel": "=(1+{d}/100)^{b}-1",
+    "expected": 0.0007963433814073273
+   }
+  ],
+  "math": "log-level: %Δy = e^(βΔx) − 1; level-log: Δy = β ln(1 + Δ%); log-log: elasticity β",
+  "summary": "Translates coefficients from log regression models into plain changes in y.",
+  "aliases": "log linear semi elasticity log log interpretation econometrics wage regression",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Read only the row for your model: log-level (ln y on x), level-log (y on ln x), or log-log (ln y on ln x). In log-log, β is an elasticity.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "binomial",
+  "name": "Binomial probability",
+  "category": "Statistics & econometrics",
+  "fields": [
+   {
+    "id": "n",
+    "label": "Trials (n)",
+    "unit": "count",
+    "example": "20",
+    "hint": "A whole number.",
+    "min": 1,
+    "max": 100000,
+    "integer": true
+   },
+   {
+    "id": "k",
+    "label": "Successes (k)",
+    "unit": "count",
+    "example": "6",
+    "hint": "A whole number.",
+    "min": 0,
+    "integer": true
+   },
+   {
+    "id": "p",
+    "label": "Probability of success",
+    "unit": "%",
+    "example": "25",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "P(X = k)",
+    "expression": "binompmf(n,k,p)",
+    "format": "percent",
+    "excel": "=BINOM.DIST({k},{n},{p},FALSE)",
+    "expected": 0.16860929321410376
+   },
+   {
+    "id": "1",
+    "label": "P(X ≤ k)",
+    "expression": "binomcdf(n,k,p)",
+    "format": "percent",
+    "excel": "=BINOM.DIST({k},{n},{p},TRUE)",
+    "expected": 0.7857819476012099
+   },
+   {
+    "id": "2",
+    "label": "P(X ≥ k)",
+    "expression": "1-binomcdf(n,k-1,p)",
+    "format": "percent",
+    "excel": "=1-BINOM.DIST({k}-1,{n},{p},TRUE)",
+    "expected": 0.3828273456128939
+   },
+   {
+    "id": "3",
+    "label": "Mean (np)",
+    "expression": "n*p",
+    "format": "number",
+    "excel": "={n}*{p}",
+    "expected": 5.0
+   },
+   {
+    "id": "4",
+    "label": "Standard deviation",
+    "expression": "sqrt(n*p*(1-p))",
+    "format": "number",
+    "excel": "=SQRT({n}*{p}*(1-{p}))",
+    "expected": 1.9364916731037085
+   }
+  ],
+  "math": "P(X = k) = C(n, k) pᵏ (1 − p)ⁿ⁻ᵏ",
+  "summary": "Probabilities for the number of successes in independent yes/no trials.",
+  "aliases": "binomial distribution probability trials successes coin flip",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "k",
+    "relation": "<=",
+    "right": "n",
+    "message": "Successes can't exceed trials."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Introductory Statistics",
+    "url": "https://openstax.org/details/books/introductory-statistics-2e"
+   }
+  ]
+ },
+ {
+  "id": "elasticity",
+  "name": "Elasticity (midpoint method)",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "p1",
+    "label": "Initial price (or income)",
+    "unit": "x",
+    "example": "10",
+    "hint": "A plain number."
+   },
+   {
+    "id": "q1",
+    "label": "Initial quantity",
+    "unit": "x",
+    "example": "1000",
+    "hint": "A plain number."
+   },
+   {
+    "id": "p2",
+    "label": "New price (or income)",
+    "unit": "x",
+    "example": "12",
+    "hint": "A plain number."
+   },
+   {
+    "id": "q2",
+    "label": "New quantity",
+    "unit": "x",
+    "example": "850",
+    "hint": "A plain number."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Elasticity",
+    "expression": "((q2-q1)/((q1+q2)/2))/((p2-p1)/((p1+p2)/2))",
+    "format": "number",
+    "excel": "=(({q2}-{q1})/(({q1}+{q2})/2))/(({p2}-{p1})/(({p1}+{p2})/2))",
+    "expected": -0.8918918918918919
+   },
+   {
+    "id": "1",
+    "label": "% change in quantity",
+    "expression": "(q2-q1)/((q1+q2)/2)",
+    "format": "percent",
+    "excel": "=({q2}-{q1})/(({q1}+{q2})/2)",
+    "expected": -0.16216216216216217
+   },
+   {
+    "id": "2",
+    "label": "% change in price",
+    "expression": "(p2-p1)/((p1+p2)/2)",
+    "format": "percent",
+    "excel": "=({p2}-{p1})/(({p1}+{p2})/2)",
+    "expected": 0.18181818181818182
+   },
+   {
+    "id": "3",
+    "label": "Change in total revenue (P × Q)",
+    "expression": "p2*q2-p1*q1",
+    "format": "number",
+    "excel": "={p2}*{q2}-{p1}*{q1}",
+    "expected": 200.0
+   }
+  ],
+  "math": "%ΔQ ÷ %ΔP, each change measured against the midpoint",
+  "summary": "Price, income or cross-price elasticity using the arc (midpoint) formula.",
+  "aliases": "price elasticity of demand supply income elasticity cross price arc midpoint elastic inelastic",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "For price elasticity of demand, |E| > 1 is elastic (revenue falls when price rises) and |E| < 1 is inelastic. For income elasticity, negative means an inferior good; for cross-price, positive means substitutes.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "p2",
+    "relation": "!=",
+    "right": "p1",
+    "message": "Price (or income) must change."
+   }
+  ],
+  "common": true,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "market_equilibrium",
+  "name": "Supply & demand equilibrium with a tax",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Demand intercept (P = a − bQ)",
+    "unit": "x",
+    "example": "100",
+    "hint": "A plain number."
+   },
+   {
+    "id": "b",
+    "label": "Demand slope b",
+    "unit": "x",
+    "example": "2",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "c",
+    "label": "Supply intercept (P = c + dQ)",
+    "unit": "x",
+    "example": "10",
+    "hint": "A plain number."
+   },
+   {
+    "id": "d",
+    "label": "Supply slope d",
+    "unit": "x",
+    "example": "1",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "t",
+    "label": "Per-unit tax (0 for none)",
+    "unit": "x",
+    "example": "6",
+    "hint": "A plain number.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Equilibrium quantity (no tax)",
+    "expression": "(a-c)/(b+d)",
+    "format": "number",
+    "excel": "=({a}-{c})/({b}+{d})",
+    "expected": 30.0
+   },
+   {
+    "id": "1",
+    "label": "Equilibrium price (no tax)",
+    "expression": "a-b*(a-c)/(b+d)",
+    "format": "number",
+    "excel": "={a}-{b}*({a}-{c})/({b}+{d})",
+    "expected": 40.0
+   },
+   {
+    "id": "2",
+    "label": "Consumer surplus (no tax)",
+    "expression": "0.5*b*((a-c)/(b+d))^2",
+    "format": "number",
+    "excel": "=0.5*{b}*(({a}-{c})/({b}+{d}))^2",
+    "expected": 900.0
+   },
+   {
+    "id": "3",
+    "label": "Producer surplus (no tax)",
+    "expression": "0.5*d*((a-c)/(b+d))^2",
+    "format": "number",
+    "excel": "=0.5*{d}*(({a}-{c})/({b}+{d}))^2",
+    "expected": 450.0
+   },
+   {
+    "id": "4",
+    "label": "Quantity with tax",
+    "expression": "(a-c-t)/(b+d)",
+    "format": "number",
+    "excel": "=({a}-{c}-{t})/({b}+{d})",
+    "expected": 28.0
+   },
+   {
+    "id": "5",
+    "label": "Price buyers pay",
+    "expression": "a-b*(a-c-t)/(b+d)",
+    "format": "number",
+    "excel": "={a}-{b}*({a}-{c}-{t})/({b}+{d})",
+    "expected": 44.0
+   },
+   {
+    "id": "6",
+    "label": "Price sellers keep",
+    "expression": "a-b*(a-c-t)/(b+d)-t",
+    "format": "number",
+    "excel": "={a}-{b}*({a}-{c}-{t})/({b}+{d})-{t}",
+    "expected": 38.0
+   },
+   {
+    "id": "7",
+    "label": "Tax revenue",
+    "expression": "t*(a-c-t)/(b+d)",
+    "format": "number",
+    "excel": "={t}*({a}-{c}-{t})/({b}+{d})",
+    "expected": 168.0
+   },
+   {
+    "id": "8",
+    "label": "Deadweight loss",
+    "expression": "0.5*t*((a-c)/(b+d)-(a-c-t)/(b+d))",
+    "format": "number",
+    "excel": "=0.5*{t}*(({a}-{c})/({b}+{d})-({a}-{c}-{t})/({b}+{d}))",
+    "expected": 6.0
+   },
+   {
+    "id": "9",
+    "label": "Share of tax paid by buyers",
+    "expression": "d/(b+d)",
+    "format": "percent",
+    "excel": "={d}/({b}+{d})",
+    "expected": 0.3333333333333333
+   }
+  ],
+  "math": "Set a − bQ = c + dQ (+ t); surpluses are triangle areas",
+  "summary": "Linear market equilibrium, surpluses, and the incidence and deadweight loss of a per-unit tax.",
+  "aliases": "supply demand equilibrium consumer surplus producer surplus deadweight loss tax incidence welfare",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "a",
+    "relation": ">",
+    "right": "c+t",
+    "message": "Demand intercept must exceed supply intercept plus the tax, or nothing is traded."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "cpi_inflation",
+  "name": "CPI inflation & real values",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "c0",
+    "label": "CPI in the base period",
+    "unit": "x",
+    "example": "258.8",
+    "hint": "A plain number.",
+    "min": 0.0001
+   },
+   {
+    "id": "c1",
+    "label": "CPI in the later period",
+    "unit": "x",
+    "example": "322.6",
+    "hint": "A plain number.",
+    "min": 0.0001
+   },
+   {
+    "id": "v",
+    "label": "Dollar amount in the base period",
+    "unit": "$",
+    "example": "50000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Inflation between periods",
+    "expression": "c1/c0-1",
+    "format": "percent",
+    "excel": "={c1}/{c0}-1",
+    "expected": 0.24652241112828444
+   },
+   {
+    "id": "1",
+    "label": "Same purchasing power in later dollars",
+    "expression": "v*c1/c0",
+    "format": "currency",
+    "excel": "={v}*{c1}/{c0}",
+    "expected": 62326.12055641422
+   },
+   {
+    "id": "2",
+    "label": "Later-period amount in base-period dollars",
+    "expression": "v*c0/c1",
+    "format": "currency",
+    "excel": "={v}*{c0}/{c1}",
+    "expected": 40111.59330440174
+   }
+  ],
+  "math": "Inflation = CPI₁ ÷ CPI₀ − 1; real value = nominal × CPI_base ÷ CPI_then",
+  "summary": "Inflation between two CPI readings and converting dollars between years.",
+  "aliases": "cpi inflation price index real nominal purchasing power deflate",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "BLS • Consumer Price Index",
+    "url": "https://www.bls.gov/cpi/"
+   }
+  ]
+ },
+ {
+  "id": "gdp_deflator",
+  "name": "Nominal vs. real GDP",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "ng",
+    "label": "Nominal GDP",
+    "unit": "x",
+    "example": "29200",
+    "hint": "A plain number.",
+    "min": 0.0001
+   },
+   {
+    "id": "rg",
+    "label": "Real GDP (base-year prices)",
+    "unit": "x",
+    "example": "23500",
+    "hint": "A plain number.",
+    "min": 0.0001
+   },
+   {
+    "id": "ng0",
+    "label": "Prior-year nominal GDP",
+    "unit": "x",
+    "example": "27700",
+    "hint": "A plain number.",
+    "min": 0.0001
+   },
+   {
+    "id": "rg0",
+    "label": "Prior-year real GDP",
+    "unit": "x",
+    "example": "22900",
+    "hint": "A plain number.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "GDP deflator",
+    "expression": "ng/rg*100",
+    "format": "number",
+    "excel": "={ng}/{rg}*100",
+    "expected": 124.25531914893617
+   },
+   {
+    "id": "1",
+    "label": "Nominal GDP growth",
+    "expression": "ng/ng0-1",
+    "format": "percent",
+    "excel": "={ng}/{ng0}-1",
+    "expected": 0.054151624548736566
+   },
+   {
+    "id": "2",
+    "label": "Real GDP growth",
+    "expression": "rg/rg0-1",
+    "format": "percent",
+    "excel": "={rg}/{rg0}-1",
+    "expected": 0.026200873362445476
+   },
+   {
+    "id": "3",
+    "label": "Inflation (deflator)",
+    "expression": "(ng/rg)/(ng0/rg0)-1",
+    "format": "percent",
+    "excel": "=({ng}/{rg})/({ng0}/{rg0})-1",
+    "expected": 0.027237114985789956
+   }
+  ],
+  "math": "Deflator = nominal ÷ real × 100",
+  "summary": "GDP deflator, nominal and real growth, and implied inflation.",
+  "aliases": "gdp deflator real gdp nominal growth macroeconomics",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "rule70",
+  "name": "Growth & the rule of 70",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "g",
+    "label": "Annual growth rate",
+    "unit": "%",
+    "example": "2",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001
+   },
+   {
+    "id": "m",
+    "label": "Multiply by",
+    "unit": "x",
+    "example": "4",
+    "hint": "E.g. 2 to double, 4 to quadruple.",
+    "min": 1.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Rule-of-70 doubling time",
+    "expression": "70/(g*100)",
+    "format": "years",
+    "excel": "=70/({g}*100)",
+    "expected": 35.0
+   },
+   {
+    "id": "1",
+    "label": "Exact doubling time",
+    "expression": "ln(2)/ln(1+g)",
+    "format": "years",
+    "excel": "=LN(2)/LN(1+{g})",
+    "expected": 35.0027887811465
+   },
+   {
+    "id": "2",
+    "label": "Years to multiply by m",
+    "expression": "ln(m)/ln(1+g)",
+    "format": "years",
+    "excel": "=LN({m})/LN(1+{g})",
+    "expected": 70.005577562293
+   }
+  ],
+  "math": "70 ÷ growth %; exact: ln 2 ÷ ln(1 + g)",
+  "summary": "How quickly steady growth doubles output, income or prices.",
+  "aliases": "rule of 70 doubling time economic growth gdp per capita",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "multiplier",
+  "name": "Spending & tax multipliers",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "mpc",
+    "label": "Marginal propensity to consume",
+    "unit": "%",
+    "example": "80",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.9999
+   },
+   {
+    "id": "t",
+    "label": "Income tax rate (0 for a simple model)",
+    "unit": "%",
+    "example": "0",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 0.99
+   },
+   {
+    "id": "dg",
+    "label": "Change in government spending",
+    "unit": "x",
+    "example": "100",
+    "hint": "A plain number."
+   },
+   {
+    "id": "dt",
+    "label": "Change in lump-sum taxes",
+    "unit": "x",
+    "example": "0",
+    "hint": "A plain number."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Spending multiplier",
+    "expression": "1/(1-mpc*(1-t))",
+    "format": "number",
+    "excel": "=1/(1-{mpc}*(1-{t}))",
+    "expected": 5.000000000000001
+   },
+   {
+    "id": "1",
+    "label": "Tax multiplier",
+    "expression": "-mpc/(1-mpc*(1-t))",
+    "format": "number",
+    "excel": "=-{mpc}/(1-{mpc}*(1-{t}))",
+    "expected": -4.000000000000001
+   },
+   {
+    "id": "2",
+    "label": "Change in GDP",
+    "expression": "dg/(1-mpc*(1-t))-dt*mpc/(1-mpc*(1-t))",
+    "format": "number",
+    "excel": "={dg}/(1-{mpc}*(1-{t}))-{dt}*{mpc}/(1-{mpc}*(1-{t}))",
+    "expected": 500.0000000000001
+   },
+   {
+    "id": "3",
+    "label": "Marginal propensity to save",
+    "expression": "1-mpc",
+    "format": "percent",
+    "excel": "=1-{mpc}",
+    "expected": 0.19999999999999996
+   }
+  ],
+  "math": "Spending multiplier = 1 ÷ (1 − MPC(1 − t)); tax multiplier = −MPC ÷ (1 − MPC(1 − t))",
+  "summary": "Keynesian multipliers and the change in GDP from fiscal policy.",
+  "aliases": "keynesian multiplier mpc mps fiscal policy government spending aggregate demand",
+  "acronym": "",
+  "assumptions": "Simple closed-economy Keynesian cross: fixed prices and interest rates, no crowding out, no imports.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "money",
+  "name": "Money multiplier & quantity theory",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "rr",
+    "label": "Reserve requirement",
+    "unit": "%",
+    "example": "10",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001,
+    "max": 1
+   },
+   {
+    "id": "dep",
+    "label": "New reserves / deposit",
+    "unit": "x",
+    "example": "1000",
+    "hint": "A plain number."
+   },
+   {
+    "id": "gm",
+    "label": "Money growth",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "gv",
+    "label": "Velocity growth",
+    "unit": "%",
+    "example": "0",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   },
+   {
+    "id": "gy",
+    "label": "Real output growth",
+    "unit": "%",
+    "example": "2",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.99
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Simple money multiplier",
+    "expression": "1/rr",
+    "format": "number",
+    "excel": "=1/{rr}",
+    "expected": 10.0
+   },
+   {
+    "id": "1",
+    "label": "Maximum new money created",
+    "expression": "dep/rr",
+    "format": "number",
+    "excel": "={dep}/{rr}",
+    "expected": 10000.0
+   },
+   {
+    "id": "2",
+    "label": "Implied inflation (MV = PY)",
+    "expression": "(1+gm)*(1+gv)/(1+gy)-1",
+    "format": "percent",
+    "excel": "=(1+{gm})*(1+{gv})/(1+{gy})-1",
+    "expected": 0.03921568627450989
+   },
+   {
+    "id": "3",
+    "label": "Approximation (%ΔM + %ΔV − %ΔY)",
+    "expression": "gm+gv-gy",
+    "format": "percent",
+    "excel": "={gm}+{gv}-{gy}",
+    "expected": 0.039999999999999994
+   }
+  ],
+  "math": "Multiplier = 1 ÷ reserve ratio; %ΔP ≈ %ΔM + %ΔV − %ΔY",
+  "summary": "Deposit expansion and the inflation implied by the quantity theory of money.",
+  "aliases": "money multiplier reserve ratio quantity theory mv=py velocity monetary",
+  "acronym": "",
+  "assumptions": "Textbook multiplier: banks lend all excess reserves and the public holds no extra cash. (The U.S. reserve requirement has been 0% since 2020; the textbook model remains a teaching tool.)",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "taylor_rule",
+  "name": "Taylor rule",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "rn",
+    "label": "Neutral real interest rate",
+    "unit": "%",
+    "example": "1",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.1
+   },
+   {
+    "id": "pi",
+    "label": "Inflation",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.2
+   },
+   {
+    "id": "pit",
+    "label": "Inflation target",
+    "unit": "%",
+    "example": "2",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.1
+   },
+   {
+    "id": "gap",
+    "label": "Output gap (+ above potential)",
+    "unit": "%",
+    "example": "-0.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5,
+    "max": 0.5
+   },
+   {
+    "id": "wp",
+    "label": "Weight on inflation gap",
+    "unit": "x",
+    "example": "0.5",
+    "hint": "A plain number.",
+    "min": 0
+   },
+   {
+    "id": "wy",
+    "label": "Weight on output gap",
+    "unit": "x",
+    "example": "0.5",
+    "hint": "A plain number.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Suggested policy rate",
+    "expression": "rn+pi+wp*(pi-pit)+wy*gap",
+    "format": "percent",
+    "excel": "={rn}+{pi}+{wp}*({pi}-{pit})+{wy}*{gap}",
+    "expected": 0.042499999999999996
+   },
+   {
+    "id": "1",
+    "label": "Implied real policy rate",
+    "expression": "rn+wp*(pi-pit)+wy*gap",
+    "format": "percent",
+    "excel": "={rn}+{wp}*({pi}-{pit})+{wy}*{gap}",
+    "expected": 0.012499999999999999
+   }
+  ],
+  "math": "i = r* + π + 0.5(π − π*) + 0.5(output gap)",
+  "summary": "Policy interest rate suggested by the Taylor (1993) rule.",
+  "aliases": "taylor rule federal funds rate monetary policy central bank",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "A benchmark, not a forecast of what the Fed will do. Results swing with the neutral-rate and output-gap estimates.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "labor_market",
+  "name": "Unemployment & labor force rates",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "u",
+    "label": "Unemployed",
+    "unit": "x",
+    "example": "7.1",
+    "hint": "Same units throughout (e.g. millions).",
+    "min": 0
+   },
+   {
+    "id": "e",
+    "label": "Employed",
+    "unit": "x",
+    "example": "163.2",
+    "hint": "A plain number.",
+    "min": 0
+   },
+   {
+    "id": "pop",
+    "label": "Working-age population (16+, civilian non-institutional)",
+    "unit": "x",
+    "example": "272.0",
+    "hint": "A plain number.",
+    "min": 0.0001
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Unemployment rate",
+    "expression": "u/(u+e)",
+    "format": "percent",
+    "excel": "={u}/({u}+{e})",
+    "expected": 0.04169113329418673
+   },
+   {
+    "id": "1",
+    "label": "Labor force participation rate",
+    "expression": "(u+e)/pop",
+    "format": "percent",
+    "excel": "=({u}+{e})/{pop}",
+    "expected": 0.6261029411764705
+   },
+   {
+    "id": "2",
+    "label": "Employment-population ratio",
+    "expression": "e/pop",
+    "format": "percent",
+    "excel": "={e}/{pop}",
+    "expected": 0.6
+   },
+   {
+    "id": "3",
+    "label": "Labor force",
+    "expression": "u+e",
+    "format": "number",
+    "excel": "={u}+{e}",
+    "expected": 170.29999999999998
+   }
+  ],
+  "math": "Unemployment = U ÷ (U + E); participation = (U + E) ÷ population",
+  "summary": "Core labor-market rates as defined by the BLS.",
+  "aliases": "unemployment rate labor force participation employment population",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "u+e",
+    "relation": "<=",
+    "right": "pop",
+    "message": "The labor force can't exceed the working-age population."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "BLS • Labor force statistics (CPS)",
+    "url": "https://www.bls.gov/cps/"
+   }
+  ]
+ },
+ {
+  "id": "okun",
+  "name": "Okun's law",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "u",
+    "label": "Unemployment rate",
+    "unit": "%",
+    "example": "5.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "un",
+    "label": "Natural rate of unemployment",
+    "unit": "%",
+    "example": "4.2",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "k",
+    "label": "Okun coefficient",
+    "unit": "x",
+    "example": "2",
+    "hint": "A plain number.",
+    "min": 0
+   },
+   {
+    "id": "yp",
+    "label": "Potential GDP",
+    "unit": "x",
+    "example": "29000",
+    "hint": "A plain number.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Output gap",
+    "expression": "-k*(u-un)",
+    "format": "percent",
+    "excel": "=-{k}*({u}-{un})",
+    "expected": -0.025999999999999995
+   },
+   {
+    "id": "1",
+    "label": "Lost output",
+    "expression": "-k*(u-un)*yp",
+    "format": "number",
+    "excel": "=-{k}*({u}-{un})*{yp}",
+    "expected": -753.9999999999999
+   }
+  ],
+  "math": "Output gap ≈ −k × (u − u*)",
+  "summary": "Rule-of-thumb link between unemployment above its natural rate and lost output.",
+  "aliases": "okun's law output gap cyclical unemployment recession",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "monopoly",
+  "name": "Monopoly vs. competition (linear demand)",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "a",
+    "label": "Demand intercept (P = a − bQ)",
+    "unit": "x",
+    "example": "120",
+    "hint": "A plain number."
+   },
+   {
+    "id": "b",
+    "label": "Demand slope b",
+    "unit": "x",
+    "example": "2",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "mc",
+    "label": "Constant marginal cost",
+    "unit": "x",
+    "example": "20",
+    "hint": "A plain number.",
+    "min": 0
+   },
+   {
+    "id": "fc",
+    "label": "Fixed cost",
+    "unit": "x",
+    "example": "300",
+    "hint": "A plain number.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Monopoly quantity (MR = MC)",
+    "expression": "(a-mc)/(2*b)",
+    "format": "number",
+    "excel": "=({a}-{mc})/(2*{b})",
+    "expected": 25.0
+   },
+   {
+    "id": "1",
+    "label": "Monopoly price",
+    "expression": "(a+mc)/2",
+    "format": "number",
+    "excel": "=({a}+{mc})/2",
+    "expected": 70.0
+   },
+   {
+    "id": "2",
+    "label": "Monopoly profit",
+    "expression": "(a-mc)^2/(4*b)-fc",
+    "format": "number",
+    "excel": "=({a}-{mc})^2/(4*{b})-{fc}",
+    "expected": 950.0
+   },
+   {
+    "id": "3",
+    "label": "Competitive quantity (P = MC)",
+    "expression": "(a-mc)/b",
+    "format": "number",
+    "excel": "=({a}-{mc})/{b}",
+    "expected": 50.0
+   },
+   {
+    "id": "4",
+    "label": "Deadweight loss of monopoly",
+    "expression": "(a-mc)^2/(8*b)",
+    "format": "number",
+    "excel": "=({a}-{mc})^2/(8*{b})",
+    "expected": 625.0
+   },
+   {
+    "id": "5",
+    "label": "Lerner index (P − MC) ÷ P",
+    "expression": "((a+mc)/2-mc)/((a+mc)/2)",
+    "format": "percent",
+    "excel": "=(({a}+{mc})/2-{mc})/(({a}+{mc})/2)",
+    "expected": 0.7142857142857143
+   }
+  ],
+  "math": "MR = a − 2bQ = MC; DWL = (a − MC)² ÷ 8b",
+  "summary": "Profit-maximizing monopoly outcome compared with perfect competition.",
+  "aliases": "monopoly marginal revenue market power deadweight loss lerner index microeconomics",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "a",
+    "relation": ">",
+    "right": "mc",
+    "message": "Demand intercept must exceed marginal cost."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "costs",
+  "name": "Cost curves",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "fc",
+    "label": "Fixed cost",
+    "unit": "x",
+    "example": "500",
+    "hint": "A plain number.",
+    "min": 0
+   },
+   {
+    "id": "q1",
+    "label": "Quantity 1",
+    "unit": "x",
+    "example": "100",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "vc1",
+    "label": "Variable cost at Q1",
+    "unit": "x",
+    "example": "1200",
+    "hint": "A plain number.",
+    "min": 0
+   },
+   {
+    "id": "q2",
+    "label": "Quantity 2",
+    "unit": "x",
+    "example": "110",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "vc2",
+    "label": "Variable cost at Q2",
+    "unit": "x",
+    "example": "1350",
+    "hint": "A plain number.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Marginal cost (Q1 → Q2)",
+    "expression": "(vc2-vc1)/(q2-q1)",
+    "format": "number",
+    "excel": "=({vc2}-{vc1})/({q2}-{q1})",
+    "expected": 15.0
+   },
+   {
+    "id": "1",
+    "label": "Average total cost at Q2",
+    "expression": "(fc+vc2)/q2",
+    "format": "number",
+    "excel": "=({fc}+{vc2})/{q2}",
+    "expected": 16.818181818181817
+   },
+   {
+    "id": "2",
+    "label": "Average variable cost at Q2",
+    "expression": "vc2/q2",
+    "format": "number",
+    "excel": "={vc2}/{q2}",
+    "expected": 12.272727272727273
+   },
+   {
+    "id": "3",
+    "label": "Average fixed cost at Q2",
+    "expression": "fc/q2",
+    "format": "number",
+    "excel": "={fc}/{q2}",
+    "expected": 4.545454545454546
+   }
+  ],
+  "math": "MC = ΔTC ÷ ΔQ; ATC = TC ÷ Q; AVC = VC ÷ Q; AFC = FC ÷ Q",
+  "summary": "Marginal and average costs from two output levels.",
+  "aliases": "marginal cost average total cost variable fixed cost microeconomics",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "q2",
+    "relation": "!=",
+    "right": "q1",
+    "message": "The two quantities must differ."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "hhi",
+  "name": "Market concentration (HHI)",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "s",
+    "label": "Market shares (%)",
+    "unit": "series",
+    "example": "30; 25; 20; 15; 10",
+    "hint": "Each firm's share in percent, e.g. 30; 25; 20."
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Herfindahl–Hirschman Index",
+    "expression": "sum(s^2)",
+    "format": "number",
+    "excel": "=SUMSQ({s})",
+    "expected": 2250.0
+   },
+   {
+    "id": "1",
+    "label": "Four-firm concentration ratio (CR4)",
+    "expression": "topsum(s,4)/100",
+    "format": "percent",
+    "excel": "=SUM(LARGE({s},{1,2,3,4}))/100",
+    "expected": 0.9
+   },
+   {
+    "id": "2",
+    "label": "Total of shares entered",
+    "expression": "sum(s)/100",
+    "format": "percent",
+    "excel": "=SUM({s})/100",
+    "expected": 1.0
+   }
+  ],
+  "math": "HHI = Σ (share in %)²",
+  "summary": "Concentration index used in antitrust review.",
+  "aliases": "hhi herfindahl concentration ratio antitrust merger market structure oligopoly",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "Under the 2023 U.S. Merger Guidelines, an HHI above 1,800 indicates a highly concentrated market.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "cobb_douglas",
+  "name": "Cobb–Douglas production & growth accounting",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "A",
+    "label": "Total factor productivity (A)",
+    "unit": "x",
+    "example": "1.5",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "K",
+    "label": "Capital (K)",
+    "unit": "x",
+    "example": "400",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "L",
+    "label": "Labor (L)",
+    "unit": "x",
+    "example": "100",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "al",
+    "label": "Capital share (α)",
+    "unit": "%",
+    "example": "33",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0.0001,
+    "max": 0.9999
+   },
+   {
+    "id": "gy",
+    "label": "Output growth",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "gk",
+    "label": "Capital growth",
+    "unit": "%",
+    "example": "4",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "gl",
+    "label": "Labor growth",
+    "unit": "%",
+    "example": "1",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Output Y = A Kᵅ L¹⁻ᵅ",
+    "expression": "A*K^al*L^(1-al)",
+    "format": "number",
+    "excel": "={A}*{K}^{al}*{L}^(1-{al})",
+    "expected": 237.01239355901313
+   },
+   {
+    "id": "1",
+    "label": "Marginal product of capital",
+    "expression": "al*A*K^al*L^(1-al)/K",
+    "format": "number",
+    "excel": "={al}*{A}*{K}^{al}*{L}^(1-{al})/{K}",
+    "expected": 0.1955352246861858
+   },
+   {
+    "id": "2",
+    "label": "Marginal product of labor",
+    "expression": "(1-al)*A*K^al*L^(1-al)/L",
+    "format": "number",
+    "excel": "=(1-{al})*{A}*{K}^{al}*{L}^(1-{al})/{L}",
+    "expected": 1.5879830368453878
+   },
+   {
+    "id": "3",
+    "label": "Output per worker",
+    "expression": "A*K^al*L^(1-al)/L",
+    "format": "number",
+    "excel": "={A}*{K}^{al}*{L}^(1-{al})/{L}",
+    "expected": 2.370123935590131
+   },
+   {
+    "id": "4",
+    "label": "TFP growth (Solow residual)",
+    "expression": "gy-al*gk-(1-al)*gl",
+    "format": "percent",
+    "excel": "={gy}-{al}*{gk}-(1-{al})*{gl}",
+    "expected": 0.010099999999999996
+   }
+  ],
+  "math": "Y = A Kᵅ L¹⁻ᵅ; g_A = g_Y − α g_K − (1 − α) g_L",
+  "summary": "Output and marginal products under Cobb–Douglas, plus the Solow growth-accounting residual.",
+  "aliases": "cobb douglas production function solow growth accounting tfp marginal product macroeconomics",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
+  "id": "comparative_advantage",
+  "name": "Comparative advantage",
+  "category": "Economics",
+  "fields": [
+   {
+    "id": "ax",
+    "label": "Country A: max output of good X",
+    "unit": "x",
+    "example": "120",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "ay",
+    "label": "Country A: max output of good Y",
+    "unit": "x",
+    "example": "60",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "bx",
+    "label": "Country B: max output of good X",
+    "unit": "x",
+    "example": "40",
+    "hint": "A plain number.",
+    "min": 1e-07
+   },
+   {
+    "id": "by",
+    "label": "Country B: max output of good Y",
+    "unit": "x",
+    "example": "80",
+    "hint": "A plain number.",
+    "min": 1e-07
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "A's opportunity cost of 1 X (in Y)",
+    "expression": "ay/ax",
+    "format": "number",
+    "excel": "={ay}/{ax}",
+    "expected": 0.5
+   },
+   {
+    "id": "1",
+    "label": "B's opportunity cost of 1 X (in Y)",
+    "expression": "by/bx",
+    "format": "number",
+    "excel": "={by}/{bx}",
+    "expected": 2.0
+   },
+   {
+    "id": "2",
+    "label": "A's opportunity cost of 1 Y (in X)",
+    "expression": "ax/ay",
+    "format": "number",
+    "excel": "={ax}/{ay}",
+    "expected": 2.0
+   },
+   {
+    "id": "3",
+    "label": "B's opportunity cost of 1 Y (in X)",
+    "expression": "bx/by",
+    "format": "number",
+    "excel": "={bx}/{by}",
+    "expected": 0.5
+   }
+  ],
+  "math": "Opportunity cost of X = Y given up ÷ X gained",
+  "summary": "Opportunity costs from production possibilities, to see who has the comparative advantage.",
+  "aliases": "comparative advantage absolute advantage opportunity cost trade ppf production possibilities",
+  "acronym": "",
+  "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
+  "interpretation": "The country with the lower opportunity cost of a good has the comparative advantage in it. Mutually beneficial trade happens at a price between the two opportunity costs.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "OpenStax • Principles of Economics",
+    "url": "https://openstax.org/details/books/principles-economics-3e"
+   }
+  ]
+ },
+ {
   "id": "net_worth",
   "name": "Net worth",
   "category": "Planning & protection",
