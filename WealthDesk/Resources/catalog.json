@@ -587,7 +587,7 @@
     "expression": "fv(r,n,c,p)",
     "format": "currency",
     "excel": "=FV({r},{n},-{c},-{p})",
-    "expected": 763238.6559444224
+    "expected": 763238.6559444212
    },
    {
     "id": "1",
@@ -603,7 +603,7 @@
     "expression": "fv(r,n,c,p)-p-c*n",
     "format": "currency",
     "excel": "=FV({r},{n},-{c},-{p})-{p}-{c}*{n}",
-    "expected": 463238.65594442235
+    "expected": 463238.6559444212
    }
   ],
   "math": "Balance × (1+r)^n + contribution × ((1+r)^n − 1) / r",
@@ -667,7 +667,7 @@
     "expression": "fv(r/12,y*12,m,p)",
     "format": "currency",
     "excel": "=FV({r}/12,{y}*12,-{m},-{p})",
-    "expected": 1422883.4326599366
+    "expected": 1422883.432659923
    },
    {
     "id": "1",
@@ -1277,7 +1277,7 @@
     "expression": "fv(r,n,c,b)",
     "format": "currency",
     "excel": "=FV({r},{n},-{c},-{b})",
-    "expected": 2136214.012409661
+    "expected": 2136214.0124096586
    },
    {
     "id": "2",
@@ -1285,7 +1285,7 @@
     "expression": "fv(r,n,c,b)-max(0,s-o)/w",
     "format": "currency",
     "excel": "=FV({r},{n},-{c},-{b})-MAX(0,{s}-{o})/{w}",
-    "expected": 136214.01240966097
+    "expected": 136214.01240965864
    }
   ],
   "math": "Projected FV of savings − spending gap ÷ withdrawal rate",
@@ -1379,7 +1379,7 @@
     "expression": "pmt(r,n,b)",
     "format": "currency",
     "excel": "=PMT({r},{n},-{b})",
-    "expected": 65051.43508027656
+    "expected": 65051.43508027659
    }
   ],
   "math": "Balance × r ÷ (1 − (1+r)^−n)",
@@ -1642,7 +1642,7 @@
     "expression": "pv(r/12,n*12,b)",
     "format": "currency",
     "excel": "=PV({r}/12,{n}*12,-{b})",
-    "expected": 513180.14112271665
+    "expected": 513180.1411227175
    },
    {
     "id": "1",
@@ -1650,7 +1650,7 @@
     "expression": "l-pv(r/12,n*12,b)",
     "format": "currency",
     "excel": "={l}-PV({r}/12,{n}*12,-{b})",
-    "expected": -13180.141122716654
+    "expected": -13180.141122717527
    },
    {
     "id": "2",
@@ -1658,7 +1658,7 @@
     "expression": "rate(n*12,b,l)*12",
     "format": "percent",
     "excel": "=RATE({n}*12,{b},-{l})*12",
-    "expected": 0.05262747258294759
+    "expected": 0.05262747258294713
    }
   ],
   "math": "PV of monthly payments at discount rate ÷ 12",
@@ -2109,6 +2109,643 @@
   }
  },
  {
+  "id": "retirement_mc",
+  "name": "Retirement Monte Carlo (full plan)",
+  "category": "Retirement & income",
+  "fields": [
+   {
+    "id": "age",
+    "label": "Current age",
+    "unit": "age",
+    "example": "45",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 110,
+    "integer": true
+   },
+   {
+    "id": "retire",
+    "label": "Retirement age",
+    "unit": "age",
+    "example": "65",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 110,
+    "integer": true
+   },
+   {
+    "id": "plan",
+    "label": "Plan through age",
+    "unit": "age",
+    "example": "95",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 120,
+    "integer": true
+   },
+   {
+    "id": "bal",
+    "label": "Invested today",
+    "unit": "$",
+    "example": "750000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "c",
+    "label": "Saving each year while working",
+    "unit": "$",
+    "example": "30000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "cg",
+    "label": "Annual increase in saving",
+    "unit": "%",
+    "example": "2",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "rpre",
+    "label": "Average return before retirement",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "rpost",
+    "label": "Average return in retirement",
+    "unit": "%",
+    "example": "5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "sd",
+    "label": "Volatility (standard deviation)",
+    "unit": "%",
+    "example": "12",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "spend",
+    "label": "Retirement spending (today's $)",
+    "unit": "$",
+    "example": "110000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "infl",
+    "label": "Inflation",
+    "unit": "%",
+    "example": "2.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "other",
+    "label": "Other income in retirement (today's $)",
+    "unit": "$",
+    "example": "45000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "oage",
+    "label": "Other income starts at age",
+    "unit": "age",
+    "example": "67",
+    "hint": "Age in whole years.",
+    "min": 0,
+    "max": 120,
+    "integer": true
+   },
+   {
+    "id": "sims",
+    "label": "Number of simulations",
+    "unit": "count",
+    "example": "1000",
+    "hint": "A whole number.",
+    "default": "1000",
+    "min": 100,
+    "max": 20000,
+    "integer": true
+   },
+   {
+    "id": "seed",
+    "label": "Random seed",
+    "unit": "count",
+    "example": "42",
+    "hint": "Same seed gives the same result; change it to see a different draw.",
+    "default": "42",
+    "min": 0,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Chance the money lasts through the plan",
+    "expression": "p_success",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.662
+   },
+   {
+    "id": "1",
+    "label": "Median balance at retirement",
+    "expression": "p_retire_p50",
+    "format": "currency",
+    "excel": null,
+    "expected": 3362036.123940148
+   },
+   {
+    "id": "2",
+    "label": "Ending balance: 10th percentile",
+    "expression": "p_end_p10",
+    "format": "currency",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "3",
+    "label": "Ending balance: median",
+    "expression": "p_end_p50",
+    "format": "currency",
+    "excel": null,
+    "expected": 2343271.544079384
+   },
+   {
+    "id": "4",
+    "label": "Ending balance: 90th percentile",
+    "expression": "p_end_p90",
+    "format": "currency",
+    "excel": null,
+    "expected": 17442712.011592917
+   }
+  ],
+  "math": "Retirement timeline cash flows, with each year's return drawn from Normal(average, volatility)",
+  "summary": "Simulates the whole plan, saving years and retirement years, across many market paths.",
+  "aliases": "monte carlo retirement probability success simulation plan",
+  "acronym": "",
+  "assumptions": "Same cash-flow rules as the Retirement timeline (saving added and withdrawals taken at the start of each year). Annual returns are independent normal draws; real markets have fatter tails and streaks. Taxes and fees are excluded.",
+  "interpretation": "The success rate summarizes simulated outcomes under the assumptions entered. It is not a forecast or a guarantee, and it is not a recommendation.",
+  "excelNotes": "Simulation results aren't a cell formula. Use Copy table for the percentile paths.",
+  "rules": [
+   {
+    "left": "plan",
+    "relation": ">",
+    "right": "age",
+    "message": "Plan age must exceed current age."
+   },
+   {
+    "left": "retire",
+    "relation": ">=",
+    "right": "age",
+    "message": "Retirement age can't be before current age."
+   },
+   {
+    "left": "plan-age",
+    "relation": "<=",
+    "right": "100",
+    "message": "Projection is limited to 100 years."
+   }
+  ],
+  "common": false,
+  "sources": [],
+  "projection": "retirementmc",
+  "table": {
+   "columns": [
+    {
+     "label": "Age",
+     "format": "age"
+    },
+    {
+     "label": "10th percentile",
+     "format": "currency"
+    },
+    {
+     "label": "Median",
+     "format": "currency"
+    },
+    {
+     "label": "90th percentile",
+     "format": "currency"
+    }
+   ],
+   "chartColumns": [
+    1,
+    2,
+    3
+   ]
+  }
+ },
+ {
+  "id": "growth_schedule",
+  "name": "Investment growth schedule",
+  "category": "Growth & time value",
+  "fields": [
+   {
+    "id": "p",
+    "label": "Starting amount",
+    "unit": "$",
+    "example": "25000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "m",
+    "label": "Monthly contribution",
+    "unit": "$",
+    "example": "1000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "r",
+    "label": "Annual return",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   },
+   {
+    "id": "y",
+    "label": "Years",
+    "unit": "years",
+    "example": "25",
+    "hint": "Number of years.",
+    "min": 1,
+    "max": 100,
+    "integer": true
+   },
+   {
+    "id": "infl",
+    "label": "Inflation",
+    "unit": "%",
+    "example": "2.5",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.5
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Ending balance",
+    "expression": "p_balance",
+    "format": "currency",
+    "excel": null,
+    "expected": 804618.2077365017
+   },
+   {
+    "id": "1",
+    "label": "Total contributed",
+    "expression": "p_contributed",
+    "format": "currency",
+    "excel": null,
+    "expected": 325000.0
+   },
+   {
+    "id": "2",
+    "label": "Total growth",
+    "expression": "p_growth",
+    "format": "currency",
+    "excel": null,
+    "expected": 479618.2077365017
+   },
+   {
+    "id": "3",
+    "label": "Ending balance in today's dollars",
+    "expression": "p_real",
+    "format": "currency",
+    "excel": null,
+    "expected": 434003.48935261514
+   }
+  ],
+  "math": "Each month: balance × (1 + annual return ÷ 12) + contribution; today's dollars = balance ÷ (1 + inflation)^years",
+  "summary": "Year-by-year growth of savings, split into what you put in and what it earned, with inflation's effect.",
+  "aliases": "compound growth schedule table contributions inflation today's dollars",
+  "acronym": "",
+  "assumptions": "Monthly compounding at a constant return, contributions at the end of each month. Taxes and fees are excluded.",
+  "interpretation": "This is a mathematical result under the stated assumptions, not a recommendation. Actual returns, tax law and personal circumstances vary.",
+  "excelNotes": "Balance: =FV(r/12, years*12, -monthly, -start). The yearly table is available via Copy table.",
+  "rules": [],
+  "common": false,
+  "sources": [],
+  "projection": "growth",
+  "table": {
+   "columns": [
+    {
+     "label": "Year",
+     "format": "number"
+    },
+    {
+     "label": "Total contributed",
+     "format": "currency"
+    },
+    {
+     "label": "Total growth",
+     "format": "currency"
+    },
+    {
+     "label": "Balance",
+     "format": "currency"
+    },
+    {
+     "label": "Balance in today's dollars",
+     "format": "currency"
+    }
+   ],
+   "chartColumns": [
+    3,
+    4
+   ]
+  }
+ },
+ {
+  "id": "mix_volatility",
+  "name": "Portfolio mix volatility",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "v",
+    "label": "Portfolio value",
+    "unit": "$",
+    "example": "2000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "we",
+    "label": "Stocks",
+    "unit": "%",
+    "example": "60",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "wb",
+    "label": "Bonds",
+    "unit": "%",
+    "example": "40",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "sa",
+    "label": "Stock volatility (standard deviation)",
+    "unit": "%",
+    "example": "16",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "id": "sb",
+    "label": "Bond volatility (standard deviation)",
+    "unit": "%",
+    "example": "6",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "id": "rho",
+    "label": "Stock/bond correlation",
+    "unit": "x",
+    "example": "0.1",
+    "hint": "Between −1 and 1.",
+    "min": -1,
+    "max": 1
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Portfolio volatility",
+    "expression": "sqrt(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb)",
+    "format": "percent",
+    "excel": "=SQRT({we}^2*{sa}^2+{wb}^2*{sb}^2+2*{we}*{wb}*{rho}*{sa}*{sb})",
+    "expected": 0.10125611092669914
+   },
+   {
+    "id": "1",
+    "label": "One-standard-deviation move in dollars",
+    "expression": "v*sqrt(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb)",
+    "format": "currency",
+    "excel": "={v}*SQRT({we}^2*{sa}^2+{wb}^2*{sb}^2+2*{we}*{wb}*{rho}*{sa}*{sb})",
+    "expected": 202512.22185339828
+   },
+   {
+    "id": "2",
+    "label": "Share of risk coming from stocks",
+    "expression": "if(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb>0,(we^2*sa^2+we*wb*rho*sa*sb)/(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb),0)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.9213483146067415
+   }
+  ],
+  "math": "σ = √(wS²σS² + wB²σB² + 2·wS·wB·ρ·σS·σB); cash adds no volatility",
+  "summary": "How much a stock/bond/cash mix is expected to fluctuate, given the volatility assumptions you enter.",
+  "aliases": "volatility standard deviation risk allocation mix diversification",
+  "acronym": "",
+  "assumptions": "Volatilities and correlation are your assumptions and change over time. Cash is treated as riskless. Returns are not assumed to be normal, so a one-standard-deviation move is a yardstick, not a probability.",
+  "interpretation": "Volatility describes typical fluctuation around an average, not the worst case. Use the stress test for specific what-if moves.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "we+wb",
+    "relation": "<=",
+    "right": "1",
+    "message": "Stocks and bonds can't exceed 100%; the rest is cash."
+   }
+  ],
+  "common": false,
+  "sources": []
+ },
+ {
+  "id": "portfolio_stress",
+  "name": "Portfolio stress test",
+  "category": "Portfolio & risk",
+  "fields": [
+   {
+    "id": "v",
+    "label": "Portfolio value",
+    "unit": "$",
+    "example": "2000000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0.01
+   },
+   {
+    "id": "we",
+    "label": "Stocks",
+    "unit": "%",
+    "example": "60",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "wb",
+    "label": "Bonds",
+    "unit": "%",
+    "example": "40",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "id": "eq",
+    "label": "Stock market change",
+    "unit": "%",
+    "example": "-20",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "id": "dy",
+    "label": "Change in interest rates",
+    "unit": "%",
+    "example": "1",
+    "hint": "Enter 1 for +1% (100 bp), −0.5 for −0.5%.",
+    "min": -0.1,
+    "max": 0.1
+   },
+   {
+    "id": "dur",
+    "label": "Bond duration",
+    "unit": "years",
+    "example": "6",
+    "hint": "Rate sensitivity of the bond holdings; core bond funds are roughly 6.",
+    "min": 0,
+    "max": 30
+   },
+   {
+    "id": "infl",
+    "label": "Inflation over the period",
+    "unit": "%",
+    "example": "3",
+    "hint": "Enter 7 for 7%, or type 7%.",
+    "min": -0.2,
+    "max": 1
+   },
+   {
+    "id": "w",
+    "label": "Withdrawal during the period",
+    "unit": "$",
+    "example": "0",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Change in stock holdings",
+    "expression": "v*we*eq",
+    "format": "currency",
+    "excel": "={v}*{we}*{eq}",
+    "expected": -240000.0
+   },
+   {
+    "id": "1",
+    "label": "Change in bond holdings",
+    "expression": "v*wb*(-dur*dy)",
+    "format": "currency",
+    "excel": "={v}*{wb}*(-{dur}*{dy})",
+    "expected": -48000.0
+   },
+   {
+    "id": "2",
+    "label": "Total change in value",
+    "expression": "v*we*eq+v*wb*(-dur*dy)",
+    "format": "currency",
+    "excel": "={v}*{we}*{eq}+{v}*{wb}*(-{dur}*{dy})",
+    "expected": -288000.0
+   },
+   {
+    "id": "3",
+    "label": "Total change (%)",
+    "expression": "we*eq+wb*(-dur*dy)",
+    "format": "percent",
+    "excel": "={we}*{eq}+{wb}*(-{dur}*{dy})",
+    "expected": -0.144
+   },
+   {
+    "id": "4",
+    "label": "Value after the scenario and withdrawal",
+    "expression": "v*(1+we*eq+wb*(-dur*dy))-w",
+    "format": "currency",
+    "excel": "={v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w}",
+    "expected": 1712000.0
+   },
+   {
+    "id": "5",
+    "label": "Purchasing power after inflation",
+    "expression": "(v*(1+we*eq+wb*(-dur*dy))-w)/(1+infl)",
+    "format": "currency",
+    "excel": "=({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})/(1+{infl})",
+    "expected": 1662135.922330097
+   },
+   {
+    "id": "6",
+    "label": "Stock weight after the move",
+    "expression": "v*we*(1+eq)/(v*(1+we*eq+wb*(-dur*dy)))",
+    "format": "percent",
+    "excel": "={v}*{we}*(1+{eq})/({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy})))",
+    "expected": 0.5607476635514018
+   },
+   {
+    "id": "7",
+    "label": "Rebalance: buy (+) / sell (−) stocks",
+    "expression": "we*(v*(1+we*eq+wb*(-dur*dy))-w)-v*we*(1+eq)",
+    "format": "currency",
+    "excel": "={we}*({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})-{v}*{we}*(1+{eq})",
+    "expected": 67200.0
+   },
+   {
+    "id": "8",
+    "label": "Rebalance: buy (+) / sell (−) bonds",
+    "expression": "wb*(v*(1+we*eq+wb*(-dur*dy))-w)-v*wb*(1-dur*dy)",
+    "format": "currency",
+    "excel": "={wb}*({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})-{v}*{wb}*(1-{dur}*{dy})",
+    "expected": -67200.0
+   }
+  ],
+  "math": "Stocks × market change + bonds × (−duration × rate change); cash unchanged",
+  "summary": "Deterministic what-if: the immediate effect of a market move you specify on a stock/bond/cash mix.",
+  "aliases": "stress test scenario market decline crash rates allocation 60/40 shock what if",
+  "acronym": "",
+  "assumptions": "An instantaneous, user-specified shock, not a forecast. Bond prices move by −duration × rate change (a first-order approximation that ignores convexity, coupon income and credit spreads). Cash is unaffected. Rebalancing restores the target stock and bond weights after the withdrawal, with the remainder in cash.",
+  "interpretation": "This shows what happens if the scenario you enter occurs. It says nothing about how likely that scenario is. For probabilities, use the Monte Carlo tools.",
+  "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
+  "rules": [
+   {
+    "left": "we+wb",
+    "relation": "<=",
+    "right": "1",
+    "message": "Stocks and bonds can't exceed 100%; the rest is cash."
+   },
+   {
+    "left": "w",
+    "relation": "<=",
+    "right": "v*(1+we*eq+wb*(-dur*dy))",
+    "message": "The withdrawal is larger than the portfolio after the scenario."
+   }
+  ],
+  "common": true,
+  "sources": []
+ },
+ {
   "id": "monte_carlo",
   "name": "Monte Carlo withdrawal test",
   "category": "Retirement & income",
@@ -2170,6 +2807,7 @@
     "unit": "count",
     "example": "2000",
     "hint": "A whole number.",
+    "default": "2000",
     "min": 100,
     "max": 20000,
     "integer": true
@@ -2180,6 +2818,7 @@
     "unit": "count",
     "example": "42",
     "hint": "Same seed gives the same result; change it to see a different draw.",
+    "default": "42",
     "min": 0,
     "integer": true
    }
@@ -6600,10 +7239,10 @@
    {
     "id": "9",
     "label": "Share of tax paid by buyers",
-    "expression": "d/(b+d)",
+    "expression": "b/(b+d)",
     "format": "percent",
-    "excel": "={d}/({b}+{d})",
-    "expected": 0.3333333333333333
+    "excel": "={b}/({b}+{d})",
+    "expected": 0.6666666666666666
    }
   ],
   "math": "Set a − bQ = c + dQ (+ t); surpluses are triangle areas",
@@ -8141,7 +8780,7 @@
     "expression": "max(0,pv(r,n,inc)+debt+edu-cov-assets)",
     "format": "currency",
     "excel": "=MAX(0,PV({r},{n},-{inc})+{debt}+{edu}-{cov}-{assets})",
-    "expected": 2118065.2689935393
+    "expected": 2118065.2689935374
    },
    {
     "id": "1",
@@ -8149,7 +8788,7 @@
     "expression": "pv(r,n,inc)",
     "format": "currency",
     "excel": "=PV({r},{n},-{inc})",
-    "expected": 2718065.2689935393
+    "expected": 2718065.2689935374
    }
   ],
   "math": "PV(income) + debts + goals − existing coverage − assets",
@@ -8372,7 +9011,7 @@
     "expression": "pmt(r/12,y*12,p)",
     "format": "currency",
     "excel": "=PMT({r}/12,{y}*12,-{p})",
-    "expected": 4925.737603411156
+    "expected": 4925.737603411132
    },
    {
     "id": "1",
@@ -8380,7 +9019,7 @@
     "expression": "pmt(r/12,y*12,p)*y*12-p",
     "format": "currency",
     "excel": "=PMT({r}/12,{y}*12,-{p})*{y}*12-{p}",
-    "expected": 973265.5372280162
+    "expected": 973265.5372280073
    }
   ],
   "math": "Principal × i ÷ (1 − (1+i)^−n), monthly",

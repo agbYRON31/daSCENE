@@ -52,20 +52,20 @@ class Series(list):
 def fv(r, n, pmt, pv):
     if r == 0:
         return pv + pmt * n
-    g = (1 + r) ** n
-    return pv * g + pmt * (g - 1) / r
+    g1 = math.expm1(n * math.log1p(r))        # (1+r)^n - 1 without cancellation for tiny r
+    return pv * (1 + g1) + pmt * g1 / r
 
 
 def pv(r, n, pmt):
     if r == 0:
         return pmt * n
-    return pmt * (1 - (1 + r) ** (-n)) / r
+    return pmt * -math.expm1(-n * math.log1p(r)) / r
 
 
 def pmt(r, n, pv_):
     if r == 0:
         return pv_ / n
-    return pv_ * r / (1 - (1 + r) ** (-n))
+    return pv_ * r / -math.expm1(-n * math.log1p(r))
 
 
 def nper(r, pmt_, pv_, fv_):
@@ -78,9 +78,18 @@ def npv(r, cf):
     return sum(c / (1 + r) ** t for t, c in enumerate(cf))
 
 
+def sign_changes(cf):
+    signs = [c > 0 for c in cf if c != 0]
+    return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
+
+
 def irr(cf):
+    if len(cf) < 2 or sign_changes(cf) != 1:
+        raise ValueError("IRR needs exactly one sign change")
     lo, hi = -0.9999, 10.0
     flo = npv(lo, cf)
+    if (flo > 0) == (npv(hi, cf) > 0):
+        raise ValueError("IRR outside the solvable range")
     for _ in range(300):
         mid = (lo + hi) / 2
         fm = npv(mid, cf)
@@ -164,9 +173,19 @@ def limitira(age):
 def rate(n, pmt_, pv_):
     """Periodic rate at which pv(rate, n, pmt) equals pv_ (bisection)."""
     lo, hi = -0.99, 10.0
+
+    def value(r):
+        # IEEE semantics like the app: overflow becomes ±infinity instead of an exception.
+        try:
+            return pv(r, n, pmt_) if r != 0 else pmt_ * n
+        except OverflowError:
+            return math.copysign(float("inf"), pmt_)
+
+    if (value(lo) > pv_) == (value(hi) > pv_):
+        raise ValueError("rate outside the solvable range")
     for _ in range(400):
         mid = (lo + hi) / 2
-        if (pv(mid, n, pmt_) if mid != 0 else pmt_ * n) > pv_:
+        if value(mid) > pv_:
             lo = mid
         else:
             hi = mid
@@ -188,6 +207,8 @@ def bondprice(face, cpn, ytm, years, freq):
 
 def bondytm(price, face, cpn, years, freq):
     lo, hi = -0.5, 1.0
+    if (bondprice(face, cpn, lo, years, freq) > price) == (bondprice(face, cpn, hi, years, freq) > price):
+        raise ValueError("yield outside the solvable range")
     for _ in range(300):
         mid = (lo + hi) / 2
         if bondprice(face, cpn, mid, years, freq) > price:
@@ -380,9 +401,37 @@ FUNCS = {
 }
 
 
+def lazy_if(expr):
+    """Rewrites if(c, a, b) as a Python conditional so only the chosen branch is evaluated (as in the app)."""
+    out, i = "", 0
+    while True:
+        m = re.search(r"\bif\(", expr[i:])
+        if not m:
+            return out + expr[i:]
+        start = i + m.start()
+        out += expr[i:start]
+        j, depth, args, cur = start + 3, 1, [], ""
+        while depth:
+            ch = expr[j]
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            if ch == "," and depth == 1:
+                args.append(cur); cur = ""
+            else:
+                cur += ch
+            j += 1
+        args.append(cur)
+        c, a, b = (lazy_if(x) for x in args)
+        out += f"(({a}) if ({c}) else ({b}))"
+        i = j + 1
+
+
 def ref_eval(expr, scope):
-    py = expr.replace("^", "**")
-    py = re.sub(r"\bif\(", "iff(", py)
+    py = lazy_if(expr).replace("^", "**")
     env = dict(FUNCS)
     env.update(scope)
     return eval(py, {"__builtins__": {}}, env)  # trusted, local definitions only
@@ -498,7 +547,78 @@ def proj_montecarlo(v):
     }, rows
 
 
-PROJECTIONS = {"retirement": proj_retirement, "montecarlo": proj_montecarlo}
+def proj_retirement_mc(v):
+    """Full-plan Monte Carlo: the retirement timeline's cash flows with a random return each year."""
+    a0, ar, ae = int(v["age"]), int(v["retire"]), int(v["plan"])
+    sims = int(v["sims"])
+    rng = SplitMix(int(v["seed"]))
+    years = ae - a0
+    paths, retire_bals = [], []
+    ok = 0
+    for _ in range(sims):
+        bal = v["bal"]
+        failed = False
+        path = []
+        retire_bal = bal if ar <= a0 else None
+        for age in range(a0, ae):
+            t = age - a0
+            z = rng.normal()
+            if age == ar:
+                retire_bal = bal
+            if not failed:
+                contrib = v["c"] * (1 + v["cg"]) ** t if age < ar else 0.0
+                need = v["spend"] * (1 + v["infl"]) ** t if age >= ar else 0.0
+                other = v["other"] * (1 + v["infl"]) ** t if (age >= ar and age >= v["oage"]) else 0.0
+                w = max(0.0, need - other)
+                if w > bal + contrib:
+                    bal = 0.0
+                    failed = True
+                else:
+                    mean = v["rpre"] if age < ar else v["rpost"]
+                    bal = max(0.0, (bal + contrib - w) * (1 + mean + v["sd"] * z))
+            path.append(bal)
+        if retire_bal is None:
+            retire_bal = bal
+        if not failed:
+            ok += 1
+        paths.append(path)
+        retire_bals.append(retire_bal)
+    ending = sorted(p_[-1] for p_ in paths)
+    rows = []
+    for y in range(years):
+        col = sorted(p_[y] for p_ in paths)
+        rows.append([a0 + y + 1, percentile(col, 0.10), percentile(col, 0.50), percentile(col, 0.90)])
+    return {
+        "p_success": ok / sims,
+        "p_retire_p50": percentile(sorted(retire_bals), 0.50),
+        "p_end_p10": percentile(ending, 0.10),
+        "p_end_p50": percentile(ending, 0.50),
+        "p_end_p90": percentile(ending, 0.90),
+    }, rows
+
+
+def proj_growth(v):
+    """Monthly compounding with end-of-month contributions, reported at each year end."""
+    p, m, r, y, infl = v["p"], v["m"], v["r"], int(v["y"]), v["infl"]
+    i = r / 12
+    bal = p
+    rows = []
+    for year in range(1, y + 1):
+        for _ in range(12):
+            bal = bal * (1 + i) + m
+        contributed = p + m * 12 * year
+        rows.append([year, contributed, bal - contributed, bal, bal / (1 + infl) ** year])
+    contributed = p + m * 12 * y
+    return {
+        "p_balance": bal,
+        "p_contributed": contributed,
+        "p_growth": bal - contributed,
+        "p_real": bal / (1 + infl) ** y,
+    }, rows
+
+
+PROJECTIONS = {"retirement": proj_retirement, "montecarlo": proj_montecarlo,
+               "retirementmc": proj_retirement_mc, "growth": proj_growth}
 PROJECTION_TABLES = {
     "retirement": {"columns": [
         {"label": "Age", "format": "age"}, {"label": "Start balance", "format": "currency"},
@@ -509,6 +629,15 @@ PROJECTION_TABLES = {
         {"label": "Year", "format": "number"}, {"label": "10th percentile", "format": "currency"},
         {"label": "Median", "format": "currency"}, {"label": "90th percentile", "format": "currency"}],
         "chartColumns": [1, 2, 3]},
+    "retirementmc": {"columns": [
+        {"label": "Age", "format": "age"}, {"label": "10th percentile", "format": "currency"},
+        {"label": "Median", "format": "currency"}, {"label": "90th percentile", "format": "currency"}],
+        "chartColumns": [1, 2, 3]},
+    "growth": {"columns": [
+        {"label": "Year", "format": "number"}, {"label": "Total contributed", "format": "currency"},
+        {"label": "Total growth", "format": "currency"}, {"label": "Balance", "format": "currency"},
+        {"label": "Balance in today's dollars", "format": "currency"}],
+        "chartColumns": [3, 4]},
 }
 
 # ---------------------------------------------------------------------------
@@ -560,8 +689,10 @@ SRC = {
 CATALOG = []
 
 
-def F(id, label, unit, example, hint=None, min=0, max=None, integer=False, options=None):
+def F(id, label, unit, example, hint=None, min=0, max=None, integer=False, options=None, default=None):
     f = {"id": id, "label": label, "unit": unit, "example": example, "hint": hint or HINTS[unit]}
+    if default is not None:
+        f["default"] = default   # pre-filled technical setting (never a dollar amount or a market assumption)
     if min is not None:
         f["min"] = min
     if max is not None:
@@ -891,12 +1022,91 @@ calc("retirement_timeline", "Retirement timeline", RET,
      assumptions="Saving is added and withdrawals taken at the start of each year, then the year's return applies. Spending and other income are in today's dollars and grow with inflation; other income only offsets spending once retired. Pre-tax and after-tax money are not distinguished, and taxes are excluded.",
      excelNotes="This is a year-by-year table, not a single formula. Use Copy table and paste into Excel.")
 
+calc("retirement_mc", "Retirement Monte Carlo (full plan)", RET,
+     [F("age", "Current age", "age", "45", max=110), F("retire", "Retirement age", "age", "65", max=110),
+      F("plan", "Plan through age", "age", "95", max=120), F("bal", "Invested today", "$", "750000"),
+      F("c", "Saving each year while working", "$", "30000"), F("cg", "Annual increase in saving", "%", "2", min=-0.5),
+      F("rpre", "Average return before retirement", "%", "6", min=-0.5), F("rpost", "Average return in retirement", "%", "5", min=-0.5),
+      F("sd", "Volatility (standard deviation)", "%", "12", max=1),
+      F("spend", "Retirement spending (today's $)", "$", "110000"), F("infl", "Inflation", "%", "2.5", min=-0.5),
+      F("other", "Other income in retirement (today's $)", "$", "45000"), F("oage", "Other income starts at age", "age", "67", max=120),
+      F("sims", "Number of simulations", "count", "1000", min=100, max=20000, default="1000"),
+      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.", default="42")],
+     [O("0", "Chance the money lasts through the plan", "p_success", "percent"),
+      O("1", "Median balance at retirement", "p_retire_p50", "currency"),
+      O("2", "Ending balance: 10th percentile", "p_end_p10", "currency"),
+      O("3", "Ending balance: median", "p_end_p50", "currency"),
+      O("4", "Ending balance: 90th percentile", "p_end_p90", "currency")],
+     "Retirement timeline cash flows, with each year's return drawn from Normal(average, volatility)",
+     "Simulates the whole plan, saving years and retirement years, across many market paths.",
+     "monte carlo retirement probability success simulation plan", projection="retirementmc",
+     rules=[R("plan", ">", "age", "Plan age must exceed current age."),
+            R("retire", ">=", "age", "Retirement age can't be before current age."),
+            R("plan-age", "<=", "100", "Projection is limited to 100 years.")],
+     assumptions="Same cash-flow rules as the Retirement timeline (saving added and withdrawals taken at the start of each year). Annual returns are independent normal draws; real markets have fatter tails and streaks. Taxes and fees are excluded.",
+     interpretation="The success rate summarizes simulated outcomes under the assumptions entered. It is not a forecast or a guarantee, and it is not a recommendation.",
+     excelNotes="Simulation results aren't a cell formula. Use Copy table for the percentile paths.")
+
+calc("growth_schedule", "Investment growth schedule", G,
+     [F("p", "Starting amount", "$", "25000"), F("m", "Monthly contribution", "$", "1000"),
+      F("r", "Annual return", "%", "6", min=-0.5), F("y", "Years", "years", "25", min=1, max=100, integer=True),
+      F("infl", "Inflation", "%", "2.5", min=-0.5)],
+     [O("0", "Ending balance", "p_balance", "currency"),
+      O("1", "Total contributed", "p_contributed", "currency"),
+      O("2", "Total growth", "p_growth", "currency"),
+      O("3", "Ending balance in today's dollars", "p_real", "currency")],
+     "Each month: balance × (1 + annual return ÷ 12) + contribution; today's dollars = balance ÷ (1 + inflation)^years",
+     "Year-by-year growth of savings, split into what you put in and what it earned, with inflation's effect.",
+     "compound growth schedule table contributions inflation today's dollars", projection="growth",
+     assumptions="Monthly compounding at a constant return, contributions at the end of each month. Taxes and fees are excluded.",
+     excelNotes="Balance: =FV(r/12, years*12, -monthly, -start). The yearly table is available via Copy table.")
+
+calc("mix_volatility", "Portfolio mix volatility", PF,
+     [F("v", "Portfolio value", "$", "2000000", min=0.01), F("we", "Stocks", "%", "60", max=1), F("wb", "Bonds", "%", "40", max=1),
+      F("sa", "Stock volatility (standard deviation)", "%", "16", max=2), F("sb", "Bond volatility (standard deviation)", "%", "6", max=2),
+      F("rho", "Stock/bond correlation", "x", "0.1", min=-1, max=1, hint="Between −1 and 1.")],
+     [O("0", "Portfolio volatility", "sqrt(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb)", "percent",
+        "=SQRT({we}^2*{sa}^2+{wb}^2*{sb}^2+2*{we}*{wb}*{rho}*{sa}*{sb})"),
+      O("1", "One-standard-deviation move in dollars", "v*sqrt(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb)", "currency",
+        "={v}*SQRT({we}^2*{sa}^2+{wb}^2*{sb}^2+2*{we}*{wb}*{rho}*{sa}*{sb})"),
+      O("2", "Share of risk coming from stocks", "if(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb>0,(we^2*sa^2+we*wb*rho*sa*sb)/(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb),0)", "percent")],
+     "σ = √(wS²σS² + wB²σB² + 2·wS·wB·ρ·σS·σB); cash adds no volatility",
+     "How much a stock/bond/cash mix is expected to fluctuate, given the volatility assumptions you enter.",
+     "volatility standard deviation risk allocation mix diversification",
+     rules=[R("we+wb", "<=", "1", "Stocks and bonds can't exceed 100%; the rest is cash.")],
+     assumptions="Volatilities and correlation are your assumptions and change over time. Cash is treated as riskless. Returns are not assumed to be normal, so a one-standard-deviation move is a yardstick, not a probability.",
+     interpretation="Volatility describes typical fluctuation around an average, not the worst case. Use the stress test for specific what-if moves.")
+
+calc("portfolio_stress", "Portfolio stress test", PF,
+     [F("v", "Portfolio value", "$", "2000000", min=0.01), F("we", "Stocks", "%", "60", max=1),
+      F("wb", "Bonds", "%", "40", max=1), F("eq", "Stock market change", "%", "-20", min=-1, max=1),
+      F("dy", "Change in interest rates", "%", "1", min=-0.1, max=0.1, hint="Enter 1 for +1% (100 bp), −0.5 for −0.5%."),
+      F("dur", "Bond duration", "years", "6", min=0, max=30, hint="Rate sensitivity of the bond holdings; core bond funds are roughly 6."),
+      F("infl", "Inflation over the period", "%", "3", min=-0.2, max=1),
+      F("w", "Withdrawal during the period", "$", "0")],
+     [O("0", "Change in stock holdings", "v*we*eq", "currency", "={v}*{we}*{eq}"),
+      O("1", "Change in bond holdings", "v*wb*(-dur*dy)", "currency", "={v}*{wb}*(-{dur}*{dy})"),
+      O("2", "Total change in value", "v*we*eq+v*wb*(-dur*dy)", "currency", "={v}*{we}*{eq}+{v}*{wb}*(-{dur}*{dy})"),
+      O("3", "Total change (%)", "we*eq+wb*(-dur*dy)", "percent", "={we}*{eq}+{wb}*(-{dur}*{dy})"),
+      O("4", "Value after the scenario and withdrawal", "v*(1+we*eq+wb*(-dur*dy))-w", "currency", "={v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w}"),
+      O("5", "Purchasing power after inflation", "(v*(1+we*eq+wb*(-dur*dy))-w)/(1+infl)", "currency", "=({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})/(1+{infl})"),
+      O("6", "Stock weight after the move", "v*we*(1+eq)/(v*(1+we*eq+wb*(-dur*dy)))", "percent", "={v}*{we}*(1+{eq})/({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy})))"),
+      O("7", "Rebalance: buy (+) / sell (−) stocks", "we*(v*(1+we*eq+wb*(-dur*dy))-w)-v*we*(1+eq)", "currency", "={we}*({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})-{v}*{we}*(1+{eq})"),
+      O("8", "Rebalance: buy (+) / sell (−) bonds", "wb*(v*(1+we*eq+wb*(-dur*dy))-w)-v*wb*(1-dur*dy)", "currency", "={wb}*({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})-{v}*{wb}*(1-{dur}*{dy})")],
+     "Stocks × market change + bonds × (−duration × rate change); cash unchanged",
+     "Deterministic what-if: the immediate effect of a market move you specify on a stock/bond/cash mix.",
+     "stress test scenario market decline crash rates allocation 60/40 shock what if", common=True,
+     rules=[R("we+wb", "<=", "1", "Stocks and bonds can't exceed 100%; the rest is cash."),
+            R("w", "<=", "v*(1+we*eq+wb*(-dur*dy))", "The withdrawal is larger than the portfolio after the scenario.")],
+     assumptions="An instantaneous, user-specified shock, not a forecast. Bond prices move by −duration × rate change (a first-order approximation that ignores convexity, coupon income and credit spreads). Cash is unaffected. Rebalancing restores the target stock and bond weights after the withdrawal, with the remainder in cash.",
+     interpretation="This shows what happens if the scenario you enter occurs. It says nothing about how likely that scenario is. For probabilities, use the Monte Carlo tools.")
+
 calc("monte_carlo", "Monte Carlo withdrawal test", RET,
      [F("bal", "Starting portfolio", "$", "2000000"), F("w", "First-year withdrawal", "$", "80000"),
       F("years", "Years", "years", "30", min=1, max=100, integer=True), F("mean", "Average annual return", "%", "6", min=-0.5),
       F("sd", "Volatility (standard deviation)", "%", "12", max=1), F("infl", "Withdrawal increase each year", "%", "2.5", min=-0.5),
-      F("sims", "Number of simulations", "count", "2000", min=100, max=20000),
-      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.")],
+      F("sims", "Number of simulations", "count", "2000", min=100, max=20000, default="2000"),
+      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.", default="42")],
      [O("0", "Success rate", "p_success", "percent"),
       O("1", "Ending balance: 10th percentile", "p_end_p10", "currency"),
       O("2", "Ending balance: median", "p_end_p50", "currency"),
@@ -1502,7 +1712,7 @@ calc("market_equilibrium", "Supply & demand equilibrium with a tax", EC,
       O("6", "Price sellers keep", "a-b*(a-c-t)/(b+d)-t", "number", "={a}-{b}*({a}-{c}-{t})/({b}+{d})-{t}"),
       O("7", "Tax revenue", "t*(a-c-t)/(b+d)", "number", "={t}*({a}-{c}-{t})/({b}+{d})"),
       O("8", "Deadweight loss", "0.5*t*((a-c)/(b+d)-(a-c-t)/(b+d))", "number", "=0.5*{t}*(({a}-{c})/({b}+{d})-({a}-{c}-{t})/({b}+{d}))"),
-      O("9", "Share of tax paid by buyers", "d/(b+d)", "percent", "={d}/({b}+{d})")],
+      O("9", "Share of tax paid by buyers", "b/(b+d)", "percent", "={b}/({b}+{d})")],
      "Set a − bQ = c + dQ (+ t); surpluses are triangle areas",
      "Linear market equilibrium, surpluses, and the incidence and deadweight loss of a per-unit tax.",
      "supply demand equilibrium consumer surplus producer surplus deadweight loss tax incidence welfare",

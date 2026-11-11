@@ -165,6 +165,42 @@ expect(Ops.align(TimeSeries(days: [0, 10], values: [1, 2]), to: [0, 1, 2, 3, 4, 
 expect(Ops.pyRound(2.5, 0) == 2 && Ops.pyRound(3.5, 0) == 4 && Ops.pyRound(0.125, 2) == 0.12, "Python banker's rounding")
 expect(DayMath.subtractMonths(DayMath.day(2026, 3, 31), 1) == DayMath.day(2026, 2, 28), "month offset clips to month end")
 
+// Edge cases: zero and tiny rates, negative returns, long horizons, solver limits, invalid inputs
+func approx(_ a: Double, _ b: Double, _ tol: Double = 1e-9) -> Bool { abs(a - b) <= tol * max(1, abs(b)) }
+expect(Finance.fv(0, 10, 100, 1000) == 2000 && Finance.pv(0, 10, 100) == 1000 && Finance.pmt(0, 10, 1000) == 100, "zero-rate TVM")
+let tinyPV: Double = Finance.pv(1e-12, 360, 1000)
+let tinyFV: Double = Finance.fv(1e-12, 360, 1000, 0)
+let tinyPMT: Double = Finance.pmt(1e-12, 360, 360_000)
+expect(approx(tinyPV, 360_000) && approx(tinyFV, 360_000) && approx(tinyPMT, 1000), "tiny-rate TVM keeps precision")
+expect(approx(Finance.fv(-0.05, 10, 0, 1000), 1000 * pow(0.95, 10)), "negative return compounding")
+let century: Double = Finance.fv(0.07, 100, 0, 1)
+expect(century.isFinite && approx(century, pow(1.07, 100), 1e-12), "100-year horizon")
+expect(approx(Finance.pmt(0.06 / 12, 360, 300_000), 1798.6515754582708, 1e-10), "30-year mortgage payment (textbook value $1,798.65)")
+expect(approx(Finance.nper(0.07, 0, 1, 2), log(2) / log(1.07)), "nper doubling time")
+expect((try? Finance.rate(12, 100, -5)) == nil, "rate() refuses inputs with no solution in range")
+expect((try? Finance.rate(360, 1798.6515754582708, 300_000)).map { approx($0 * 12, 0.06, 1e-9) } == true, "rate() recovers 6% mortgage rate")
+expect((try? Finance.bondYTM(1, 1000, 0.04, 10, 2)) == nil, "bond YTM refuses a price no yield in range can match")
+expect((try? Finance.bondYTM(1000, 1000, 0.04, 10, 2)).map { approx($0, 0.04, 1e-9) } == true, "par bond yields its coupon")
+expect((try? Finance.irr([-100, 1e9])) == nil, "IRR refuses returns beyond its solvable range")
+expect((try? Finance.irr([-1000, 1100])).map { approx($0, 0.10, 1e-9) } == true, "one-period IRR = 10%")
+func evalCalc(_ id: String, _ inputs: [String: String]) -> Evaluation? { engine.calculator(id).map { engine.evaluate($0, inputs: inputs) } }
+expect(evalCalc("fv_lump", ["p": "100000", "r": "0", "n": "30"])?.outputs.first?.value == 100_000, "0% growth leaves the amount unchanged")
+expect(evalCalc("fv_lump", ["p": "abc", "r": "7", "n": "20"])?.fieldErrors["p"] != nil, "non-numeric input is rejected")
+expect(evalCalc("fv_lump", ["p": "", "r": "7", "n": "20"])?.isComplete == false, "blank input produces no result")
+expect(evalCalc("cagr", ["s": "0", "e": "100", "n": "5"])?.fieldErrors["s"] != nil, "CAGR rejects a zero starting value")
+expect(evalCalc("years_to_goal", ["p": "0", "c": "0", "g": "100", "r": "5"])?.outputs.first?.error != nil, "impossible goal shows an error, not a number")
+expect(evalCalc("longevity", ["b": "1000000", "w": "30000", "r": "5"])?.ruleErrors.isEmpty == false, "withdrawals below the return never deplete (rule)")
+expect(evalCalc("portfolio_stress", ["v": "2m", "we": "60", "wb": "40", "eq": "-20", "dy": "0", "dur": "6", "infl": "0", "w": "0"])?.outputs[2].value == -240_000,
+       "$2M 60/40 with stocks −20%: −$240,000")
+expect(evalCalc("portfolio_stress", ["v": "2m", "we": "40", "wb": "60", "eq": "-20", "dy": "0", "dur": "6", "infl": "0", "w": "0"])?.outputs[2].value == -160_000,
+       "$2M 40/60 with stocks −20%: −$160,000")
+expect(evalCalc("portfolio_stress", ["v": "2m", "we": "70", "wb": "40", "eq": "-20", "dy": "0", "dur": "6", "infl": "0", "w": "0"])?.ruleErrors.isEmpty == false,
+       "allocation above 100% is rejected")
+for c in engine.calculators {
+    let blank = engine.evaluate(c, inputs: c.blankInputs)
+    expect(!blank.isComplete && blank.outputs.isEmpty, "\(c.id): blank inputs show no numbers")
+}
+
 // Every Excel template references only known fields
 for calc in engine.calculators {
     let ids = Set(calc.fields.map(\.id))

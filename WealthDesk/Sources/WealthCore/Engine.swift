@@ -167,7 +167,11 @@ public final class Engine {
         for o in calc.outputs {
             do {
                 let v = try expression(o.expression).number(scope, tax: tax)
-                if v.isInfinite { throw EvalError.message("Can't be computed with these inputs (division by zero).") }
+                if v.isInfinite { throw EvalError.message("Can't be computed with these inputs (the result is infinite, e.g. a division by zero).") }
+                // NaN is only a deliberate answer where the formula says so (top tax bracket, P/E with no earnings).
+                if v.isNaN && !(o.expression.contains("bracketroom") || o.expression.contains("nan()")) {
+                    throw EvalError.message("No valid answer for these inputs (for example, a root or log of a negative number).")
+                }
                 result.outputs.append(OutputResult(id: o.id, label: o.label, format: o.format, value: v, error: nil))
             } catch {
                 result.outputs.append(OutputResult(id: o.id, label: o.label, format: o.format, value: nil,
