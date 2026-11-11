@@ -612,6 +612,7 @@ struct RetirementTool: View {
                     }
                     .chartYAxis { moneyAxis() }
                     .chartXAxisLabel("Age")
+                    .chartXScale(domain: .automatic(includesZero: false))
                     .frame(height: 280)
                 }
                 if let mc, !mc.ok, hasVol { NeedsInput(calc: mc) }
@@ -801,6 +802,7 @@ struct DecisionsTool: View {
                     .chartForegroundStyleScale(["Option A": Color.gray, "Option B": Color.wealthAccent])
                     .chartYAxis { moneyAxis() }
                     .chartXAxisLabel("Age")
+                    .chartXScale(domain: .automatic(includesZero: false))
                     .frame(height: 280)
                 }
                 HowItWorks(calcs: [a])

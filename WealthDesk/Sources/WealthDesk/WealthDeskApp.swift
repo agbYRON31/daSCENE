@@ -118,8 +118,65 @@ struct SettingsView: View {
 ///   --qa-report <folder>   renders sample PDF reports from catalog example inputs, then exits
 @MainActor
 enum QAHooks {
+    /// --qa-client <folder>: fills every Client Mode tool with sample numbers, renders each screen
+    /// to a PNG and each tool's report to a PDF, then exits. Exercises the same code the UI runs.
+    static func runClient(_ folder: URL) {
+        let state = AppState()
+        let fill: [String: [String: String]] = [
+            "client.growth": ["p": "25000", "m": "1000", "r": "6", "y": "25", "infl": "2.5"],
+            "client.retirement": ["age": "45", "retire": "65", "bal": "750000", "c": "30000", "spend": "110000", "other": "45000",
+                                  "rpre": "6", "rpost": "5", "infl": "2.5", "sd": "12"],
+            "client.decisions.B": ["retire": "60", "c": "45000"],
+            "client.risk": ["v": "2000000", "we": "60", "wb": "40", "eq": "-20", "dy": "1"],
+            "client.risk.B": ["we": "40", "wb": "60"],
+            "client.risk.vol": ["sa": "16", "sb": "6", "rho": "0.1"],
+            "client.inflation": ["c": "80000", "i": "3", "n": "20"],
+            "client.taxdrag": ["a": "100000", "r": "7", "t": "24", "n": "20"],
+            "client.incometax": ["ti": "250000"],
+        ]
+        for (k, v) in fill { for (id, x) in v { state.setClient(k, id, x) } }
+        var failures = 0
+        func say(_ s: String) { FileHandle.standardOutput.write((s + "\n").data(using: .utf8)!) }
+        func png(_ view: AnyView, _ name: String) {
+            let r = ImageRenderer(content: view.environmentObject(state).frame(width: 1240, height: 1500).background(Color.white)
+                .environment(\.colorScheme, .light))
+            r.scale = 1
+            guard let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+                  let data = rep.representation(using: .png, properties: [:]) else { failures += 1; say("render \(name) FAILED"); return }
+            try? data.write(to: folder.appendingPathComponent("\(name).png"))
+        }
+        for tool in ClientTool.allCases {
+            let calcs = ClientReports.calcs(for: tool, state: state)
+            let bad = calcs.filter { !$0.1.ok }
+            if calcs.isEmpty || !bad.isEmpty {
+                failures += 1
+                say("\(tool.rawValue): INCOMPLETE \(bad.map { "\($0.0): missing \($0.1.missing) problems \($0.1.problems)" })")
+            }
+            let sections = calcs.filter(\.1.ok).map { ReportSection.calculator($0.1.calc, inputs: $0.1.inputs, evaluation: $0.1.eval,
+                                                                               title: $0.0, labels: $0.1.labels, tax: state.engine?.tax) }
+            let pdf = ReportRenderer.pdf(Report(title: ClientSpec.title(tool), kind: "Client illustration (QA sample numbers)", sections: sections))
+            if pdf.count < 2000 { failures += 1 }
+            try? pdf.write(to: folder.appendingPathComponent("client-\(tool.rawValue).pdf"))
+            say("\(tool.rawValue): \(calcs.count) calculators, key results \(calcs.map { Format.plain($0.1.v(0), maxDecimals: 4) }), pdf \(pdf.count) bytes")
+        }
+        png(AnyView(GrowthTool()), "growth"); png(AnyView(RetirementTool()), "retirement"); png(AnyView(RiskTool()), "risk")
+        png(AnyView(DecisionsTool()), "decisions"); png(AnyView(TaxesTool()), "taxes")
+        // A blank session must show no numbers anywhere.
+        let blank = AppState()
+        for tool in ClientTool.allCases where ClientReports.calcs(for: tool, state: blank).contains(where: { $0.1.ok }) {
+            failures += 1; say("\(tool.rawValue): shows results with nothing entered")
+        }
+        say(failures == 0 ? "client QA: PASS" : "client QA: \(failures) FAILURES")
+        exit(failures == 0 ? 0 : 1)
+    }
+
     static func runIfRequested() {
         let args = CommandLine.arguments
+        if let i = args.firstIndex(of: "--qa-client"), i + 1 < args.count {
+            let folder = URL(fileURLWithPath: args[i + 1])
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            runClient(folder)
+        }
         guard let i = args.firstIndex(of: "--qa-report"), i + 1 < args.count else { return }
         let folder = URL(fileURLWithPath: args[i + 1])
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

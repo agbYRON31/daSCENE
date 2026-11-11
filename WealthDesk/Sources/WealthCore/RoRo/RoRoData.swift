@@ -266,6 +266,10 @@ public enum RoRoFetcher {
                         return (s, "ok")
                     } catch {
                         err = String(error.localizedDescription.prefix(120))
+                        // No connection at all: retrying each of 60 series only delays the "offline" message.
+                        if let u = error as? URLError, [.notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+                                                        .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff].contains(u.code) { break }
+                        if (error as NSError).domain == NSPOSIXErrorDomain { break }
                         try? await Task.sleep(nanoseconds: UInt64(1 + attempt) * 700_000_000)
                     }
                 }
