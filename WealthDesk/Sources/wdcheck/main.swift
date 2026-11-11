@@ -99,7 +99,32 @@ expect(calc("6 × 7 − 2 ÷ 4") == 41.5, "typographic × ÷ − operators")
 expect(near(calc("2π"), .nan) == false && calc("2*π") != nil, "π symbol is accepted")
 expect(calc("ans * 2", ans: 21) == 42, "ans holds the last result")
 expect(calc("x^2 + 1", vars: ["x": 3]) == 10, "variables")
-expect((try? Scientific.evaluate("r = 5%", variables: [:], ans: nil, degrees: false, tax: engine.tax)) == nil, "% is not an operator")
+// Typing the way people type on a keyboard (Calculator page only; the catalog formula language is unchanged).
+func line(_ text: String, vars: [String: Double] = [:], ans: Double? = nil) -> Scientific.LineResult? {
+    try? Scientific.evaluate(text, variables: vars, ans: ans, degrees: false, tax: engine.tax)
+}
+func message(_ text: String, vars: [String: Double] = [:]) -> String {
+    do { _ = try Scientific.evaluate(text, variables: vars, ans: nil, degrees: false, tax: engine.tax); return "" }
+    catch { return error.localizedDescription }
+}
+expect(calc("r = 5%") == 0.05 && calc("50%") == 0.5 && calc("200 * 15%") == 30, "% means ÷ 100")
+expect(calc("5 x 3") == 15 && calc("5x3") == 15 && calc("5 X 3") == 15 && calc("(2)x(4)") == 8, "x between numbers multiplies")
+expect(calc("x = 5")  == 5 && line("x = 5")?.assignedName == "x", "x can still be a variable name")
+expect(calc("x^2 + 1", vars: ["x": 3]) == 10 && calc("2 * x", vars: ["x": 3]) == 6 && calc("x", vars: ["x": 3]) == 3, "x as a variable")
+expect(calc("2x", vars: ["x": 3]) == 6 && calc("3x + 1", vars: ["x": 2]) == 7, "number next to a variable multiplies")
+expect(calc("x x 2", vars: ["x": 3]) == 6 && calc("2 x x", vars: ["x": 3]) == 6, "x times x-the-variable")
+expect(calc("k = 4") == 4 && calc("2 * k", vars: ["k": 4]) == 8 && calc("k + 1", vars: ["k": 4]) == 5, "k as a variable")
+expect(calc("2k", vars: ["k": 4]) == 8, "a defined variable wins over the k suffix")
+expect(calc("250k") == 250_000 && calc("1.2m") == 1_200_000 && calc("3b") == 3e9 && calc("2K + 1") == 2001, "k / m / b suffixes")
+expect(calc("2(3 + 4)") == 14 && calc("(1 + 2)(3 + 4)") == 21 && near(calc("2pi"), 2 * .pi) && calc("2 sqrt(9)") == 6, "implicit multiplication")
+expect(calc("5 x -3") == -15 && calc("2 x - 1", vars: ["x": 3]) == 5, "x before a sign")
+expect(calc("1e-05") == 0.00001 && calc("2 * (-5)") == -10, "re-inserted results")
+expect(message("2 3").isEmpty == false, "two numbers in a row are still an error")
+expect(calc("5 + 3 =") == 8 && calc("y = 2 + 3 =") == 5, "a trailing = is ignored")
+expect(calc("limit401k(2026)") != nil, "function names with digits and k are not split")
+expect(calc("2e3") == 2000 && near(calc("2e"), 2 * M_E), "scientific notation vs. e")
+expect(message("z + 1").contains("z = "), "unset variable explains how to set it")
+expect(message("5 x").contains("×") || message("5 x").contains("*"), "dangling x hints at ×")
 expect((try? Scientific.evaluate("y = 2^10", variables: [:], ans: nil, degrees: false, tax: engine.tax))?.assignedName == "y", "assignment")
 expect((try? Scientific.evaluate("pi = 3", variables: [:], ans: nil, degrees: false, tax: engine.tax)) == nil, "built-ins can't be reassigned")
 expect(calc("sqrt(-1)") == nil && calc("1/0") == nil, "NaN and infinity are errors")

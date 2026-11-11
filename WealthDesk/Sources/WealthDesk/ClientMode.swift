@@ -301,24 +301,45 @@ struct ToolLayout<Inputs: View, Results: View>: View {
     @ViewBuilder let inputs: Inputs
     @ViewBuilder let results: Results
 
+    private var resultsColumn: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text(question).font(.system(size: 26, weight: .semibold, design: .serif))
+                .fixedSize(horizontal: false, vertical: true)
+            results
+            ClientFootnote().frame(maxWidth: .infinity)
+        }
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) { inputs }
-                    .padding(20)
-            }
-            .frame(width: 380)
-            .background(Color(nsColor: .controlBackgroundColor))
-            Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(question).font(.system(size: 26, weight: .semibold, design: .serif))
-                    results
-                    ClientFootnote().frame(maxWidth: .infinity)
+        GeometryReader { geo in
+            if geo.size.width < 780 {
+                // Small window: inputs on top, results underneath, one scrolling column.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        VStack(alignment: .leading, spacing: 16) { inputs }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(nsColor: .controlBackgroundColor))
+                        Divider()
+                        resultsColumn.padding(16)
+                    }
                 }
-                .padding(26)
-                .frame(maxWidth: 900, alignment: .leading)
-                .frame(maxWidth: .infinity)
+            } else {
+                HStack(alignment: .top, spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) { inputs }
+                            .padding(20)
+                    }
+                    .frame(width: 380)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    Divider()
+                    ScrollView {
+                        resultsColumn
+                            .padding(26)
+                            .frame(maxWidth: 900, alignment: .leading)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
             }
         }
     }
@@ -968,20 +989,21 @@ struct ClientMarketView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text(ClientSpec.title(.market)).font(.system(size: 26, weight: .semibold, design: .serif))
+                    .fixedSize(horizontal: false, vertical: true)
                 if let m = roro.model {
                     let s = roro.status
                     HStack(spacing: 10) {
                         Text(s.label.uppercased()).font(.caption.weight(.bold))
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(s.color.opacity(0.18), in: Capsule()).foregroundStyle(s.color)
-                        Text(s.detail).font(.callout).foregroundStyle(.secondary)
+                        Text(s.detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         Spacer()
                         Button { roro.refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(roro.running)
                     }
                     let mid = m["horizons"]?[1]?["value"]?.num ?? .nan
                     Headline(text: "Overall, the indicators read “\(Self.word(mid).lowercased())” right now.",
                              caption: "This summarizes \(Int(m["n_live"]?.num ?? 0)) public economic and market indicators on a scale from −100 (stressed) to +100 (supportive). It describes conditions today. It does not predict returns and is not advice about any portfolio.")
-                    HStack(alignment: .top, spacing: 12) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 12, alignment: .top)], spacing: 12) {
                         ForEach(Array((m["horizons"]?.items ?? []).enumerated()), id: \.offset) { i, h in
                             let v = h["value"]?.num ?? .nan
                             VStack(alignment: .leading, spacing: 8) {
@@ -1006,8 +1028,8 @@ struct ClientMarketView: View {
                             ForEach(Array((m["buckets"]?.items ?? []).enumerated()), id: \.offset) { _, b in
                                 let v = b["score"]?.num ?? .nan
                                 GridRow {
-                                    Text(Self.bucketPlain[b["key"]?.str ?? ""] ?? (b["name"]?.str ?? "")).frame(width: 290, alignment: .leading)
-                                    ScoreBar(value: v).frame(minWidth: 180)
+                                    Text(Self.bucketPlain[b["key"]?.str ?? ""] ?? (b["name"]?.str ?? "")).frame(minWidth: 130, maxWidth: 290, alignment: .leading)
+                                    ScoreBar(value: v).frame(minWidth: 110)
                                     Text(Self.word(v)).foregroundStyle(RoRoStyle.color(v)).frame(width: 90, alignment: .leading)
                                 }
                             }

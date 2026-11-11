@@ -56,15 +56,28 @@ struct StartView: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer(minLength: 20)
+        // Centered when there is room; scrolls when the window is small.
+        GeometryReader { geo in
+            ScrollView {
+                content(compact: geo.size.width < 720)
+                    .frame(maxWidth: .infinity, minHeight: geo.size.height)
+            }
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func content(compact: Bool) -> some View {
+        VStack(spacing: compact ? 18 : 28) {
+            Spacer(minLength: 0)
             VStack(spacing: 8) {
                 Text("WEALTH DESK").font(.system(size: 13, weight: .bold)).tracking(3).foregroundStyle(Color.wealthAccent)
-                Text("See how financial decisions play out").font(.system(size: 34, weight: .semibold, design: .serif))
+                Text("See how financial decisions play out").font(.system(size: compact ? 26 : 34, weight: .semibold, design: .serif))
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 Text("Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent.")
-                    .font(.title3).foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 620)
+                    .font(compact ? .body : .title3).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 620)
             }
-            HStack(spacing: 20) {
+            HStack(alignment: .top, spacing: compact ? 12 : 20) {
                 ModeCard(symbol: "person.2", title: "Client Mode",
                          text: "Six plain-language tools with sliders and charts: growth, retirement, risk, decisions, taxes and inflation, and market conditions.",
                          action: "Open Client Mode") { state.showClient(nil) }
@@ -72,19 +85,19 @@ struct StartView: View {
                          text: "The full workspace: \(state.calculators.count) calculators with formulas and methodology, market data and the RoRo Composite.",
                          action: "Open Advisor Mode") { state.enter(.advisor) }
             }
+            .fixedSize(horizontal: false, vertical: true)   // both cards as tall as the taller one
             .frame(maxWidth: 760)
             VStack(spacing: 6) {
                 Label("This session lives in memory only and is cleared when you quit. Saving a scenario or a PDF happens only when you choose to.",
                       systemImage: "lock.shield")
-                    .font(.callout).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Text("Educational calculations and hypothetical illustrations. Not investment, tax or legal advice. Wealth Desk is an independent application, not affiliated with or endorsed by Morgan Stanley. Don't enter real client information unless your firm has approved this tool for that use.")
-                    .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center).frame(maxWidth: 700)
+                    .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 700)
             }
-            Spacer(minLength: 20)
+            Spacer(minLength: 0)
         }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(compact ? 18 : 32)
     }
 }
 
@@ -106,8 +119,8 @@ struct ModeCard: View {
                 HStack { Text(action).fontWeight(.semibold); Image(systemName: "arrow.right") }
                     .foregroundStyle(Color.wealthAccent)
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, minHeight: 210, alignment: .topLeading)
+            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: 190, maxHeight: .infinity, alignment: .topLeading)
             .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(hover ? Color.wealthAccent : Color.primary.opacity(0.1), lineWidth: hover ? 1.5 : 1))
             .contentShape(Rectangle())

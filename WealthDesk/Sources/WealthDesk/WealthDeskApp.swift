@@ -31,7 +31,7 @@ struct WealthDeskApp: App {
                 .environmentObject(state)
                 .environmentObject(market)
                 .environmentObject(roro)
-                .frame(minWidth: 960, minHeight: 620)
+                .frame(minWidth: 600, minHeight: 440)
                 .tint(.wealthAccent)
         }
         .defaultSize(width: 1240, height: 820)
@@ -116,6 +116,7 @@ struct SettingsView: View {
 
 /// Command-line hooks used by the build's quality checks. They do nothing in normal use.
 ///   --qa-report <folder>   renders sample PDF reports from catalog example inputs, then exits
+///   --qa-size <w>x<h>      asks for that window size after launch, to check small-window layouts
 @MainActor
 enum QAHooks {
     /// --qa-client <folder>: fills every Client Mode tool with sample numbers, renders each screen
@@ -172,6 +173,16 @@ enum QAHooks {
 
     static func runIfRequested() {
         let args = CommandLine.arguments
+        // --qa-size <width>x<height>: asks for that window size shortly after launch (the minimum still applies).
+        if let i = args.firstIndex(of: "--qa-size"), i + 1 < args.count {
+            let p = args[i + 1].split(separator: "x").compactMap { Double($0) }
+            if p.count == 2 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    guard let w = NSApp.windows.first(where: { $0.isVisible }) else { return }
+                    w.setContentSize(NSSize(width: p[0], height: p[1]))
+                }
+            }
+        }
         if let i = args.firstIndex(of: "--qa-client"), i + 1 < args.count {
             let folder = URL(fileURLWithPath: args[i + 1])
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
