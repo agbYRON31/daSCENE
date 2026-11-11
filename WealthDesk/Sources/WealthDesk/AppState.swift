@@ -76,6 +76,7 @@ enum SidebarItem: Hashable {
     case calc(String)
     case calculator
     case markets
+    case roro
     case scenarios
     case history
 }

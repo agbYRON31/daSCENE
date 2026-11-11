@@ -22,12 +22,14 @@ struct WealthDeskApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var state = AppState()
     @StateObject private var market = MarketStore()
+    @StateObject private var roro = RoRoStore()
 
     var body: some Scene {
         Window("Wealth Desk", id: "main") {
             ContentView()
                 .environmentObject(state)
                 .environmentObject(market)
+                .environmentObject(roro)
                 .frame(minWidth: 860, minHeight: 560)
                 .tint(.wealthAccent)
         }
@@ -45,6 +47,8 @@ struct WealthDeskApp: App {
                     .keyboardShortcut("k", modifiers: [.command, .shift])
                 Button("Markets") { state.selection = .markets }
                     .keyboardShortcut("0", modifiers: [.command, .shift])
+                Button("RoRo") { state.selection = .roro }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
                 Button("Scenarios") { state.selection = .scenarios }
                     .keyboardShortcut("1", modifiers: [.command, .shift])
                 Button("History") { state.selection = .history }

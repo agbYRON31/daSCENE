@@ -17,6 +17,8 @@ A native macOS calculator desk for wealth management and economics coursework: a
 
 **Calculator page:** Basic and Scientific keypads (or just type), degrees/radians, `ans`, named variables (`x = 5`), and a history tape. Functions: `sin cos tan asin acos atan sinh cosh tanh ln log log2 log(x, b) sqrt cbrt exp abs round mod fact ncr npr pi e`.
 
+**RoRo page:** the RoRo risk-on/risk-off composite, ported from the original Python tool (`tools/roro_reference`). It downloads ~60 series from FRED (public CSV feed, no key) and Yahoo, scores 37 factors in six buckets into Tactical / Intermediate / Strategic dials, and renders the original dashboard: posture, master signal, bucket decomposition, history, flags, VIX playbook, leadership, factor table, scenarios and historical analogs. It refreshes when opened if the last run was on an earlier day, or on ⌘R. Files (dashboard, JSON, data cache, `runs.csv`) live in `~/Library/Application Support/Wealth Desk/RoRo`. Not investment advice.
+
 **Markets page:** the live U.S. Treasury yield curve (official, Treasury.gov) with 10Y−2Y and 10Y−3M spreads, plus a stock/ETF watchlist (Yahoo Finance's unofficial feed). Data is fetched only when you open Markets or press Refresh. Click a yield to price a bond at it; click a price to open Position gain/loss with it filled in. Every calculator works offline.
 
 ## Build
@@ -38,7 +40,22 @@ During development: `swift run WealthDesk` (app) and `swift run wdcheck` (self-t
 | `Resources/taxdata.json` | Federal figures by tax year (currently 2026 and 2027): brackets, deductions, LTCG/NIIT thresholds, 401(k)/IRA limits, RMD table, estate/gift, each with its IRS sources and verification date. |
 | `Sources/WealthCore` | Formula language (parser/evaluator), finance functions, tax lookups, projections (retirement timeline, Monte Carlo), input parsing, Excel grid export. |
 | `Sources/WealthDesk` | SwiftUI app: sidebar + search, calculator view, charts, scenarios, history, menu-bar extra, pin-on-top, export/import. |
-| `Sources/wdcheck` | Self-test: Swift must reproduce every Python-computed expected value, plus IRS bracket, parser, calculator and market-data checks (374 checks). |
+| `Sources/wdcheck` | Self-test: Swift must reproduce every Python-computed expected value, plus IRS bracket, RoRo-vs-Python parity, parser, calculator and market-data checks (381 checks). |
+
+## RoRo port and parity
+
+`Sources/WealthCore/RoRo` is a line-by-line port of `config.py`, `data.py` and `engine.py`, including pandas semantics (business-day alignment, forward-fill limits, `pct_change`, rolling windows, `ewm(adjust=True)`, banker's rounding).
+
+`wdcheck` checks the port against the original Python engine. It runs both on a fixed data snapshot (`Tests/roro_fixture`, 2020–Jun 2026) as of two dates, and every value in the dashboard model must match the expected JSON the Python engine produced (`Tests/roro_expected*.json`). During the port the two engines also matched exactly on live data as of 15 dates from 2002 to 2026.
+
+To change the model, edit `RoRoConfig.swift`, mirror the change in `tools/roro_reference/config.py`, and regenerate the expected files:
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install pandas numpy
+.venv/bin/python tools/roro_reference/py_model.py tools/roro_reference Tests/roro_fixture Tests/roro_expected.json
+```
+
+(`truncate.py` makes the 2022-06-16 snapshot; `compare.py` diffs two model files; `swift run roro fetch|build` is the Swift CLI.)
 
 ## Tax data and the IRS
 
@@ -66,4 +83,4 @@ Formula language: `+ - * / ^`, comparisons, `if(c,a,b)`, element-wise list math,
 
 ## Data and privacy
 
-Saved work: `~/Library/Application Support/Wealth Desk/workspace.json`. The only network calls are the Markets page (Treasury.gov and Yahoo Finance, on open or Refresh) and the daily IRS.gov check for newer tax figures; sources open in the browser only when clicked. Calculations only, not investment, tax or legal advice.
+Saved work: `~/Library/Application Support/Wealth Desk/workspace.json`. The only network calls are the Markets page (Treasury.gov and Yahoo Finance), the RoRo page (FRED and Yahoo), both on open or Refresh, and the daily IRS.gov check for newer tax figures; sources open in the browser only when clicked. Calculations only, not investment, tax or legal advice.
