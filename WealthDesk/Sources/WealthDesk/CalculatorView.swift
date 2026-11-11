@@ -10,7 +10,6 @@ struct CalculatorView: View {
     @State private var projected: Evaluation?
     @State private var computing = false
     @State private var showSave = false
-    @State private var scenarioName = ""
 
     private var inputs: [String: String] { state.inputs(for: calc) }
 
@@ -49,8 +48,8 @@ struct CalculatorView: View {
         .navigationSubtitle(calc.category)
         .toolbar {
             ToolbarItemGroup {
-                Button { state.resetToExample(calc) } label: { Label("Example values", systemImage: "wand.and.stars") }
-                    .help("Fill in the example values")
+                Button { state.fillSampleNumbers(calc) } label: { Label("Sample numbers", systemImage: "wand.and.stars") }
+                    .help("Fill in illustrative sample numbers (not a client's)")
                 Button { state.clearInputs(calc) } label: { Label("Clear", systemImage: "eraser") }
                     .help("Clear all inputs")
                 Button { copyResults() } label: { Label("Copy results", systemImage: "doc.on.doc") }
@@ -61,21 +60,24 @@ struct CalculatorView: View {
                                message: "Copied grid. Paste at A1 in Excel.")
                 } label: { Label("Copy Excel grid", systemImage: "tablecells") }
                     .help("Copy inputs and live formulas to paste into Excel at A1")
-                Button { scenarioName = calc.name; showSave = true } label: { Label("Save scenario", systemImage: "square.and.arrow.down") }
-                    .help("Save these inputs as a named scenario")
-                    .keyboardShortcut("s")
+                Button { exportPDF() } label: { Label("PDF report", systemImage: "doc.richtext") }
+                    .help("Save a PDF report of these inputs and results to a location you choose")
+                    .keyboardShortcut("e")
+                Menu {
+                    Button("Keep for This Session") { state.snapshotScenario(calc, name: calc.name) }
+                    Button("Save Scenario to a File…") { showSave = true }
+                    Divider()
+                    Button("Open Scenario File…") { state.openScenarioFile() }
+                } label: { Label("Save", systemImage: "square.and.arrow.down") }
+                    .help("Inputs are not saved automatically. Keep them for this session, or save them to a file you choose.")
                 Button { state.toggleFavorite(calc.id) } label: {
                     Label("Favorite", systemImage: state.isFavorite(calc.id) ? "star.fill" : "star")
                 }
                 .help(state.isFavorite(calc.id) ? "Remove from favorites" : "Add to favorites")
             }
         }
-        .alert("Save scenario", isPresented: $showSave) {
-            TextField("Name", text: $scenarioName)
-            Button("Save") { state.saveScenario(calc, name: scenarioName) }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Saves the current inputs on this Mac. Working inputs also save automatically.")
+        .sheet(isPresented: $showSave) {
+            SaveScenarioSheet(calculatorID: calc.id, title: calc.name, inputs: inputs)
         }
         .task(id: inputs) {
             if calc.projection != nil {
@@ -119,6 +121,16 @@ struct CalculatorView: View {
         }
     }
 
+    private func exportPDF() {
+        guard let e = evaluation, e.isComplete else {
+            state.flash("Nothing to report yet. Finish the inputs first.")
+            return
+        }
+        let report = Report(title: calc.name, kind: "Advisor worksheet",
+                            sections: [.calculator(calc, inputs: inputs, evaluation: e, tax: state.engine?.tax)])
+        ReportRenderer.export(report, state: state)
+    }
+
     private func copyResults() {
         guard let e = evaluation, e.isComplete else {
             state.flash("Nothing to copy yet. Finish the inputs first.")
@@ -150,7 +162,7 @@ struct InputsCard: View {
                             .gridColumnAlignment(.leading)
                         VStack(alignment: .leading, spacing: 3) {
                             control(field)
-                            if let err = errors[field.id] {
+                            if let err = errors[field.id], !(inputs[field.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
                                 Text(err).font(.caption).foregroundStyle(.red)
                             } else {
                                 Text(field.hint).font(.caption).foregroundStyle(.secondary)
@@ -177,7 +189,7 @@ struct InputsCard: View {
             .labelsHidden()
             .frame(maxWidth: 260, alignment: .leading)
         } else if field.isSeries {
-            TextField(field.example, text: binding, axis: .vertical)
+            TextField("e.g. " + field.example, text: binding, axis: .vertical)
                 .lineLimit(1...4)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(.body, design: .monospaced))
@@ -187,7 +199,7 @@ struct InputsCard: View {
                 Text(field.unit == "$" ? "$" : "")
                     .foregroundStyle(.secondary)
                     .frame(width: 10, alignment: .trailing)
-                TextField(field.example, text: binding)
+                TextField("", text: binding)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 220)
                     .multilineTextAlignment(.trailing)
@@ -230,7 +242,7 @@ struct ResultsCard: View {
             } else if evaluation == nil && calc.projection != nil {
                 Text("Calculating…").foregroundStyle(.secondary)
             } else {
-                Text("Complete the inputs above to see results.").foregroundStyle(.secondary)
+                Text("Enter your numbers above. Results appear as soon as every field is filled in.").foregroundStyle(.secondary)
             }
         }
     }
@@ -312,6 +324,7 @@ struct ProjectionCard: View {
                 }
             }
             .chartXAxisLabel(table.spec.columns[0].label)
+            .chartXScale(domain: .automatic(includesZero: false))
             .frame(height: 240)
 
             DisclosureGroup(isExpanded: $showTable) {
@@ -488,19 +501,19 @@ struct TaxDataPanel: View {
                 Text("401(k)/IRA limits shown are the \(String(t.limitsYear)) limits.").font(.caption).foregroundStyle(.secondary)
             }
         }
-        Toggle("Check IRS.gov for newer tax figures at launch (once a day)", isOn: $state.workspace.checkIRS)
+        Toggle("Check IRS.gov for newer tax figures at launch (once a day)", isOn: $state.prefs.checkIRS)
         HStack {
             Button(state.irsChecking ? "Checking…" : "Check IRS.gov now") {
                 Task { await state.checkIRS(force: true) }
             }
             .disabled(state.irsChecking)
-            if let at = state.workspace.irsCheckedAt {
+            if let at = state.prefs.irsCheckedAt {
                 Text("Last checked \(at.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
             }
         }
         if let err = state.irsError {
             Label(err, systemImage: "wifi.exclamationmark").font(.caption).foregroundStyle(.secondary)
-        } else if state.workspace.irsCheckedAt != nil {
+        } else if state.prefs.irsCheckedAt != nil {
             let warnings = state.irsWarnings
             if warnings.isEmpty {
                 Label("Up to date with the newest IRS releases.", systemImage: "checkmark.circle").font(.caption).foregroundStyle(.green)

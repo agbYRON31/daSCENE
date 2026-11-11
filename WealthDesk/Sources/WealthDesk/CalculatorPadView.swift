@@ -10,13 +10,13 @@ struct CalculatorPadView: View {
     @State private var error: String?
     @FocusState private var focused: Bool
 
-    private var ans: Double? { state.workspace.tape.first?.result }
+    private var ans: Double? { state.session.tape.first?.result }
 
     /// Live preview of the current line (nil when incomplete or invalid).
     private var preview: Double? {
         guard let tax = state.engine?.tax, !line.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
-        return try? Scientific.evaluate(line, variables: state.workspace.variables, ans: ans,
-                                        degrees: state.workspace.calcDegrees, tax: tax).value
+        return try? Scientific.evaluate(line, variables: state.session.variables, ans: ans,
+                                        degrees: state.prefs.calcDegrees, tax: tax).value
     }
 
     var body: some View {
@@ -33,20 +33,20 @@ struct CalculatorPadView: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .navigationTitle("Calculator")
-        .navigationSubtitle(state.workspace.calcScientific ? "Scientific" : "Basic")
+        .navigationSubtitle(state.prefs.calcScientific ? "Scientific" : "Basic")
         .onAppear { focused = true }
     }
 
     private var helpText: String {
         "Type with the keyboard or tap the keys. Return or = evaluates; Esc clears. Use ans for the last result, or name a value with x = 5 and use it later. " +
-        (state.workspace.calcScientific ? "Functions: sin cos tan asin acos atan sinh cosh tanh, ln log log2 log(x, b), sqrt cbrt exp, abs round mod, fact ncr npr, pi e." : "")
+        (state.prefs.calcScientific ? "Functions: sin cos tan asin acos atan sinh cosh tanh, ln log log2 log(x, b), sqrt cbrt exp, abs round mod, fact ncr npr, pi e." : "")
     }
 
     // MARK: Header
 
     private var header: some View {
         HStack {
-            Picker("", selection: $state.workspace.calcScientific) {
+            Picker("", selection: $state.prefs.calcScientific) {
                 Text("Basic").tag(false)
                 Text("Scientific").tag(true)
             }
@@ -54,8 +54,8 @@ struct CalculatorPadView: View {
             .labelsHidden()
             .frame(width: 200)
             Spacer()
-            if state.workspace.calcScientific {
-                Picker("", selection: $state.workspace.calcDegrees) {
+            if state.prefs.calcScientific {
+                Picker("", selection: $state.prefs.calcDegrees) {
                     Text("Deg").tag(true)
                     Text("Rad").tag(false)
                 }
@@ -129,7 +129,7 @@ struct CalculatorPadView: View {
 
     private var keypad: some View {
         VStack(spacing: 8) {
-            if state.workspace.calcScientific {
+            if state.prefs.calcScientific {
                 Grid(horizontalSpacing: 8, verticalSpacing: 8) {
                     ForEach(sciRows.indices, id: \.self) { r in
                         GridRow { ForEach(sciRows[r]) { keyButton($0, height: 34) } }
@@ -193,11 +193,11 @@ struct CalculatorPadView: View {
         let text = line.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
         do {
-            let r = try Scientific.evaluate(text, variables: state.workspace.variables, ans: ans,
-                                            degrees: state.workspace.calcDegrees, tax: tax)
-            if let name = r.assignedName { state.workspace.variables[name] = r.value }
-            state.workspace.tape.insert(TapeEntry(expression: text, result: r.value, assigned: r.assignedName), at: 0)
-            if state.workspace.tape.count > 300 { state.workspace.tape.removeLast(state.workspace.tape.count - 300) }
+            let r = try Scientific.evaluate(text, variables: state.session.variables, ans: ans,
+                                            degrees: state.prefs.calcDegrees, tax: tax)
+            if let name = r.assignedName { state.session.variables[name] = r.value }
+            state.session.tape.insert(TapeEntry(expression: text, result: r.value, assigned: r.assignedName), at: 0)
+            if state.session.tape.count > 300 { state.session.tape.removeLast(state.session.tape.count - 300) }
             line = ""
         } catch {
             self.error = error.localizedDescription
@@ -209,14 +209,14 @@ struct CalculatorPadView: View {
 
     private var tapePanel: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if !state.workspace.variables.isEmpty {
-                Card(title: "Variables", trailing: AnyView(Button("Clear") { state.workspace.variables.removeAll() }.buttonStyle(.link))) {
-                    ForEach(state.workspace.variables.keys.sorted(), id: \.self) { k in
+            if !state.session.variables.isEmpty {
+                Card(title: "Variables", trailing: AnyView(Button("Clear") { state.session.variables.removeAll() }.buttonStyle(.link))) {
+                    ForEach(state.session.variables.keys.sorted(), id: \.self) { k in
                         Button { line += k; focused = true } label: {
                             HStack {
                                 Text(k).font(.system(.body, design: .monospaced).weight(.semibold))
                                 Spacer()
-                                Text(Scientific.display(state.workspace.variables[k]!)).monospacedDigit().foregroundStyle(.secondary)
+                                Text(Scientific.display(state.session.variables[k]!)).monospacedDigit().foregroundStyle(.secondary)
                             }
                             .contentShape(Rectangle())
                         }
@@ -225,14 +225,14 @@ struct CalculatorPadView: View {
                     }
                 }
             }
-            Card(title: "History", trailing: AnyView(Button("Clear") { state.workspace.tape.removeAll() }
-                .buttonStyle(.link).disabled(state.workspace.tape.isEmpty))) {
-                if state.workspace.tape.isEmpty {
+            Card(title: "History", trailing: AnyView(Button("Clear") { state.session.tape.removeAll() }
+                .buttonStyle(.link).disabled(state.session.tape.isEmpty))) {
+                if state.session.tape.isEmpty {
                     Text("Results appear here. Click one to reuse it.").font(.callout).foregroundStyle(.secondary)
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .trailing, spacing: 10) {
-                            ForEach(state.workspace.tape) { e in
+                            ForEach(state.session.tape) { e in
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text((e.assigned.map { "\($0) = " } ?? "") + e.expression)
                                         .font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)

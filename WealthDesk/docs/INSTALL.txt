@@ -1,0 +1,33 @@
+WEALTH DESK 2.0 — READ ME FIRST
+
+What it is
+  An independent financial education and illustration app: 109 calculators, a
+  five-question Client Mode, live Treasury yields and the RoRo Composite market
+  dashboard. It is NOT a Morgan Stanley product and has not been reviewed or
+  approved by Morgan Stanley or any other firm.
+
+Install
+  1. Drag "Wealth Desk" onto the Applications folder.
+  2. Open it from Applications. Requires macOS 13 or later (Apple silicon or Intel).
+
+If macOS says it "cannot be opened" or "cannot verify the developer"
+  This copy is not signed with an Apple Developer ID or notarized by Apple, so
+  macOS Gatekeeper warns about it. That warning is expected for this build.
+  - On a personal Mac you may approve it yourself in
+    System Settings > Privacy & Security > "Open Anyway".
+  - On a firm-managed Mac, do not override the warning. Ask your IT or
+    compliance team; firm policy may not allow unapproved software.
+
+Privacy
+  - No account, sign-in, analytics or cloud storage.
+  - Numbers typed into calculators are kept in memory only and erased on quit.
+    They are never sent anywhere. A scenario file or PDF is written only when
+    you choose Save, to the place you choose.
+  - The app downloads public market and economic data from fred.stlouisfed.org,
+    home.treasury.gov, query1.finance.yahoo.com and www.irs.gov. Those requests
+    contain series names and ticker symbols only.
+
+Important
+  Educational calculations and hypothetical illustrations only. Not investment,
+  tax or legal advice, and not a recommendation. Do not enter real client
+  information unless your firm has approved this tool for that purpose.

@@ -54,7 +54,7 @@ final class MarketStore: ObservableObject {
                 }
             } catch {
                 if !Self.isCancellation(error) {
-                    curveError = "Couldn't reach Treasury.gov: \(error.localizedDescription)"
+                    curveError = "Treasury yields are unavailable (couldn't reach Treasury.gov: \(error.localizedDescription)). No figures are shown rather than stale ones."
                 }
                 return
             }
@@ -114,12 +114,12 @@ struct MarketsView: View {
         .navigationSubtitle(market.lastRefresh.map { "Updated \($0.formatted(date: .omitted, time: .shortened))" } ?? "")
         .toolbar {
             Button {
-                market.refresh(symbols: state.workspace.watchlist)
+                market.refresh(symbols: state.prefs.watchlist)
             } label: { Label("Refresh", systemImage: "arrow.clockwise") }
                 .keyboardShortcut("r")
                 .disabled(market.loading)
         }
-        .onAppear { market.refreshIfStale(symbols: state.workspace.watchlist) }
+        .onAppear { market.refreshIfStale(symbols: state.prefs.watchlist) }
     }
 
     // MARK: Yield curve
@@ -149,6 +149,8 @@ struct MarketsView: View {
                     ForEach(curve.points) { p in yieldTile(p, prior: curve.prior[p.label]) }
                 }
                 Text("Click a maturity to price a bond at that yield.").font(.caption).foregroundStyle(.tertiary)
+                Text("Source: U.S. Department of the Treasury, daily par yield curve rates (official). Observation date \(curve.date); end-of-day figures, not real-time. Downloaded \(market.lastRefresh.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "—").")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             } else if let err = market.curveError {
                 Label(err, systemImage: "wifi.exclamationmark").foregroundStyle(.secondary)
             } else {
@@ -205,16 +207,18 @@ struct MarketsView: View {
                     .onSubmit(add)
                 Button("Add", action: add).disabled(newSymbol.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            if state.workspace.watchlist.isEmpty {
+            if state.prefs.watchlist.isEmpty {
                 Text("Add a ticker to track it here.").foregroundStyle(.secondary)
             }
             VStack(spacing: 0) {
-                ForEach(state.workspace.watchlist, id: \.self) { sym in
+                ForEach(state.prefs.watchlist, id: \.self) { sym in
                     quoteRow(sym)
                     Divider()
                 }
             }
             Text("Click a price to open Position gain/loss with it filled in.").font(.caption).foregroundStyle(.tertiary)
+            Text("Source: Yahoo Finance chart feed (unofficial and unlicensed; quotes are delayed and the feed may stop working). Each quote shows its own time. Ticker symbols are sent to Yahoo; nothing typed into a calculator is.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -223,12 +227,12 @@ struct MarketsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(sym).font(.body.weight(.semibold))
                 if let q = market.quotes[sym] {
-                    Text(q.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    Text("\(q.name) · delayed quote as of \(q.time.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 } else if let e = market.quoteErrors[sym] {
                     Text(e).font(.caption).foregroundStyle(.red).lineLimit(1)
                 }
             }
-            .frame(width: 260, alignment: .leading)
+            .frame(width: 380, alignment: .leading)
             Spacer()
             if let q = market.quotes[sym] {
                 VStack(alignment: .trailing, spacing: 2) {
@@ -258,7 +262,7 @@ struct MarketsView: View {
                 ProgressView().controlSize(.small)
             }
             Button(role: .destructive) {
-                state.workspace.watchlist.removeAll { $0 == sym }
+                state.prefs.watchlist.removeAll { $0 == sym }
             } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
                 .buttonStyle(.borderless)
                 .help("Remove \(sym)")
@@ -268,9 +272,9 @@ struct MarketsView: View {
 
     private func add() {
         let sym = newSymbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard !sym.isEmpty, !state.workspace.watchlist.contains(sym) else { newSymbol = ""; return }
+        guard !sym.isEmpty, !state.prefs.watchlist.contains(sym) else { newSymbol = ""; return }
         guard MarketParsers.quoteURL(symbol: sym) != nil else { state.flash("That doesn't look like a ticker symbol."); return }
-        state.workspace.watchlist.append(sym)
+        state.prefs.watchlist.append(sym)
         newSymbol = ""
         Task { await market.load(symbol: sym) }  // short, single request
     }

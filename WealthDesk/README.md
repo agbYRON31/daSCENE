@@ -1,32 +1,20 @@
-# Wealth Desk
+# Wealth Desk 2.0
 
-A native macOS calculator desk for wealth management and economics coursework: a basic/scientific calculator plus 105 formulas, each with assumptions, Excel equivalents and self-tests. Modeled on the CRE Desk design.
+A native macOS app for financial education and illustration. Independent software: not affiliated with, endorsed by, or approved by Morgan Stanley or any other firm.
 
-| Group | Count | Highlights |
-| --- | --- | --- |
-| Everyday math | 6 | percentages, tip & split, discount & sales tax, unit price, weighted average (grades), final-exam score needed |
-| Growth & time value | 11 | future value, CAGR, real return, years to goal |
-| Retirement & income | 13 | nest egg, retirement timeline, Monte Carlo, RMDs, Social Security break-even |
-| Tax | 10 | federal brackets, LTCG, NIIT, Roth conversion, tax-loss harvesting |
-| Portfolio & risk | 10 | Sharpe/Sortino, rebalancing, IRR, two-asset risk |
-| Fees & costs | 5 | fee drag, AUM vs. flat, tiered fees |
-| Stocks & bonds | 9 | bond price/YTM, duration & convexity, T-bill yields, P/E, position P&L, DDM |
-| Statistics & econometrics | 18 | descriptive stats, CIs, t-tests, correlation, OLS with SEs and p-values, prediction intervals, F-test, Durbin–Watson, log-model interpretation, binomial |
-| Economics | 15 | elasticity, supply/demand with tax incidence and DWL, CPI, GDP deflator, multipliers, money, Taylor rule, Okun, monopoly, cost curves, HHI, Cobb–Douglas/Solow, comparative advantage |
-| Planning & protection | 8 | net worth, 529, life insurance, estate exposure |
+- **Client Mode:** five plain-language tools with sliders and charts (growth, retirement, risk, decisions, taxes and inflation).
+- **Advisor Mode:** 109 calculators with formulas, assumptions, Excel equivalents and sources; a scientific calculator; Markets (Treasury curve, watchlist); the native RoRo Composite dashboard.
+- **Privacy by design:** calculators open blank. Typed numbers live in memory only and are erased on quit. Nothing typed is ever transmitted. Scenario files (optionally AES-256 password-protected) and PDF reports are written only when the user chooses, where they choose. The app is sandboxed: network client access and user-selected files only.
+- **Accuracy:** every calculator is independently audited (`docs/ACCURACY_AUDIT.md`), and the shipped engine is checked against the reference on every build (`wdcheck`).
 
-**Calculator page:** Basic and Scientific keypads (or just type), degrees/radians, `ans`, named variables (`x = 5`), and a history tape. Functions: `sin cos tan asin acos atan sinh cosh tanh ln log log2 log(x, b) sqrt cbrt exp abs round mod fact ncr npr pi e`.
-
-**RoRo page:** the RoRo risk-on/risk-off composite, ported from the original Python tool (`tools/roro_reference`). It downloads ~60 series from FRED (public CSV feed, no key) and Yahoo, scores 37 factors in six buckets into Tactical / Intermediate / Strategic dials, and renders the original dashboard: posture, master signal, bucket decomposition, history, flags, VIX playbook, leadership, factor table, scenarios and historical analogs. It refreshes when opened if the last run was on an earlier day, or on ⌘R. Files (dashboard, JSON, data cache, `runs.csv`) live in `~/Library/Application Support/Wealth Desk/RoRo`. Not investment advice.
-
-**Markets page:** the live U.S. Treasury yield curve (official, Treasury.gov) with 10Y−2Y and 10Y−3M spreads, plus a stock/ETF watchlist (Yahoo Finance's unofficial feed). Data is fetched only when you open Markets or press Refresh. Click a yield to price a bond at it; click a price to open Position gain/loss with it filled in. Every calculator works offline.
+Documents: `docs/QA_REPORT.md` (what was tested, what wasn't), `docs/ACCURACY_AUDIT.md`, `docs/DATA_SOURCES.md`, `docs/INSTALL.txt`.
 
 ## Build
 
 Requires only the Xcode Command Line Tools (Swift 5.9+), macOS 13+.
 
 ```bash
-./build_app.sh            # regenerates catalog, runs self-test, builds dist/Wealth Desk.app
+./build_app.sh            # audit, universal build, self-tests, sandboxed signing, dist/Wealth Desk.app + .dmg + .zip
 open "dist/Wealth Desk.app"
 ```
 
@@ -83,4 +71,4 @@ Formula language: `+ - * / ^`, comparisons, `if(c,a,b)`, element-wise list math,
 
 ## Data and privacy
 
-Saved work: `~/Library/Application Support/Wealth Desk/workspace.json`. The only network calls are the Markets page (Treasury.gov and Yahoo Finance), the RoRo page (FRED and Yahoo), both on open or Refresh, and the daily IRS.gov check for newer tax figures; sources open in the browser only when clicked. Calculations only, not investment, tax or legal advice.
+Preferences only (no calculator inputs) are stored in the app's sandbox container. The only network calls are the Markets page (Treasury.gov and Yahoo Finance), the RoRo page (FRED and Yahoo), both on open or Refresh, and the daily IRS.gov check for newer tax figures; sources open in the browser only when clicked. Calculations only, not investment, tax or legal advice.

@@ -158,6 +158,22 @@ for (name, day) in [("roro_expected.json", nil as Day?), ("roro_expected_2022-06
     let diffs = RoRoParity.differences(RoRoEngine.build(data, lastRun: nil), reference: ref)
     expect(diffs.isEmpty, "RoRo matches Python engine (\(name)): \(diffs.prefix(5).joined(separator: "; "))")
 }
+for f in RoRoConfig.factors {
+    let series = RoRoConfig.factorSeries[f.id] ?? []
+    let known = series.allSatisfy { $0.source == "FRED" ? RoRoSources.fredSeries.contains($0.id) : RoRoSources.yahooTickers.contains($0.id) }
+    expect(!series.isEmpty && known, "RoRo factor \(f.id) lists its data series")
+}
+// Scenario files: plain and password-protected round trips
+let scenario = ScenarioFile(calculatorID: "fv_lump", title: "Test", inputs: ["p": "1000", "r": "5", "n": "10"], saved: Date(timeIntervalSince1970: 1_700_000_000))
+expect((try? ScenarioFile.read(scenario.data())) == scenario, "scenario file round trip")
+let sealed = try? scenario.data(password: "correct horse battery")
+expect(sealed.map(ScenarioFile.isEncrypted) == true && sealed.map { !String(decoding: $0, as: UTF8.self).contains("fv_lump") } == true,
+       "protected scenario file is encrypted (no plaintext)")
+expect(sealed.flatMap { try? ScenarioFile.read($0, password: "correct horse battery") } == scenario, "protected scenario opens with the password")
+expect(sealed.flatMap { try? ScenarioFile.read($0, password: "wrong") } == nil && sealed.flatMap { try? ScenarioFile.read($0) } == nil,
+       "protected scenario refuses a wrong or missing password")
+expect((try? ScenarioFile.read(Data("{}".utf8))) == nil, "non-scenario JSON is rejected")
+
 // RoRo primitives against pandas semantics
 expect(Ops.ewm([1, 2, .nan, 4], span: 5).map { Ops.pyRound($0, 6) } == [1, 1.6, 1.6, 2.978723], "ewm matches pandas (adjust=True)")
 expect(Ops.align(TimeSeries(days: [0, 10], values: [1, 2]), to: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], limit: 5)!

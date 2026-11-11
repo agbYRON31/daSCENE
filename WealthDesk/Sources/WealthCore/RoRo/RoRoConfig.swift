@@ -229,6 +229,25 @@ public enum RoRoConfig {
 
     public static func factor(_ id: String) -> RoRoFactor? { factors.first { $0.id == id } }
 
+    /// The data series each factor is computed from (source, series id), for the data-status display.
+    public static let factorSeries: [String: [(source: String, id: String)]] = {
+        func F(_ ids: String...) -> [(source: String, id: String)] { ids.map { ("FRED", $0) } }
+        func Y(_ ids: String...) -> [(source: String, id: String)] { ids.map { ("Yahoo", $0) } }
+        return [
+            "sahm": F("SAHMREALTIME"), "claims": F("ICSA"), "unrate": F("UNRATE"), "cfnai": F("CFNAIMA3"),
+            "permits": F("PERMIT"), "indpro": F("INDPRO"),
+            "t10y3m": F("T10Y3M"), "t10y2y": F("T10Y2Y"), "nfci": F("NFCI"), "realffr": F("DFF", "PCEPILFE"),
+            "netliq": F("WALCL", "WTREGEN", "RRPONTSYD"), "dgs10chg": F("DGS10"),
+            "spx200": Y("^GSPC"), "slope200": Y("^GSPC"), "spx50": Y("^GSPC"), "dd52": Y("^GSPC"),
+            "sectbreadth": RoRoSources.sectors.map { ("Yahoo", $0) }, "rspspy": Y("RSP", "SPY"), "nyaspx": Y("^NYA", "^GSPC"),
+            "hyoas": F("BAMLH0A0HYM2"), "igoas": F("BAMLC0A0CM"), "hyig": F("BAMLH0A0HYM2", "BAMLC0A0CM"),
+            "hychg": F("BAMLH0A0HYM2"), "baa10y": F("BAA10Y"),
+            "vix": Y("^VIX"), "vixterm": Y("^VIX", "^VIX3M"), "skew": Y("^SKEW"), "move": Y("^MOVE"), "vixspike": Y("^VIX"),
+            "sphb": Y("SPHB", "SPLV"), "hygief": Y("HYG", "IEF"), "xlyxlp": Y("XLY", "XLP"), "iwfiwd": Y("IWF", "IWD"),
+            "cugold": Y("HG=F", "GC=F"), "spxgold": Y("^GSPC", "GC=F"), "dxy": Y("DX-Y.NYB"), "audjpy": Y("AUDJPY=X"),
+        ]
+    }()
+
     // MARK: Scenarios (overrides are RAW readings, before `scale`)
 
     public static let scenarios: [RoRoScenario] = [

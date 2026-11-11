@@ -7,10 +7,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Needed when launched from `swift run` rather than as a bundled .app.
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        QAHooks.runIfRequested()
     }
 
-    // Closing the window keeps the menu-bar utility running.
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    // Closing the window ends the session: the app quits and everything typed is gone.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
 
 extension Color {
@@ -26,41 +27,43 @@ struct WealthDeskApp: App {
 
     var body: some Scene {
         Window("Wealth Desk", id: "main") {
-            ContentView()
+            RootView()
                 .environmentObject(state)
                 .environmentObject(market)
                 .environmentObject(roro)
-                .frame(minWidth: 860, minHeight: 560)
+                .frame(minWidth: 960, minHeight: 620)
                 .tint(.wealthAccent)
         }
-        .defaultSize(width: 1120, height: 760)
+        .defaultSize(width: 1240, height: 820)
         .commands {
-            CommandGroup(replacing: .newItem) {}
-            CommandGroup(after: .saveItem) {
-                Button("Export Saved Work…") { state.exportWork() }
-                    .keyboardShortcut("e", modifiers: [.command, .shift])
-                Button("Import Saved Work…") { state.importWork() }
-                    .keyboardShortcut("i", modifiers: [.command, .shift])
+            CommandGroup(replacing: .newItem) {
+                Button("Open Scenario File…") { state.openScenarioFile() }
+                    .keyboardShortcut("o")
             }
-            CommandMenu("Calculator") {
-                Button("Calculator") { state.selection = .calculator }
-                    .keyboardShortcut("k", modifiers: [.command, .shift])
-                Button("Markets") { state.selection = .markets }
-                    .keyboardShortcut("0", modifiers: [.command, .shift])
-                Button("RoRo") { state.selection = .roro }
-                    .keyboardShortcut("r", modifiers: [.command, .shift])
-                Button("Scenarios") { state.selection = .scenarios }
-                    .keyboardShortcut("1", modifiers: [.command, .shift])
-                Button("History") { state.selection = .history }
-                    .keyboardShortcut("2", modifiers: [.command, .shift])
+            CommandGroup(after: .saveItem) {
+                Button("Clear Session") { state.clearSession() }
+                    .keyboardShortcut(.delete, modifiers: [.command, .shift])
+            }
+            CommandMenu("Go") {
+                Button("Start Screen") { state.screen = .start }
+                    .keyboardShortcut("0")
+                Button("Advisor Mode") { state.enter(.advisor) }
+                    .keyboardShortcut("1")
+                Button("Client Mode") { state.showClient(nil) }
+                    .keyboardShortcut("2")
                 Divider()
-                Toggle("Keep Window on Top", isOn: $state.workspace.pinned)
+                Button("RoRo Composite") { state.enter(.advisor); state.selection = .roro }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
+                Button("Markets") { state.enter(.advisor); state.selection = .markets }
+                    .keyboardShortcut("m", modifiers: [.command, .shift])
+                Button("Calculator") { state.enter(.advisor); state.selection = .calculator }
+                    .keyboardShortcut("k", modifiers: [.command, .shift])
+                Button("Session Scenarios") { state.enter(.advisor); state.selection = .scenarios }
+                Button("Session History") { state.enter(.advisor); state.selection = .history }
+                Divider()
+                Toggle("Keep Window on Top", isOn: $state.prefs.pinned)
                     .keyboardShortcut("p", modifiers: [.command, .shift])
             }
-        }
-
-        MenuBarExtra("Wealth Desk", systemImage: "chart.line.uptrend.xyaxis") {
-            MenuBarContent().environmentObject(state)
         }
 
         Settings {
@@ -69,68 +72,76 @@ struct WealthDeskApp: App {
     }
 }
 
-struct MenuBarContent: View {
-    @EnvironmentObject var state: AppState
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        Button("Show Wealth Desk") {
-            openWindow(id: "main")
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        Button("Calculator") {
-            state.selection = .calculator
-            openWindow(id: "main")
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        Toggle("Keep Window on Top", isOn: $state.workspace.pinned)
-        let favorites = state.workspace.favorites.compactMap { state.calculator($0) }
-        if !favorites.isEmpty {
-            Divider()
-            ForEach(favorites) { calc in
-                Button(calc.name) {
-                    state.select(calc)
-                    openWindow(id: "main")
-                    NSApp.activate(ignoringOtherApps: true)
-                }
-            }
-        }
-        Divider()
-        Button("Quit Wealth Desk") { NSApp.terminate(nil) }.keyboardShortcut("q")
-    }
-}
-
 struct SettingsView: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
         Form {
-            Section("Window") {
-                Toggle("Keep the window above other apps", isOn: $state.workspace.pinned)
-                Text("Closing the window keeps Wealth Desk in the menu bar. Use Quit to exit.")
-                    .font(.caption).foregroundStyle(.secondary)
+            Section("Privacy and data") {
+                Text("Numbers typed into calculators stay in memory for the current session and are erased when Wealth Desk quits. They are never saved automatically and never sent anywhere.")
+                    .font(.callout).fixedSize(horizontal: false, vertical: true)
+                Text("Saved on this Mac: your favorites, watchlist tickers, tax-year choice and window settings, plus downloaded market data. A scenario file or PDF report is written only when you choose Save, to the place you pick.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Button("Clear Session Now") { state.clearSession() }
+                    .disabled(state.session.isEmpty)
+            }
+            Section("Internet connections") {
+                Text("Wealth Desk connects only to download public data. Requests contain series names or ticker symbols, never anything typed into a calculator.")
+                    .font(.callout).fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("• fred.stlouisfed.org — economic series for RoRo (Federal Reserve Bank of St. Louis)")
+                    Text("• home.treasury.gov — daily Treasury yield curve")
+                    Text("• query1.finance.yahoo.com — delayed prices for RoRo and the watchlist (unofficial feed)")
+                    Text("• www.irs.gov — checks whether newer tax figures have been published")
+                }
+                .font(.caption).foregroundStyle(.secondary)
+                Text("No account, sign-in, analytics, telemetry or cloud sync.").font(.caption).foregroundStyle(.secondary)
             }
             Section("Tax data") {
                 TaxDataPanel()
             }
-            Section("Saved work") {
-                HStack {
-                    Button("Export…") { state.exportWork() }
-                    Button("Import…") { state.importWork() }
-                    Button("Show in Finder") {
-                        NSWorkspace.shared.activateFileViewerSelecting([AppState.workspaceURL])
-                    }
-                }
-                Text("Saved work lives in Application Support/Wealth Desk/workspace.json. Import merges and keeps your settings.")
-                    .font(.caption).foregroundStyle(.secondary)
+            Section("Window") {
+                Toggle("Keep the window above other apps", isOn: $state.prefs.pinned)
             }
             Section("About") {
-                Text("No account or telemetry. Every calculation runs on this Mac. The Markets page fetches Treasury yields (Treasury.gov) and quotes (Yahoo Finance) only when you open it or press Refresh. Wealth Desk does math. It is not investment, tax or legal advice.")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text("Wealth Desk \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.0"). Educational calculations and hypothetical illustrations; not investment, tax or legal advice and not a recommendation. Independent application, not affiliated with or endorsed by Morgan Stanley, and not approved by any firm for use with client information.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 520)
+        .frame(width: 560)
         .padding(.vertical, 8)
+    }
+}
+
+/// Command-line hooks used by the build's quality checks. They do nothing in normal use.
+///   --qa-report <folder>   renders sample PDF reports from catalog example inputs, then exits
+@MainActor
+enum QAHooks {
+    static func runIfRequested() {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--qa-report"), i + 1 < args.count else { return }
+        let folder = URL(fileURLWithPath: args[i + 1])
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var failures = 0
+        do {
+            let (catalog, tax) = try AppState.resourceURLs()
+            let engine = try Engine(catalogURL: catalog, taxURL: tax)
+            for id in ["fv_lump", "retirement_timeline", "retirement_mc", "portfolio_stress", "income_tax", "bond_duration", "ols"] {
+                guard let calc = engine.calculator(id) else { failures += 1; continue }
+                let inputs = calc.exampleInputs
+                let eval = engine.evaluate(calc, inputs: inputs)
+                let report = Report(title: calc.name, kind: "QA sample (catalog example inputs)",
+                                    sections: [.calculator(calc, inputs: inputs, evaluation: eval, tax: engine.tax)])
+                let data = ReportRenderer.pdf(report)
+                if data.count < 2000 { failures += 1 }
+                try data.write(to: folder.appendingPathComponent("\(id).pdf"))
+                FileHandle.standardOutput.write("report \(id): \(data.count) bytes\n".data(using: .utf8)!)
+            }
+        } catch {
+            FileHandle.standardOutput.write("QA report failed: \(error)\n".data(using: .utf8)!)
+            failures += 1
+        }
+        exit(failures == 0 ? 0 : 1)
     }
 }
