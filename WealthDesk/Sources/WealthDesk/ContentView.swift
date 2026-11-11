@@ -23,6 +23,7 @@ struct ContentView: View {
                         }
                     case .calculator?: CalculatorPadView()
                     case .markets?: MarketsView()
+                    case .roro?: RoRoView()
                     case .scenarios?: ScenariosView()
                     case .history?: HistoryView()
                     case nil:
@@ -66,6 +67,8 @@ struct SidebarView: View {
                         .tag(SidebarItem.calculator)
                     Label("Markets", systemImage: "chart.xyaxis.line")
                         .tag(SidebarItem.markets)
+                    Label("RoRo", systemImage: "gauge.medium")
+                        .tag(SidebarItem.roro)
                     Label("Saved scenarios", systemImage: "tray.full")
                         .badge(state.workspace.scenarios.count)
                         .tag(SidebarItem.scenarios)

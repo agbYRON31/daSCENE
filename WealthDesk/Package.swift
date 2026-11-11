@@ -7,10 +7,12 @@ let package = Package(
     products: [
         .executable(name: "WealthDesk", targets: ["WealthDesk"]),
         .executable(name: "wdcheck", targets: ["wdcheck"]),
+        .executable(name: "roro", targets: ["roro"]),
     ],
     targets: [
         .target(name: "WealthCore"),
         .executableTarget(name: "WealthDesk", dependencies: ["WealthCore"]),
         .executableTarget(name: "wdcheck", dependencies: ["WealthCore"]),
+        .executableTarget(name: "roro", dependencies: ["WealthCore"]),
     ]
 )
