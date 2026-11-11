@@ -139,6 +139,7 @@ enum ClientSpec {
         case .risk: return "How much investment risk am I taking?"
         case .decisions: return "How do my decisions change my future?"
         case .taxes: return "How do taxes and inflation affect my money?"
+        case .market: return "What are market conditions right now?"
         }
     }
 
@@ -149,6 +150,7 @@ enum ClientSpec {
         case .risk: return "See what a market drop or a rate change would do to a portfolio mix."
         case .decisions: return "Compare two choices side by side: retire earlier, save more, spend less."
         case .taxes: return "See what inflation does to buying power and what taxes take from growth."
+        case .market: return "A plain summary of today's economic and market backdrop from public data."
         }
     }
 
@@ -159,6 +161,7 @@ enum ClientSpec {
         case .risk: return "shield.lefthalf.filled"
         case .decisions: return "arrow.triangle.branch"
         case .taxes: return "percent"
+        case .market: return "gauge.medium"
         }
     }
 }
@@ -178,6 +181,7 @@ struct ClientModeView: View {
                 case .risk?: RiskTool()
                 case .decisions?: DecisionsTool()
                 case .taxes?: TaxesTool()
+                case .market?: ClientMarketView()
                 }
             }
             .navigationTitle(state.clientTool.map(ClientSpec.title) ?? "Wealth Desk")
@@ -185,14 +189,14 @@ struct ClientModeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigation) {
                     Button { state.clientTool = nil } label: { Label("All tools", systemImage: "square.grid.2x2") }
-                        .help("Back to the five questions")
+                        .help("Back to all the questions")
                         .disabled(state.clientTool == nil)
                 }
                 ToolbarItem(placement: .navigation) { ModeSwitch() }
                 ToolbarItemGroup {
                     Button { exportPDF() } label: { Label("PDF report", systemImage: "doc.richtext") }
                         .help("Save a PDF of this illustration to a location you choose")
-                        .disabled(state.clientTool == nil)
+                        .disabled(state.clientTool == nil || state.clientTool == .market)
                     Button { state.clearSession() } label: { Label("Clear", systemImage: "eraser") }
                         .help("Erase everything typed this session")
                 }
@@ -233,6 +237,8 @@ enum ClientReports {
         case .decisions:
             out = [("Option A", state.clientRun("client.retirement", "retirement_timeline", ClientSpec.retirement)),
                    ("Option B", DecisionsTool.optionB(state))]
+        case .market:
+            out = []
         case .taxes:
             out = [("Inflation and buying power", state.clientRun("client.inflation", "inflation_cost", ClientSpec.inflation)),
                    ("Taxes on investment growth", state.clientRun("client.taxdrag", "tax_deferral", ClientSpec.taxDrag)),
@@ -934,5 +940,110 @@ struct TaxesTool: View {
             }
             HowItWorks(calcs: [c])
         } else { NeedsInput(calc: c) }
+    }
+}
+
+// MARK: - 6. Market conditions (read-only)
+
+/// A descriptive, read-only view of the RoRo Composite for clients. It shows what the public
+/// data says about current conditions. It deliberately leaves out the model's posture label,
+/// playbook text and allocation tilts, which read as recommendations.
+struct ClientMarketView: View {
+    @EnvironmentObject var state: AppState
+    @EnvironmentObject var roro: RoRoStore
+    struct Pt: Identifiable { let id = UUID(); let date: Date; let value: Double }
+
+    static func word(_ v: Double) -> String { v.isNaN ? "No reading" : (v >= 20 ? "Supportive" : (v <= -20 ? "Stressed" : "Mixed")) }
+
+    static let bucketPlain: [String: String] = [
+        "MACRO": "The economy: jobs, production, housing",
+        "MONETARY": "Interest rates and financial conditions",
+        "TECHNICALS": "Stock market trend and breadth",
+        "CREDIT": "Corporate borrowing costs",
+        "VOL": "Market volatility",
+        "CROSS": "Risk appetite across markets",
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text(ClientSpec.title(.market)).font(.system(size: 26, weight: .semibold, design: .serif))
+                if let m = roro.model {
+                    let s = roro.status
+                    HStack(spacing: 10) {
+                        Text(s.label.uppercased()).font(.caption.weight(.bold))
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(s.color.opacity(0.18), in: Capsule()).foregroundStyle(s.color)
+                        Text(s.detail).font(.callout).foregroundStyle(.secondary)
+                        Spacer()
+                        Button { roro.refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(roro.running)
+                    }
+                    let mid = m["horizons"]?[1]?["value"]?.num ?? .nan
+                    Headline(text: "Overall, the indicators read “\(Self.word(mid).lowercased())” right now.",
+                             caption: "This summarizes \(Int(m["n_live"]?.num ?? 0)) public economic and market indicators on a scale from −100 (stressed) to +100 (supportive). It describes conditions today. It does not predict returns and is not advice about any portfolio.")
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(Array((m["horizons"]?.items ?? []).enumerated()), id: \.offset) { i, h in
+                            let v = h["value"]?.num ?? .nan
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(["Fast-moving signals", "Medium-term signals", "Slow-moving signals"][min(i, 2)]).font(.callout).foregroundStyle(.secondary)
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(Self.word(v)).font(.system(size: 22, weight: .semibold, design: .rounded)).foregroundStyle(RoRoStyle.color(v))
+                                    Spacer()
+                                    Text(RoRoStyle.signed(v)).monospacedDigit().foregroundStyle(.secondary)
+                                }
+                                ScoreBar(value: v)
+                                Text(["Weighted toward market prices and volatility", "A balance of market and economic data", "Weighted toward the economy and interest rates"][min(i, 2)])
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.08)))
+                        }
+                    }
+                    ChartCard(title: "What is behind it", note: "Each bar summarizes a group of indicators. Left of center is more stressed, right is more supportive.") {
+                        Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 10) {
+                            ForEach(Array((m["buckets"]?.items ?? []).enumerated()), id: \.offset) { _, b in
+                                let v = b["score"]?.num ?? .nan
+                                GridRow {
+                                    Text(Self.bucketPlain[b["key"]?.str ?? ""] ?? (b["name"]?.str ?? "")).frame(width: 290, alignment: .leading)
+                                    ScoreBar(value: v).frame(minWidth: 180)
+                                    Text(Self.word(v)).foregroundStyle(RoRoStyle.color(v)).frame(width: 90, alignment: .leading)
+                                }
+                            }
+                        }
+                    }
+                    ChartCard(title: "The last two years", note: "The medium-term reading over time. Conditions change; today's reading says nothing certain about tomorrow's.") {
+                        let dates = m["history"]?["dates"]?.items.compactMap { DayMath.parse($0.str).map(DayMath.date) } ?? []
+                        let pts = zip(dates, m["history"]?["intermediate"]?.items ?? []).compactMap { d, v in v.double.map { Pt(date: d, value: $0) } }
+                        Chart {
+                            RuleMark(y: .value("Neutral", 0)).foregroundStyle(Color.secondary.opacity(0.5))
+                            ForEach(pts) { p in
+                                LineMark(x: .value("Date", p.date), y: .value("Reading", p.value)).foregroundStyle(Color.wealthAccent)
+                                    .lineStyle(StrokeStyle(lineWidth: 2))
+                            }
+                        }
+                        .chartYScale(domain: -100...100)
+                        .frame(height: 220)
+                    }
+                    HStack(spacing: 14) {
+                        Button("Explore a what-if with the risk tool") { state.clientTool = .risk }
+                        Button("Full detail (Advisor Mode)") { state.enter(.advisor); state.selection = .roro }.buttonStyle(.link)
+                    }
+                    Text("Sources: Federal Reserve Economic Data (FRED) and delayed market prices from Yahoo Finance's unofficial feed. Readings come from a hand-calibrated model that has not been validated as a predictor of returns. This is general market information, not investment advice or a recommendation.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                } else if roro.running {
+                    ProgressView("Downloading public market and economic data…").frame(maxWidth: .infinity).padding(40)
+                } else {
+                    Headline(text: "Market data isn't available right now.", caption: roro.error ?? "Press Refresh to download it.")
+                    Button { roro.refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                }
+                ClientFootnote().frame(maxWidth: .infinity)
+            }
+            .padding(26)
+            .frame(maxWidth: 960, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+        .onAppear { roro.refreshIfStale() }
     }
 }

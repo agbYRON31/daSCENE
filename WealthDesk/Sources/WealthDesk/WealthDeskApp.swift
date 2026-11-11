@@ -145,7 +145,7 @@ enum QAHooks {
                   let data = rep.representation(using: .png, properties: [:]) else { failures += 1; say("render \(name) FAILED"); return }
             try? data.write(to: folder.appendingPathComponent("\(name).png"))
         }
-        for tool in ClientTool.allCases {
+        for tool in ClientTool.allCases where tool != .market {
             let calcs = ClientReports.calcs(for: tool, state: state)
             let bad = calcs.filter { !$0.1.ok }
             if calcs.isEmpty || !bad.isEmpty {

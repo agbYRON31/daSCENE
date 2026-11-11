@@ -66,7 +66,7 @@ struct StartView: View {
             }
             HStack(spacing: 20) {
                 ModeCard(symbol: "person.2", title: "Client Mode",
-                         text: "Five plain-language tools with sliders and charts: growth, retirement, risk, decisions, taxes and inflation.",
+                         text: "Six plain-language tools with sliders and charts: growth, retirement, risk, decisions, taxes and inflation, and market conditions.",
                          action: "Open Client Mode") { state.showClient(nil) }
                 ModeCard(symbol: "square.grid.3x3", title: "Advisor Mode",
                          text: "The full workspace: \(state.calculators.count) calculators with formulas and methodology, market data and the RoRo Composite.",
@@ -166,7 +166,7 @@ struct AdvisorHomeView: View {
                     HomeTile(symbol: "gauge.medium", title: "RoRo Composite", text: "Market risk conditions across 37 factors") { state.selection = .roro }
                     HomeTile(symbol: "chart.xyaxis.line", title: "Markets", text: "Treasury yield curve and a quote watchlist") { state.selection = .markets }
                     HomeTile(symbol: "plusminus.circle", title: "Calculator", text: "Basic and scientific, with a history tape") { state.selection = .calculator }
-                    HomeTile(symbol: "person.2", title: "Client Mode", text: "Five simple, visual tools for a conversation") { state.showClient(nil) }
+                    HomeTile(symbol: "person.2", title: "Client Mode", text: "Six simple, visual tools for a conversation") { state.showClient(nil) }
                 }
                 ForEach(state.categories, id: \.self) { cat in
                     VStack(alignment: .leading, spacing: 8) {
