@@ -20,6 +20,19 @@ open "dist/Wealth Desk.app"
 
 During development: `swift run WealthDesk` (app) and `swift run wdcheck` (self-test).
 
+## Web version (Windows, Linux, phones)
+
+`web/` is a browser version for people without a Mac: Client Mode (all five tools), Advisor Mode (all 109 calculators, with Excel grids, projections and details) and the Calculator page. It reads the same `catalog.json` and `taxdata.json`, and `web/engine.js` is a line-by-line port of `Sources/WealthCore`. `web/check.mjs` is its `wdcheck`: every catalog example must match its Python-computed expected value, Monte Carlo included (same SplitMix64 stream).
+
+Markets and RoRo aren't in the web version: browsers block those data feeds (CORS). PDF reports use the browser's print dialog (Print / PDF → Save as PDF). Saving scenarios to files isn't in it yet. As in the app, nothing typed is stored or sent; it's gone when the tab closes.
+
+```bash
+web/build.sh            # self-test, then assemble dist/web
+web/build.sh --serve    # same, then serve at http://localhost:8765
+```
+
+Pushing to `main` publishes it to GitHub Pages (`.github/workflows/wealthdesk-web.yml`).
+
 ## How it fits together
 
 | Piece | What it does |

@@ -1,0 +1,46 @@
+name: Wealth Desk web
+
+# Publishes WealthDesk/web to GitHub Pages. Runs the engine self-test first,
+# so a calculator that disagrees with its reference value never ships.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "WealthDesk/web/**"
+      - "WealthDesk/Resources/catalog.json"
+      - "WealthDesk/Resources/taxdata.json"
+      - ".github/workflows/wealthdesk-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Self-test and build
+        run: WealthDesk/web/build.sh
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: WealthDesk/dist/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
