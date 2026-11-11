@@ -26,16 +26,33 @@ public struct Evaluation: Equatable {
 
 public final class Engine {
     public let calculators: [Calculator]
-    public let tax: TaxTable
+    /// Every tax year available; `tax` is the one in use.
+    public let taxData: TaxData?
+    public private(set) var tax: TaxTable
     private var compiled: [String: Expression] = [:]
 
     public init(calculators: [Calculator], tax: TaxTable) {
         self.calculators = calculators
         self.tax = tax
+        self.taxData = nil
     }
 
-    public convenience init(catalogURL: URL, taxURL: URL) throws {
-        self.init(calculators: try CatalogLoader.load(from: catalogURL), tax: try TaxTable.load(from: taxURL))
+    public init(calculators: [Calculator], taxData: TaxData, year: Int? = nil) {
+        self.calculators = calculators
+        self.taxData = taxData
+        self.tax = taxData.table(for: year ?? taxData.defaultYear()) ?? taxData.table(for: taxData.defaultYear())!
+    }
+
+    public convenience init(catalogURL: URL, taxURL: URL, year: Int? = nil) throws {
+        self.init(calculators: try CatalogLoader.load(from: catalogURL), taxData: try TaxData.load(from: taxURL), year: year)
+    }
+
+    /// Switches the tax year used by tax calculators. Returns false if that year isn't loaded.
+    @discardableResult
+    public func selectTaxYear(_ year: Int) -> Bool {
+        guard let t = taxData?.table(for: year) else { return false }
+        tax = t
+        return true
     }
 
     public func calculator(_ id: String) -> Calculator? { calculators.first { $0.id == id } }
@@ -126,7 +143,8 @@ public final class Engine {
                 case ">": ok = l > r
                 case ">=": ok = l >= r
                 case "==": ok = l == r
-                default: ok = true
+                case "!=": ok = l != r
+                default: ok = false
                 }
                 if !ok { result.ruleErrors.append(rule.message) }
             } catch {
@@ -149,7 +167,11 @@ public final class Engine {
         for o in calc.outputs {
             do {
                 let v = try expression(o.expression).number(scope, tax: tax)
-                if v.isInfinite { throw EvalError.message("Can't be computed with these inputs (division by zero).") }
+                if v.isInfinite { throw EvalError.message("Can't be computed with these inputs (the result is infinite, e.g. a division by zero).") }
+                // NaN is only a deliberate answer where the formula says so (top tax bracket, P/E with no earnings).
+                if v.isNaN && !(o.expression.contains("bracketroom") || o.expression.contains("nan()")) {
+                    throw EvalError.message("No valid answer for these inputs (for example, a root or log of a negative number).")
+                }
                 result.outputs.append(OutputResult(id: o.id, label: o.label, format: o.format, value: v, error: nil))
             } catch {
                 result.outputs.append(OutputResult(id: o.id, label: o.label, format: o.format, value: nil,

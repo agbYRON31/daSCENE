@@ -17,7 +17,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-TAX = json.load(open(os.path.join(ROOT, "Resources", "taxdata.json")))
+TAXDATA = json.load(open(os.path.join(ROOT, "Resources", "taxdata.json")))
+# Expected values are computed with the reference year; the self-test selects the same year.
+TAX = next(t for t in TAXDATA["tables"] if t["taxYear"] == TAXDATA["referenceYear"])
 
 # ---------------------------------------------------------------------------
 # Reference math (independent of the Swift engine)
@@ -50,20 +52,20 @@ class Series(list):
 def fv(r, n, pmt, pv):
     if r == 0:
         return pv + pmt * n
-    g = (1 + r) ** n
-    return pv * g + pmt * (g - 1) / r
+    g1 = math.expm1(n * math.log1p(r))        # (1+r)^n - 1 without cancellation for tiny r
+    return pv * (1 + g1) + pmt * g1 / r
 
 
 def pv(r, n, pmt):
     if r == 0:
         return pmt * n
-    return pmt * (1 - (1 + r) ** (-n)) / r
+    return pmt * -math.expm1(-n * math.log1p(r)) / r
 
 
 def pmt(r, n, pv_):
     if r == 0:
         return pv_ / n
-    return pv_ * r / (1 - (1 + r) ** (-n))
+    return pv_ * r / -math.expm1(-n * math.log1p(r))
 
 
 def nper(r, pmt_, pv_, fv_):
@@ -76,9 +78,18 @@ def npv(r, cf):
     return sum(c / (1 + r) ** t for t, c in enumerate(cf))
 
 
+def sign_changes(cf):
+    signs = [c > 0 for c in cf if c != 0]
+    return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
+
+
 def irr(cf):
+    if len(cf) < 2 or sign_changes(cf) != 1:
+        raise ValueError("IRR needs exactly one sign change")
     lo, hi = -0.9999, 10.0
     flo = npv(lo, cf)
+    if (flo > 0) == (npv(hi, cf) > 0):
+        raise ValueError("IRR outside the solvable range")
     for _ in range(300):
         mid = (lo + hi) / 2
         fm = npv(mid, cf)
@@ -162,13 +173,204 @@ def limitira(age):
 def rate(n, pmt_, pv_):
     """Periodic rate at which pv(rate, n, pmt) equals pv_ (bisection)."""
     lo, hi = -0.99, 10.0
+
+    def value(r):
+        # IEEE semantics like the app: overflow becomes ±infinity instead of an exception.
+        try:
+            return pv(r, n, pmt_) if r != 0 else pmt_ * n
+        except OverflowError:
+            return math.copysign(float("inf"), pmt_)
+
+    if (value(lo) > pv_) == (value(hi) > pv_):
+        raise ValueError("rate outside the solvable range")
     for _ in range(400):
         mid = (lo + hi) / 2
-        if (pv(mid, n, pmt_) if mid != 0 else pmt_ * n) > pv_:
+        if value(mid) > pv_:
             lo = mid
         else:
             hi = mid
     return (lo + hi) / 2
+
+
+def _periods(years, freq):
+    return int(math.floor(years * freq + 0.5))
+
+
+def bondprice(face, cpn, ytm, years, freq):
+    n = _periods(years, freq)
+    i = ytm / freq
+    c = face * cpn / freq
+    if i == 0:
+        return c * n + face
+    return c * (1 - (1 + i) ** (-n)) / i + face * (1 + i) ** (-n)
+
+
+def bondytm(price, face, cpn, years, freq):
+    lo, hi = -0.5, 1.0
+    if (bondprice(face, cpn, lo, years, freq) > price) == (bondprice(face, cpn, hi, years, freq) > price):
+        raise ValueError("yield outside the solvable range")
+    for _ in range(300):
+        mid = (lo + hi) / 2
+        if bondprice(face, cpn, mid, years, freq) > price:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def macdur(face, cpn, ytm, years, freq):
+    n = _periods(years, freq)
+    i = ytm / freq
+    c = face * cpn / freq
+    total = 0.0
+    for k in range(1, n + 1):
+        cf = c + (face if k == n else 0.0)
+        total += (k / freq) * cf / (1 + i) ** k
+    return total / bondprice(face, cpn, ytm, years, freq)
+
+
+def bondconvexity(face, cpn, ytm, years, freq):
+    n = _periods(years, freq)
+    i = ytm / freq
+    c = face * cpn / freq
+    total = 0.0
+    for k in range(1, n + 1):
+        cf = c + (face if k == n else 0.0)
+        total += cf * k * (k + 1) / (1 + i) ** (k + 2)
+    return total / (bondprice(face, cpn, ytm, years, freq) * freq * freq)
+
+
+# --- statistics -------------------------------------------------------------
+
+def median(s):
+    v = sorted(s)
+    n = len(v)
+    return v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2
+
+
+def var(s):
+    m = sum(s) / len(s)
+    return sum((x - m) ** 2 for x in s) / (len(s) - 1)
+
+
+def sd(s):
+    return math.sqrt(var(s))
+
+
+def cov(a, b):
+    ma, mb = sum(a) / len(a), sum(b) / len(b)
+    return sum((x - ma) * (y - mb) for x, y in zip(a, b)) / (len(a) - 1)
+
+
+def corr(a, b):
+    return cov(a, b) / (sd(a) * sd(b))
+
+
+def dw(e):
+    return sum((e[i] - e[i - 1]) ** 2 for i in range(1, len(e))) / sum(x * x for x in e)
+
+
+def normcdf(z):
+    return 0.5 * math.erfc(-z / math.sqrt(2.0))
+
+
+def norminv(p):
+    lo, hi = -40.0, 40.0
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if normcdf(mid) < p:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def _betacf(a, b, x):
+    FPMIN = 1e-300
+    qab, qap, qam = a + b, a + 1.0, a - 1.0
+    c = 1.0
+    d = 1.0 - qab * x / qap
+    if abs(d) < FPMIN:
+        d = FPMIN
+    d = 1.0 / d
+    h = d
+    for m in range(1, 301):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d
+        if abs(d) < FPMIN:
+            d = FPMIN
+        c = 1.0 + aa / c
+        if abs(c) < FPMIN:
+            c = FPMIN
+        d = 1.0 / d
+        h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d
+        if abs(d) < FPMIN:
+            d = FPMIN
+        c = 1.0 + aa / c
+        if abs(c) < FPMIN:
+            c = FPMIN
+        d = 1.0 / d
+        de = d * c
+        h *= de
+        if abs(de - 1.0) < 3e-16:
+            break
+    return h
+
+
+def betai(a, b, x):
+    if x <= 0:
+        return 0.0
+    if x >= 1:
+        return 1.0
+    bt = math.exp(math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b) + a * math.log(x) + b * math.log(1.0 - x))
+    if x < (a + 1.0) / (a + b + 2.0):
+        return bt * _betacf(a, b, x) / a
+    return 1.0 - bt * _betacf(b, a, 1.0 - x) / b
+
+
+def tcdf(t, df):
+    x = df / (df + t * t)
+    p = 0.5 * betai(df / 2.0, 0.5, x)
+    return 1.0 - p if t > 0 else p
+
+
+def tinv(p, df):
+    lo, hi = -1000.0, 1000.0
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if tcdf(mid, df) < p:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def fcdf(f, d1, d2):
+    if f <= 0:
+        return 0.0
+    return betai(d1 / 2.0, d2 / 2.0, d1 * f / (d1 * f + d2))
+
+
+def binompmf(n, k, p):
+    n, k = int(n), int(k)
+    if k < 0 or k > n:
+        return 0.0
+    if p == 0:
+        return 1.0 if k == 0 else 0.0
+    if p == 1:
+        return 1.0 if k == n else 0.0
+    return math.exp(math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
+                    + k * math.log(p) + (n - k) * math.log(1 - p))
+
+
+def binomcdf(n, k, p):
+    total = 0.0
+    for i in range(0, int(k) + 1):
+        total += binompmf(n, i, p)
+    return min(1.0, total)
 
 
 def iff(c, a, b):
@@ -189,13 +391,47 @@ FUNCS = {
     "sum": lambda s: float(sum(s)), "count": lambda s: float(len(s)),
     "avg": lambda s: float(sum(s)) / len(s),
     "sumproduct": lambda a, b: float(sum(x * y for x, y in zip(a, b))),
+    "bondprice": bondprice, "bondytm": bondytm, "macdur": macdur, "bondconvexity": bondconvexity,
+    "nan": lambda: float("nan"),
+    "median": median, "var": var, "sd": sd, "cov": cov, "corr": corr, "dw": dw,
+    "normcdf": normcdf, "norminv": norminv, "tcdf": tcdf, "tinv": tinv, "fcdf": fcdf,
+    "binompmf": binompmf, "binomcdf": binomcdf, "pi": lambda: math.pi,
+    "topsum": lambda s_, k: float(sum(sorted(s_, reverse=True)[:int(k)])),
     "iff": iff,
 }
 
 
+def lazy_if(expr):
+    """Rewrites if(c, a, b) as a Python conditional so only the chosen branch is evaluated (as in the app)."""
+    out, i = "", 0
+    while True:
+        m = re.search(r"\bif\(", expr[i:])
+        if not m:
+            return out + expr[i:]
+        start = i + m.start()
+        out += expr[i:start]
+        j, depth, args, cur = start + 3, 1, [], ""
+        while depth:
+            ch = expr[j]
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            if ch == "," and depth == 1:
+                args.append(cur); cur = ""
+            else:
+                cur += ch
+            j += 1
+        args.append(cur)
+        c, a, b = (lazy_if(x) for x in args)
+        out += f"(({a}) if ({c}) else ({b}))"
+        i = j + 1
+
+
 def ref_eval(expr, scope):
-    py = expr.replace("^", "**")
-    py = re.sub(r"\bif\(", "iff(", py)
+    py = lazy_if(expr).replace("^", "**")
     env = dict(FUNCS)
     env.update(scope)
     return eval(py, {"__builtins__": {}}, env)  # trusted, local definitions only
@@ -311,7 +547,78 @@ def proj_montecarlo(v):
     }, rows
 
 
-PROJECTIONS = {"retirement": proj_retirement, "montecarlo": proj_montecarlo}
+def proj_retirement_mc(v):
+    """Full-plan Monte Carlo: the retirement timeline's cash flows with a random return each year."""
+    a0, ar, ae = int(v["age"]), int(v["retire"]), int(v["plan"])
+    sims = int(v["sims"])
+    rng = SplitMix(int(v["seed"]))
+    years = ae - a0
+    paths, retire_bals = [], []
+    ok = 0
+    for _ in range(sims):
+        bal = v["bal"]
+        failed = False
+        path = []
+        retire_bal = bal if ar <= a0 else None
+        for age in range(a0, ae):
+            t = age - a0
+            z = rng.normal()
+            if age == ar:
+                retire_bal = bal
+            if not failed:
+                contrib = v["c"] * (1 + v["cg"]) ** t if age < ar else 0.0
+                need = v["spend"] * (1 + v["infl"]) ** t if age >= ar else 0.0
+                other = v["other"] * (1 + v["infl"]) ** t if (age >= ar and age >= v["oage"]) else 0.0
+                w = max(0.0, need - other)
+                if w > bal + contrib:
+                    bal = 0.0
+                    failed = True
+                else:
+                    mean = v["rpre"] if age < ar else v["rpost"]
+                    bal = max(0.0, (bal + contrib - w) * (1 + mean + v["sd"] * z))
+            path.append(bal)
+        if retire_bal is None:
+            retire_bal = bal
+        if not failed:
+            ok += 1
+        paths.append(path)
+        retire_bals.append(retire_bal)
+    ending = sorted(p_[-1] for p_ in paths)
+    rows = []
+    for y in range(years):
+        col = sorted(p_[y] for p_ in paths)
+        rows.append([a0 + y + 1, percentile(col, 0.10), percentile(col, 0.50), percentile(col, 0.90)])
+    return {
+        "p_success": ok / sims,
+        "p_retire_p50": percentile(sorted(retire_bals), 0.50),
+        "p_end_p10": percentile(ending, 0.10),
+        "p_end_p50": percentile(ending, 0.50),
+        "p_end_p90": percentile(ending, 0.90),
+    }, rows
+
+
+def proj_growth(v):
+    """Monthly compounding with end-of-month contributions, reported at each year end."""
+    p, m, r, y, infl = v["p"], v["m"], v["r"], int(v["y"]), v["infl"]
+    i = r / 12
+    bal = p
+    rows = []
+    for year in range(1, y + 1):
+        for _ in range(12):
+            bal = bal * (1 + i) + m
+        contributed = p + m * 12 * year
+        rows.append([year, contributed, bal - contributed, bal, bal / (1 + infl) ** year])
+    contributed = p + m * 12 * y
+    return {
+        "p_balance": bal,
+        "p_contributed": contributed,
+        "p_growth": bal - contributed,
+        "p_real": bal / (1 + infl) ** y,
+    }, rows
+
+
+PROJECTIONS = {"retirement": proj_retirement, "montecarlo": proj_montecarlo,
+               "retirementmc": proj_retirement_mc, "growth": proj_growth}
 PROJECTION_TABLES = {
     "retirement": {"columns": [
         {"label": "Age", "format": "age"}, {"label": "Start balance", "format": "currency"},
@@ -322,6 +629,15 @@ PROJECTION_TABLES = {
         {"label": "Year", "format": "number"}, {"label": "10th percentile", "format": "currency"},
         {"label": "Median", "format": "currency"}, {"label": "90th percentile", "format": "currency"}],
         "chartColumns": [1, 2, 3]},
+    "retirementmc": {"columns": [
+        {"label": "Age", "format": "age"}, {"label": "10th percentile", "format": "currency"},
+        {"label": "Median", "format": "currency"}, {"label": "90th percentile", "format": "currency"}],
+        "chartColumns": [1, 2, 3]},
+    "growth": {"columns": [
+        {"label": "Year", "format": "number"}, {"label": "Total contributed", "format": "currency"},
+        {"label": "Total growth", "format": "currency"}, {"label": "Balance", "format": "currency"},
+        {"label": "Balance in today's dollars", "format": "currency"}],
+        "chartColumns": [3, 4]},
 }
 
 # ---------------------------------------------------------------------------
@@ -334,8 +650,8 @@ DEFAULT_INTERP = ("This is a mathematical result under the stated assumptions, n
                   "Actual returns, tax law and personal circumstances vary.")
 EXCEL_NOTES = ("Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, "
                "so some formulas carry a minus sign to show a positive result.")
-TAX_INTERP = ("Uses the federal figures in the app's tax table for tax year {y}. Excludes state tax, AMT, credits, "
-              "phase-outs and payroll taxes. Confirm against current IRS guidance.").format(y=TAX["taxYear"])
+TAX_INTERP = ("Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). "
+              "Excludes state tax, AMT, credits, phase-outs and payroll taxes.")
 
 HINTS = {
     "$": "Dollar amount; k and m suffixes work (250k, 1.2m).",
@@ -359,14 +675,24 @@ SRC = {
     "ira": {"title": "IRS • IRA contribution limits", "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-ira-contribution-limits"},
     "ss": {"title": "SSA • Benefit reduction for early retirement", "url": "https://www.ssa.gov/benefits/retirement/planner/agereduction.html"},
     "estate": {"title": "IRS • Estate tax", "url": "https://www.irs.gov/businesses/small-businesses-self-employed/estate-tax"},
+    "treasury": {"title": "U.S. Treasury • Daily par yield curve rates", "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve"},
+    "tbills": {"title": "TreasuryDirect • Treasury bills", "url": "https://www.treasurydirect.gov/marketable-securities/treasury-bills/"},
+    "bonds": {"title": "Investor.gov • Bonds", "url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products/bonds"},
+    "nist": {"title": "NIST/SEMATECH • e-Handbook of Statistical Methods", "url": "https://www.itl.nist.gov/div898/handbook/"},
+    "openstax_stats": {"title": "OpenStax • Introductory Statistics", "url": "https://openstax.org/details/books/introductory-statistics-2e"},
+    "openstax_econ": {"title": "OpenStax • Principles of Economics", "url": "https://openstax.org/details/books/principles-economics-3e"},
+    "bls_cpi": {"title": "BLS • Consumer Price Index", "url": "https://www.bls.gov/cpi/"},
+    "bls_cps": {"title": "BLS • Labor force statistics (CPS)", "url": "https://www.bls.gov/cps/"},
     "gift": {"title": "IRS • Gift tax FAQs", "url": "https://www.irs.gov/businesses/small-businesses-self-employed/frequently-asked-questions-on-gift-taxes"},
 }
 
 CATALOG = []
 
 
-def F(id, label, unit, example, hint=None, min=0, max=None, integer=False, options=None):
+def F(id, label, unit, example, hint=None, min=0, max=None, integer=False, options=None, default=None):
     f = {"id": id, "label": label, "unit": unit, "example": example, "hint": hint or HINTS[unit]}
+    if default is not None:
+        f["default"] = default   # pre-filled technical setting (never a dollar amount or a market assumption)
     if min is not None:
         f["min"] = min
     if max is not None:
@@ -401,12 +727,76 @@ def calc(id, name, category, fields, outputs, math, summary, aliases="", acronym
     })
 
 
+EV = "Everyday math"
 G = "Growth & time value"
 RET = "Retirement & income"
 TX = "Tax"
 PF = "Portfolio & risk"
 FEE = "Fees & costs"
+SB = "Stocks & bonds"
+ST = "Statistics & econometrics"
+EC = "Economics"
 PL = "Planning & protection"
+
+# --- Everyday math --------------------------------------------------------------------
+calc("percentages", "Percentages", EV,
+     [F("pct", "Percent", "%", "15", min=None, max=None), F("of", "…of this number", "x", "240", min=None),
+      F("part", "Part", "x", "45", min=None), F("whole", "…as a share of whole", "x", "180", min=None),
+      F("old", "Old value", "x", "80", min=None), F("new", "New value", "x", "92", min=None)],
+     [O("0", "Percent of number", "pct*of", "number", "={pct}*{of}"),
+      O("1", "Part as % of whole", "part/whole", "percent", "={part}/{whole}"),
+      O("2", "% change old → new", "(new-old)/abs(old)", "percent", "=({new}-{old})/ABS({old})"),
+      O("3", "Number increased by percent", "of*(1+pct)", "number", "={of}*(1+{pct})"),
+      O("4", "Number decreased by percent", "of*(1-pct)", "number", "={of}*(1-{pct})")],
+     "x% of y = x/100 × y; part ÷ whole; (new − old) ÷ |old|",
+     "The everyday percentage questions in one place.", "percent of percentage change increase decrease share ratio",
+     common=True, rules=[R("whole", "!=", "0", "Whole can't be zero."), R("old", "!=", "0", "Old value can't be zero.")],
+     assumptions="Plain arithmetic.", interpretation="Percentage change is relative to the old value; a change in a rate (e.g. 4% → 5%) is also 1 percentage point.")
+
+calc("tip_split", "Tip & bill split", EV,
+     [F("bill", "Bill (before tip)", "$", "184.50"), F("tip", "Tip", "%", "20", max=1),
+      F("tax", "Tax already in the bill", "$", "15.20", hint="Tip is calculated on the bill minus this tax; 0 to tip on the full bill."),
+      F("people", "People", "count", "4", min=1)],
+     [O("0", "Tip", "(bill-tax)*tip", "currency", "=({bill}-{tax})*{tip}"),
+      O("1", "Total", "bill+(bill-tax)*tip", "currency", "={bill}+({bill}-{tax})*{tip}"),
+      O("2", "Per person", "(bill+(bill-tax)*tip)/people", "currency", "=({bill}+({bill}-{tax})*{tip})/{people}")],
+     "Tip = (bill − tax) × rate; per person = total ÷ people", "Tip, total and each person's share.",
+     "tip gratuity restaurant split check", rules=[R("tax", "<=", "bill", "Tax can't exceed the bill.")], assumptions="Plain arithmetic; rounding to the cent is up to you.")
+
+calc("discount", "Discount & sales tax", EV,
+     [F("price", "List price", "$", "250"), F("d1", "Discount", "%", "30", max=1),
+      F("d2", "Extra discount (applied after)", "%", "10", max=1), F("tax", "Sales tax", "%", "8.25", max=1)],
+     [O("0", "Sale price", "price*(1-d1)*(1-d2)", "currency", "={price}*(1-{d1})*(1-{d2})"),
+      O("1", "You save", "price-price*(1-d1)*(1-d2)", "currency", "={price}-{price}*(1-{d1})*(1-{d2})"),
+      O("2", "Effective total discount", "1-(1-d1)*(1-d2)", "percent", "=1-(1-{d1})*(1-{d2})"),
+      O("3", "Total with tax", "price*(1-d1)*(1-d2)*(1+tax)", "currency", "={price}*(1-{d1})*(1-{d2})*(1+{tax})")],
+     "Price × (1 − d₁)(1 − d₂) × (1 + tax)", "Stacked discounts, what you save, and the total after sales tax.",
+     "sale discount percent off coupon sales tax", assumptions="Discounts stack multiplicatively (30% then 10% is 37% off, not 40%). Tax applies to the discounted price.")
+
+calc("unit_price", "Unit price comparison", EV,
+     [F("pa", "Price of option A", "$", "8.99"), F("qa", "Quantity in A", "x", "24", min=0.0000001, hint="Ounces, count, etc."),
+      F("pb", "Price of option B", "$", "13.49"), F("qb", "Quantity in B", "x", "40", min=0.0000001, hint="Same unit as A.")],
+     [O("0", "Unit price A", "pa/qa", "currency", "={pa}/{qa}"),
+      O("1", "Unit price B", "pb/qb", "currency", "={pb}/{qb}"),
+      O("2", "B vs. A per unit (− = B cheaper)", "(pb/qb)/(pa/qa)-1", "percent", "=({pb}/{qb})/({pa}/{qa})-1")],
+     "Price ÷ quantity", "Which size or package is the better deal per unit.", "unit price per ounce bulk compare cheaper")
+
+calc("weighted_avg", "Weighted average (grades)", EV,
+     [F("x", "Scores", "series", "92; 85; 78; 88", min=None), F("w", "Weights (% or points)", "series", "20; 30; 15; 35", min=None)],
+     [O("0", "Weighted average", "sumproduct(x,w)/sum(w)", "number", "=SUMPRODUCT({x},{w})/SUM({w})"),
+      O("1", "Simple average", "avg(x)", "number", "=AVERAGE({x})"),
+      O("2", "Total weight", "sum(w)", "number", "=SUM({w})")],
+     "Σ(score × weight) ÷ Σ weight", "Course grade or any average where items count differently.",
+     "weighted average grade gpa course final exam", common=True,
+     rules=[R("count(x)", "==", "count(w)", "Enter the same number of scores and weights."), R("sum(w)", ">", "0", "Weights must add up to more than zero.")],
+     assumptions="Weights don't need to add to 100; they're normalized.")
+
+calc("grade_needed", "Final exam score needed", EV,
+     [F("cur", "Current grade (before final)", "x", "84", min=None), F("wf", "Final exam weight", "%", "30", min=0.0001, max=1),
+      F("target", "Target course grade", "x", "88", min=None)],
+     [O("0", "Score needed on the final", "(target-cur*(1-wf))/wf", "number", "=({target}-{cur}*(1-{wf}))/{wf}")],
+     "(target − current × (1 − w)) ÷ w", "What you need on the final to reach a target course grade.",
+     "final exam grade needed what do i need", assumptions="Current grade covers everything except the final, on the same scale as the target.")
 
 # --- Growth & time value ----------------------------------------------------
 calc("fv_lump", "Future value of a lump sum", G,
@@ -632,12 +1022,91 @@ calc("retirement_timeline", "Retirement timeline", RET,
      assumptions="Saving is added and withdrawals taken at the start of each year, then the year's return applies. Spending and other income are in today's dollars and grow with inflation; other income only offsets spending once retired. Pre-tax and after-tax money are not distinguished, and taxes are excluded.",
      excelNotes="This is a year-by-year table, not a single formula. Use Copy table and paste into Excel.")
 
+calc("retirement_mc", "Retirement Monte Carlo (full plan)", RET,
+     [F("age", "Current age", "age", "45", max=110), F("retire", "Retirement age", "age", "65", max=110),
+      F("plan", "Plan through age", "age", "95", max=120), F("bal", "Invested today", "$", "750000"),
+      F("c", "Saving each year while working", "$", "30000"), F("cg", "Annual increase in saving", "%", "2", min=-0.5),
+      F("rpre", "Average return before retirement", "%", "6", min=-0.5), F("rpost", "Average return in retirement", "%", "5", min=-0.5),
+      F("sd", "Volatility (standard deviation)", "%", "12", max=1),
+      F("spend", "Retirement spending (today's $)", "$", "110000"), F("infl", "Inflation", "%", "2.5", min=-0.5),
+      F("other", "Other income in retirement (today's $)", "$", "45000"), F("oage", "Other income starts at age", "age", "67", max=120),
+      F("sims", "Number of simulations", "count", "1000", min=100, max=20000, default="1000"),
+      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.", default="42")],
+     [O("0", "Chance the money lasts through the plan", "p_success", "percent"),
+      O("1", "Median balance at retirement", "p_retire_p50", "currency"),
+      O("2", "Ending balance: 10th percentile", "p_end_p10", "currency"),
+      O("3", "Ending balance: median", "p_end_p50", "currency"),
+      O("4", "Ending balance: 90th percentile", "p_end_p90", "currency")],
+     "Retirement timeline cash flows, with each year's return drawn from Normal(average, volatility)",
+     "Simulates the whole plan, saving years and retirement years, across many market paths.",
+     "monte carlo retirement probability success simulation plan", projection="retirementmc",
+     rules=[R("plan", ">", "age", "Plan age must exceed current age."),
+            R("retire", ">=", "age", "Retirement age can't be before current age."),
+            R("plan-age", "<=", "100", "Projection is limited to 100 years.")],
+     assumptions="Same cash-flow rules as the Retirement timeline (saving added and withdrawals taken at the start of each year). Annual returns are independent normal draws; real markets have fatter tails and streaks. Taxes and fees are excluded.",
+     interpretation="The success rate summarizes simulated outcomes under the assumptions entered. It is not a forecast or a guarantee, and it is not a recommendation.",
+     excelNotes="Simulation results aren't a cell formula. Use Copy table for the percentile paths.")
+
+calc("growth_schedule", "Investment growth schedule", G,
+     [F("p", "Starting amount", "$", "25000"), F("m", "Monthly contribution", "$", "1000"),
+      F("r", "Annual return", "%", "6", min=-0.5), F("y", "Years", "years", "25", min=1, max=100, integer=True),
+      F("infl", "Inflation", "%", "2.5", min=-0.5)],
+     [O("0", "Ending balance", "p_balance", "currency"),
+      O("1", "Total contributed", "p_contributed", "currency"),
+      O("2", "Total growth", "p_growth", "currency"),
+      O("3", "Ending balance in today's dollars", "p_real", "currency")],
+     "Each month: balance × (1 + annual return ÷ 12) + contribution; today's dollars = balance ÷ (1 + inflation)^years",
+     "Year-by-year growth of savings, split into what you put in and what it earned, with inflation's effect.",
+     "compound growth schedule table contributions inflation today's dollars", projection="growth",
+     assumptions="Monthly compounding at a constant return, contributions at the end of each month. Taxes and fees are excluded.",
+     excelNotes="Balance: =FV(r/12, years*12, -monthly, -start). The yearly table is available via Copy table.")
+
+calc("mix_volatility", "Portfolio mix volatility", PF,
+     [F("v", "Portfolio value", "$", "2000000", min=0.01), F("we", "Stocks", "%", "60", max=1), F("wb", "Bonds", "%", "40", max=1),
+      F("sa", "Stock volatility (standard deviation)", "%", "16", max=2), F("sb", "Bond volatility (standard deviation)", "%", "6", max=2),
+      F("rho", "Stock/bond correlation", "x", "0.1", min=-1, max=1, hint="Between −1 and 1.")],
+     [O("0", "Portfolio volatility", "sqrt(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb)", "percent",
+        "=SQRT({we}^2*{sa}^2+{wb}^2*{sb}^2+2*{we}*{wb}*{rho}*{sa}*{sb})"),
+      O("1", "One-standard-deviation move in dollars", "v*sqrt(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb)", "currency",
+        "={v}*SQRT({we}^2*{sa}^2+{wb}^2*{sb}^2+2*{we}*{wb}*{rho}*{sa}*{sb})"),
+      O("2", "Share of risk coming from stocks", "if(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb>0,(we^2*sa^2+we*wb*rho*sa*sb)/(we^2*sa^2+wb^2*sb^2+2*we*wb*rho*sa*sb),0)", "percent")],
+     "σ = √(wS²σS² + wB²σB² + 2·wS·wB·ρ·σS·σB); cash adds no volatility",
+     "How much a stock/bond/cash mix is expected to fluctuate, given the volatility assumptions you enter.",
+     "volatility standard deviation risk allocation mix diversification",
+     rules=[R("we+wb", "<=", "1", "Stocks and bonds can't exceed 100%; the rest is cash.")],
+     assumptions="Volatilities and correlation are your assumptions and change over time. Cash is treated as riskless. Returns are not assumed to be normal, so a one-standard-deviation move is a yardstick, not a probability.",
+     interpretation="Volatility describes typical fluctuation around an average, not the worst case. Use the stress test for specific what-if moves.")
+
+calc("portfolio_stress", "Portfolio stress test", PF,
+     [F("v", "Portfolio value", "$", "2000000", min=0.01), F("we", "Stocks", "%", "60", max=1),
+      F("wb", "Bonds", "%", "40", max=1), F("eq", "Stock market change", "%", "-20", min=-1, max=1),
+      F("dy", "Change in interest rates", "%", "1", min=-0.1, max=0.1, hint="Enter 1 for +1% (100 bp), −0.5 for −0.5%."),
+      F("dur", "Bond duration", "years", "6", min=0, max=30, hint="Rate sensitivity of the bond holdings; core bond funds are roughly 6."),
+      F("infl", "Inflation over the period", "%", "3", min=-0.2, max=1),
+      F("w", "Withdrawal during the period", "$", "0")],
+     [O("0", "Change in stock holdings", "v*we*eq", "currency", "={v}*{we}*{eq}"),
+      O("1", "Change in bond holdings", "v*wb*(-dur*dy)", "currency", "={v}*{wb}*(-{dur}*{dy})"),
+      O("2", "Total change in value", "v*we*eq+v*wb*(-dur*dy)", "currency", "={v}*{we}*{eq}+{v}*{wb}*(-{dur}*{dy})"),
+      O("3", "Total change (%)", "we*eq+wb*(-dur*dy)", "percent", "={we}*{eq}+{wb}*(-{dur}*{dy})"),
+      O("4", "Value after the scenario and withdrawal", "v*(1+we*eq+wb*(-dur*dy))-w", "currency", "={v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w}"),
+      O("5", "Purchasing power after inflation", "(v*(1+we*eq+wb*(-dur*dy))-w)/(1+infl)", "currency", "=({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})/(1+{infl})"),
+      O("6", "Stock weight after the move", "v*we*(1+eq)/(v*(1+we*eq+wb*(-dur*dy)))", "percent", "={v}*{we}*(1+{eq})/({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy})))"),
+      O("7", "Rebalance: buy (+) / sell (−) stocks", "we*(v*(1+we*eq+wb*(-dur*dy))-w)-v*we*(1+eq)", "currency", "={we}*({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})-{v}*{we}*(1+{eq})"),
+      O("8", "Rebalance: buy (+) / sell (−) bonds", "wb*(v*(1+we*eq+wb*(-dur*dy))-w)-v*wb*(1-dur*dy)", "currency", "={wb}*({v}*(1+{we}*{eq}+{wb}*(-{dur}*{dy}))-{w})-{v}*{wb}*(1-{dur}*{dy})")],
+     "Stocks × market change + bonds × (−duration × rate change); cash unchanged",
+     "Deterministic what-if: the immediate effect of a market move you specify on a stock/bond/cash mix.",
+     "stress test scenario market decline crash rates allocation 60/40 shock what if", common=True,
+     rules=[R("we+wb", "<=", "1", "Stocks and bonds can't exceed 100%; the rest is cash."),
+            R("w", "<=", "v*(1+we*eq+wb*(-dur*dy))", "The withdrawal is larger than the portfolio after the scenario.")],
+     assumptions="An instantaneous, user-specified shock, not a forecast. Bond prices move by −duration × rate change (a first-order approximation that ignores convexity, coupon income and credit spreads). Cash is unaffected. Rebalancing restores the target stock and bond weights after the withdrawal, with the remainder in cash.",
+     interpretation="This shows what happens if the scenario you enter occurs. It says nothing about how likely that scenario is. For probabilities, use the Monte Carlo tools.")
+
 calc("monte_carlo", "Monte Carlo withdrawal test", RET,
      [F("bal", "Starting portfolio", "$", "2000000"), F("w", "First-year withdrawal", "$", "80000"),
       F("years", "Years", "years", "30", min=1, max=100, integer=True), F("mean", "Average annual return", "%", "6", min=-0.5),
       F("sd", "Volatility (standard deviation)", "%", "12", max=1), F("infl", "Withdrawal increase each year", "%", "2.5", min=-0.5),
-      F("sims", "Number of simulations", "count", "2000", min=100, max=20000),
-      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.")],
+      F("sims", "Number of simulations", "count", "2000", min=100, max=20000, default="2000"),
+      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.", default="42")],
      [O("0", "Success rate", "p_success", "percent"),
       O("1", "Ending balance: 10th percentile", "p_end_p10", "currency"),
       O("2", "Ending balance: median", "p_end_p50", "currency"),
@@ -872,6 +1341,526 @@ calc("front_load", "Sales load", FEE,
      "Amount × (1 − load)", "What a front-end sales charge takes off the top.", "mutual fund class a load commission",
      sources=["fees"])
 
+# --- Stocks & bonds ----------------------------------------------------------------
+FREQ = [{"value": 1, "label": "Annual"}, {"value": 2, "label": "Semiannual"},
+        {"value": 4, "label": "Quarterly"}, {"value": 12, "label": "Monthly"}]
+BOND_ASSUMPTIONS = ("Priced on a coupon date (no accrued interest), fixed coupons, held to maturity, every payment "
+                    "made in full. Ignores call features, taxes and transaction costs.")
+
+calc("bond_price", "Bond price from yield", SB,
+     [F("face", "Face value", "$", "1000", min=0.01), F("cpn", "Coupon rate", "%", "4.5"),
+      F("ytm", "Yield to maturity", "%", "5", min=-0.5), F("years", "Years to maturity", "years", "10", min=0.01),
+      F("freq", "Coupon payments", "choice", "2", options=FREQ)],
+     [O("0", "Price", "bondprice(face,cpn,ytm,years,freq)", "currency",
+        "=PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})"),
+      O("1", "Price as % of face", "bondprice(face,cpn,ytm,years,freq)/face", "percent",
+        "=PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})/{face}"),
+      O("2", "Current yield", "face*cpn/bondprice(face,cpn,ytm,years,freq)", "percent",
+        "={face}*{cpn}/PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})"),
+      O("3", "Premium (+) / discount (−) to face", "bondprice(face,cpn,ytm,years,freq)-face", "currency",
+        "=PV({ytm}/{freq},ROUND({years}*{freq},0),-{face}*{cpn}/{freq},-{face})-{face}")],
+     "Coupon × (1 − (1+i)^−n) ÷ i + face × (1+i)^−n, with i = yield ÷ payments per year",
+     "What a fixed-rate bond is worth at a given market yield.",
+     "bond pricing treasury corporate muni coupon present value", common=True,
+     assumptions=BOND_ASSUMPTIONS, sources=["bonds", "treasury"],
+     rules=[R("years*freq", ">=", "0.5", "Maturity must be at least one coupon period.")])
+
+calc("bond_ytm", "Yield to maturity from price", SB,
+     [F("price", "Price paid", "$", "960", min=0.01), F("face", "Face value", "$", "1000", min=0.01),
+      F("cpn", "Coupon rate", "%", "4"), F("years", "Years to maturity", "years", "7", min=0.01),
+      F("freq", "Coupon payments", "choice", "2", options=FREQ)],
+     [O("0", "Yield to maturity", "bondytm(price,face,cpn,years,freq)", "percent",
+        "=RATE(ROUND({years}*{freq},0),{face}*{cpn}/{freq},-{price},{face})*{freq}"),
+      O("1", "Current yield", "face*cpn/price", "percent", "={face}*{cpn}/{price}")],
+     "Yield at which the bond's cash flows are worth exactly the price",
+     "Annual return from buying a bond at a price and holding it to maturity.",
+     "ytm bond yield return price discount premium", acronym="YTM",
+     assumptions=BOND_ASSUMPTIONS + " YTM assumes coupons are reinvested at the same yield.", sources=["bonds"],
+     rules=[R("years*freq", ">=", "0.5", "Maturity must be at least one coupon period.")])
+
+calc("bond_duration", "Duration & rate shock", SB,
+     [F("face", "Face value", "$", "1000", min=0.01), F("cpn", "Coupon rate", "%", "4.5"),
+      F("ytm", "Yield to maturity", "%", "5", min=-0.5), F("years", "Years to maturity", "years", "10", min=0.01),
+      F("freq", "Coupon payments", "choice", "2", options=FREQ),
+      F("dy", "Change in yield", "%", "1", min=-0.1, max=0.1, hint="Enter 1 for +1% (100 bp), −0.5 for −0.5%.")],
+     [O("0", "Macaulay duration", "macdur(face,cpn,ytm,years,freq)", "years"),
+      O("1", "Modified duration", "macdur(face,cpn,ytm,years,freq)/(1+ytm/freq)", "years",
+        "=MDURATION(DATE(2000,1,1),EDATE(DATE(2000,1,1),12*{years}),{cpn},{ytm},{freq})"),
+      O("2", "Convexity", "bondconvexity(face,cpn,ytm,years,freq)", "number"),
+      O("3", "Estimated price change", "-macdur(face,cpn,ytm,years,freq)/(1+ytm/freq)*dy+0.5*bondconvexity(face,cpn,ytm,years,freq)*dy^2", "percent"),
+      O("4", "Exact price change", "bondprice(face,cpn,ytm+dy,years,freq)/bondprice(face,cpn,ytm,years,freq)-1", "percent")],
+     "ΔP/P ≈ −modified duration × Δy + ½ × convexity × Δy²",
+     "How sensitive a bond's price is to interest-rate moves, with an estimate and the exact repriced change.",
+     "interest rate risk sensitivity duration convexity basis points", assumptions=BOND_ASSUMPTIONS, sources=["bonds"],
+     rules=[R("years*freq", ">=", "0.5", "Maturity must be at least one coupon period."),
+            R("ytm+dy", ">", "-0.5", "The shocked yield is too low.")],
+     excelNotes="MDURATION needs settlement and maturity dates; the formula uses placeholder dates spanning the maturity.")
+
+calc("tbill", "Treasury bill yields", SB,
+     [F("face", "Face value", "$", "10000", min=0.01), F("price", "Purchase price", "$", "9890", min=0.01),
+      F("days", "Days to maturity", "count", "91", min=1, max=366)],
+     [O("0", "Bank discount yield", "(face-price)/face*360/days", "percent", "=({face}-{price})/{face}*360/{days}"),
+      O("1", "Bond-equivalent yield", "(face-price)/price*365/days", "percent", "=({face}-{price})/{price}*365/{days}"),
+      O("2", "Money-market yield", "(face-price)/price*360/days", "percent", "=({face}-{price})/{price}*360/{days}"),
+      O("3", "Interest earned", "face-price", "currency", "={face}-{price}")],
+     "Discount ÷ face × 360 ÷ days; BEY = discount ÷ price × 365 ÷ days",
+     "Converts a T-bill price into the different yield conventions quoted in the market.",
+     "t-bill treasury bill discount yield bey cash", sources=["tbills"],
+     rules=[R("price", "<", "face", "Price must be below face value for a discount bill.")],
+     assumptions="Simple-interest yields for bills of a year or less, held to maturity. Treasury interest is exempt from state income tax.")
+
+calc("stock_valuation", "Dividend yield, P/E & payout", SB,
+     [F("price", "Share price", "$", "185", min=0.01), F("div", "Annual dividend per share", "$", "3.40"),
+      F("eps", "Earnings per share (trailing 12 months)", "$", "9.25", min=None)],
+     [O("0", "Dividend yield", "div/price", "percent", "={div}/{price}"),
+      O("1", "Price / earnings (P/E)", "if(eps>0,price/eps,nan())", "multiple", "={price}/{eps}"),
+      O("2", "Earnings yield", "eps/price", "percent", "={eps}/{price}"),
+      O("3", "Payout ratio", "if(eps>0,div/eps,nan())", "percent", "={div}/{eps}")],
+     "Dividend ÷ price; price ÷ EPS; dividend ÷ EPS",
+     "Core per-share valuation ratios for a stock.", "pe ratio valuation dividend yield payout earnings", acronym="P/E",
+     interpretation="Ratios describe the current price relative to past results. P/E and payout aren't meaningful when earnings are zero or negative (shown as n/a).")
+
+calc("position_pl", "Position gain/loss", SB,
+     [F("shares", "Shares owned", "x", "250", min=0, hint="Number of shares; fractions OK."),
+      F("cost", "Average cost per share", "$", "142", min=0.0001), F("price", "Current price", "$", "185"),
+      F("divs", "Dividends received (total)", "$", "1600"), F("years", "Years held", "years", "3.5", min=0.01)],
+     [O("0", "Market value", "shares*price", "currency", "={shares}*{price}"),
+      O("1", "Unrealized gain/loss", "shares*(price-cost)", "currency", "={shares}*({price}-{cost})"),
+      O("2", "Total return incl. dividends", "(shares*price+divs)/(shares*cost)-1", "percent",
+        "=({shares}*{price}+{divs})/({shares}*{cost})-1"),
+      O("3", "Annualized total return", "((shares*price+divs)/(shares*cost))^(1/years)-1", "percent",
+        "=(({shares}*{price}+{divs})/({shares}*{cost}))^(1/{years})-1")],
+     "Gain = shares × (price − cost); total return adds dividends received",
+     "Value, gain and annualized return on a stock or fund position.", "unrealized gain cost basis holding return portfolio",
+     common=True, rules=[R("shares", ">", "0", "Enter a number of shares above zero.")],
+     assumptions="Dividends are counted as cash received, not reinvested. Ignores taxes and trading costs.")
+
+calc("dividend_income", "Dividend income growth", SB,
+     [F("amt", "Amount invested", "$", "250000"), F("y", "Starting dividend yield", "%", "3.2"),
+      F("g", "Annual dividend growth", "%", "6", min=-0.5), F("n", "Years", "years", "15", min=1)],
+     [O("0", "Income in year one", "amt*y", "currency", "={amt}*{y}"),
+      O("1", "Income in final year", "amt*y*(1+g)^(n-1)", "currency", "={amt}*{y}*(1+{g})^({n}-1)"),
+      O("2", "Total income over the period", "if(g==0,amt*y*n,amt*y*((1+g)^n-1)/g)", "currency",
+        "=IF({g}=0,{amt}*{y}*{n},{amt}*{y}*((1+{g})^{n}-1)/{g})"),
+      O("3", "Yield on original cost in final year", "y*(1+g)^(n-1)", "percent", "={y}*(1+{g})^({n}-1)")],
+     "Year-k income = amount × yield × (1 + growth)^(k−1)",
+     "Projects the income from a dividend portfolio whose payouts grow, without reinvesting.",
+     "dividend growth income yield on cost", assumptions="Dividends are spent, not reinvested, and grow at a steady rate. Dividends can be cut.")
+
+calc("ddm", "Dividend discount model", SB,
+     [F("d0", "Current annual dividend", "$", "3.40"), F("g", "Long-run dividend growth", "%", "5", min=-0.5),
+      F("r", "Required return", "%", "9", min=0.0001), F("price", "Current price (optional compare)", "$", "185")],
+     [O("0", "Next year's dividend", "d0*(1+g)", "currency", "={d0}*(1+{g})"),
+      O("1", "Fair value", "d0*(1+g)/(r-g)", "currency", "={d0}*(1+{g})/({r}-{g})"),
+      O("2", "Price ÷ fair value", "price/(d0*(1+g)/(r-g))", "percent", "={price}/({d0}*(1+{g})/({r}-{g}))"),
+      O("3", "Return implied by today's price", "d0*(1+g)/price+g", "percent", "={d0}*(1+{g})/{price}+{g}")],
+     "Value = next dividend ÷ (required return − growth)",
+     "Gordon growth model: values a stock from a dividend that grows forever at a steady rate.",
+     "gordon growth intrinsic value dividend discount", acronym="DDM",
+     rules=[R("r", ">", "g", "Required return must exceed growth.")],
+     interpretation="Highly sensitive to the growth and return inputs. Small changes move the value a lot. It's a framework, not a price target.")
+
+calc("position_size", "Position sizing", SB,
+     [F("v", "Portfolio value", "$", "800000", min=0.01), F("w", "Target weight", "%", "5", max=1),
+      F("price", "Share price", "$", "185", min=0.01), F("held", "Shares already owned", "x", "0", hint="Number of shares.")],
+     [O("0", "Target dollar amount", "v*w", "currency", "={v}*{w}"),
+      O("1", "Whole shares at target", "floor(v*w/price)", "number", "=ROUNDDOWN({v}*{w}/{price},0)"),
+      O("2", "Shares to buy (+) / sell (−)", "floor(v*w/price)-held", "number", "=ROUNDDOWN({v}*{w}/{price},0)-{held}"),
+      O("3", "Cost of the trade", "(floor(v*w/price)-held)*price", "currency", "=(ROUNDDOWN({v}*{w}/{price},0)-{held})*{price}")],
+     "Whole shares = floor(portfolio × weight ÷ price)",
+     "How many shares make up a target weight, and the trade to get there.", "how many shares buy allocation weight")
+
+# --- Statistics & econometrics -----------------------------------------------------
+STAT_ASSUME = "Observations are independent draws from the population. Sample statistics use n − 1."
+CONF = lambda ex="95": F("c", "Confidence level", "%", ex, min=0.5, max=0.9999)
+XS = "2.1; 3.4; 2.9; 4.2; 3.8; 3.1; 2.7; 3.9; 3.3; 4.6"
+RX = "1; 2; 3; 4; 5; 6; 7; 8; 9; 10"
+RY = "3.1; 4.9; 7.2; 8.8; 11.1; 12.7; 15.2; 16.8; 19.3; 20.9"
+REG = "(cov(x,y)/var(x))"
+INT = "(avg(y)-cov(x,y)/var(x)*avg(x))"
+SSR = "sum((y-" + INT + "-" + REG + "*x)^2)"
+SXX = "sum((x-avg(x))^2)"
+SE_B = "sqrt(" + SSR + "/(count(x)-2)/" + SXX + ")"
+
+calc("descriptive", "Descriptive statistics", ST,
+     [F("x", "Data", "series", XS, min=None, hint="Separate values with semicolons or new lines, or paste a column from Excel.")],
+     [O("0", "Count (n)", "count(x)", "number", "=COUNT({x})"),
+      O("1", "Mean", "avg(x)", "number", "=AVERAGE({x})"),
+      O("2", "Median", "median(x)", "number", "=MEDIAN({x})"),
+      O("3", "Standard deviation (sample)", "sd(x)", "number", "=STDEV.S({x})"),
+      O("4", "Variance (sample)", "var(x)", "number", "=VAR.S({x})"),
+      O("5", "Standard error of the mean", "sd(x)/sqrt(count(x))", "number", "=STDEV.S({x})/SQRT(COUNT({x}))"),
+      O("6", "Minimum", "min(x)", "number", "=MIN({x})"),
+      O("7", "Maximum", "max(x)", "number", "=MAX({x})"),
+      O("8", "Coefficient of variation", "sd(x)/avg(x)", "percent", "=STDEV.S({x})/AVERAGE({x})")],
+     "Mean = Σx ÷ n; s = √(Σ(x − x̄)² ÷ (n − 1))", "Summary statistics for a list of numbers.",
+     "mean median mode standard deviation variance summary stats average", common=True,
+     rules=[R("count(x)", ">=", "2", "Enter at least two values.")], assumptions=STAT_ASSUME, sources=["openstax_stats"])
+
+calc("normal_prob", "Normal probability & z-score", ST,
+     [F("v", "Value (x)", "x", "130", min=None), F("m", "Mean (μ)", "x", "100", min=None),
+      F("s", "Standard deviation (σ)", "x", "15", min=0.0000001)],
+     [O("0", "z-score", "(v-m)/s", "number", "=STANDARDIZE({v},{m},{s})"),
+      O("1", "P(X < x)", "normcdf((v-m)/s)", "percent", "=NORM.DIST({v},{m},{s},TRUE)"),
+      O("2", "P(X > x)", "1-normcdf((v-m)/s)", "percent", "=1-NORM.DIST({v},{m},{s},TRUE)"),
+      O("3", "P(|Z| > |z|), two-tailed", "2*(1-normcdf(abs((v-m)/s)))", "percent", "=2*(1-NORM.S.DIST(ABS(STANDARDIZE({v},{m},{s})),TRUE))")],
+     "z = (x − μ) ÷ σ; P from the standard normal CDF", "Converts a value to a z-score and finds normal-curve probabilities.",
+     "z score normal distribution bell curve probability percentile", sources=["nist"])
+
+calc("normal_between", "Normal probability between two values", ST,
+     [F("a", "Lower value", "x", "85", min=None), F("b", "Upper value", "x", "115", min=None),
+      F("m", "Mean (μ)", "x", "100", min=None), F("s", "Standard deviation (σ)", "x", "15", min=0.0000001)],
+     [O("0", "P(a < X < b)", "normcdf((b-m)/s)-normcdf((a-m)/s)", "percent", "=NORM.DIST({b},{m},{s},TRUE)-NORM.DIST({a},{m},{s},TRUE)"),
+      O("1", "Outside the range", "1-(normcdf((b-m)/s)-normcdf((a-m)/s))", "percent", "=1-(NORM.DIST({b},{m},{s},TRUE)-NORM.DIST({a},{m},{s},TRUE))")],
+     "Φ((b − μ)/σ) − Φ((a − μ)/σ)", "Probability a normal variable falls between two values.",
+     "normal range between probability empirical rule 68 95", rules=[R("b", ">", "a", "Upper value must exceed lower value.")])
+
+calc("inverse_normal", "Critical values (z and t)", ST,
+     [CONF(), F("df", "Degrees of freedom (for t)", "count", "20", min=1)],
+     [O("0", "z* (two-tailed)", "norminv(1-(1-c)/2)", "number", "=NORM.S.INV(1-(1-{c})/2)"),
+      O("1", "t* (two-tailed)", "tinv(1-(1-c)/2,df)", "number", "=T.INV.2T(1-{c},{df})"),
+      O("2", "z* (one-tailed)", "norminv(c)", "number", "=NORM.S.INV({c})"),
+      O("3", "t* (one-tailed)", "tinv(c,df)", "number", "=T.INV({c},{df})")],
+     "z* = Φ⁻¹(1 − α/2); t* = t⁻¹(1 − α/2, df)", "Critical values for confidence intervals and hypothesis tests.",
+     "critical value z table t table alpha significance level inverse", sources=["nist"])
+
+calc("pvalue", "p-value from a test statistic", ST,
+     [F("stat", "Test statistic (z or t)", "x", "2.31", min=None), F("df", "Degrees of freedom (t test)", "count", "24", min=1)],
+     [O("0", "Two-tailed p (t)", "2*(1-tcdf(abs(stat),df))", "percent", "=T.DIST.2T(ABS({stat}),{df})"),
+      O("1", "One-tailed p (t, upper)", "1-tcdf(stat,df)", "percent", "=T.DIST.RT({stat},{df})"),
+      O("2", "Two-tailed p (z)", "2*(1-normcdf(abs(stat)))", "percent", "=2*(1-NORM.S.DIST(ABS({stat}),TRUE))"),
+      O("3", "One-tailed p (z, upper)", "1-normcdf(stat)", "percent", "=1-NORM.S.DIST({stat},TRUE)")],
+     "p = P(|T| ≥ |t|) from the t or standard normal distribution",
+     "Probability of a statistic at least this extreme if the null hypothesis is true.",
+     "p value hypothesis test significance reject null", sources=["nist"],
+     interpretation="Compare p with your significance level (often 5%). A small p is evidence against the null; it isn't the probability the null is true.")
+
+calc("ci_mean_data", "Confidence interval for a mean (data)", ST,
+     [F("x", "Data", "series", XS, min=None), CONF()],
+     [O("0", "Mean", "avg(x)", "number", "=AVERAGE({x})"),
+      O("1", "Margin of error", "tinv(1-(1-c)/2,count(x)-1)*sd(x)/sqrt(count(x))", "number", "=CONFIDENCE.T(1-{c},STDEV.S({x}),COUNT({x}))"),
+      O("2", "Lower bound", "avg(x)-tinv(1-(1-c)/2,count(x)-1)*sd(x)/sqrt(count(x))", "number", "=AVERAGE({x})-CONFIDENCE.T(1-{c},STDEV.S({x}),COUNT({x}))"),
+      O("3", "Upper bound", "avg(x)+tinv(1-(1-c)/2,count(x)-1)*sd(x)/sqrt(count(x))", "number", "=AVERAGE({x})+CONFIDENCE.T(1-{c},STDEV.S({x}),COUNT({x}))")],
+     "x̄ ± t* × s ÷ √n", "t-based confidence interval for a population mean from raw data.",
+     "confidence interval mean t interval margin of error", assumptions=STAT_ASSUME + " Population roughly normal or n large.",
+     rules=[R("count(x)", ">=", "2", "Enter at least two values.")], sources=["openstax_stats"])
+
+calc("ci_mean_summary", "Confidence interval for a mean (summary)", ST,
+     [F("m", "Sample mean", "x", "52.3", min=None), F("s", "Sample standard deviation", "x", "8.1", min=0.0000001),
+      F("n", "Sample size", "count", "36", min=2), CONF()],
+     [O("0", "Margin of error", "tinv(1-(1-c)/2,n-1)*s/sqrt(n)", "number", "=CONFIDENCE.T(1-{c},{s},{n})"),
+      O("1", "Lower bound", "m-tinv(1-(1-c)/2,n-1)*s/sqrt(n)", "number", "={m}-CONFIDENCE.T(1-{c},{s},{n})"),
+      O("2", "Upper bound", "m+tinv(1-(1-c)/2,n-1)*s/sqrt(n)", "number", "={m}+CONFIDENCE.T(1-{c},{s},{n})"),
+      O("3", "Standard error", "s/sqrt(n)", "number", "={s}/SQRT({n})")],
+     "x̄ ± t* × s ÷ √n", "Confidence interval for a mean from summary statistics.",
+     "confidence interval mean summary statistics", assumptions=STAT_ASSUME, sources=["openstax_stats"])
+
+calc("ci_proportion", "Confidence interval for a proportion", ST,
+     [F("k", "Successes", "count", "312", min=0), F("n", "Sample size", "count", "600", min=1), CONF()],
+     [O("0", "Sample proportion", "k/n", "percent", "={k}/{n}"),
+      O("1", "Margin of error", "norminv(1-(1-c)/2)*sqrt(k/n*(1-k/n)/n)", "percent", "=NORM.S.INV(1-(1-{c})/2)*SQRT({k}/{n}*(1-{k}/{n})/{n})"),
+      O("2", "Lower bound", "k/n-norminv(1-(1-c)/2)*sqrt(k/n*(1-k/n)/n)", "percent", "={k}/{n}-NORM.S.INV(1-(1-{c})/2)*SQRT({k}/{n}*(1-{k}/{n})/{n})"),
+      O("3", "Upper bound", "k/n+norminv(1-(1-c)/2)*sqrt(k/n*(1-k/n)/n)", "percent", "={k}/{n}+NORM.S.INV(1-(1-{c})/2)*SQRT({k}/{n}*(1-{k}/{n})/{n})")],
+     "p̂ ± z* × √(p̂(1 − p̂) ÷ n)", "Wald confidence interval for a population proportion (polls, survey shares).",
+     "proportion poll survey margin of error percent", rules=[R("k", "<=", "n", "Successes can't exceed the sample size.")],
+     assumptions="Wald interval; reasonable when n·p̂ and n·(1 − p̂) are both at least 10.", sources=["openstax_stats"])
+
+calc("sample_size", "Sample size needed", ST,
+     [CONF(), F("s", "Expected standard deviation (for a mean)", "x", "15", min=0.0000001),
+      F("e", "Margin of error for the mean", "x", "2", min=0.0000001),
+      F("p", "Expected proportion", "%", "50", max=1), F("ep", "Margin of error for a proportion", "%", "3", min=0.0001, max=1)],
+     [O("0", "n for a mean", "ceil((norminv(1-(1-c)/2)*s/e)^2)", "number", "=ROUNDUP((NORM.S.INV(1-(1-{c})/2)*{s}/{e})^2,0)"),
+      O("1", "n for a proportion", "ceil(norminv(1-(1-c)/2)^2*p*(1-p)/ep^2)", "number", "=ROUNDUP(NORM.S.INV(1-(1-{c})/2)^2*{p}*(1-{p})/{ep}^2,0)")],
+     "n = (z* σ ÷ E)²; n = z*² p(1 − p) ÷ E²", "Minimum sample size to hit a target margin of error.",
+     "sample size survey design how many respondents", sources=["openstax_stats"],
+     assumptions="Uses z (large-sample) critical values and simple random sampling. Use 50% for the proportion when unsure: it's the most conservative.")
+
+calc("t_test_one", "One-sample t-test", ST,
+     [F("x", "Data", "series", XS, min=None), F("mu", "Hypothesized mean (μ₀)", "x", "3", min=None)],
+     [O("0", "t statistic", "(avg(x)-mu)/(sd(x)/sqrt(count(x)))", "number", "=(AVERAGE({x})-{mu})/(STDEV.S({x})/SQRT(COUNT({x})))"),
+      O("1", "Degrees of freedom", "count(x)-1", "number", "=COUNT({x})-1"),
+      O("2", "p-value (two-tailed)", "2*(1-tcdf(abs((avg(x)-mu)/(sd(x)/sqrt(count(x)))),count(x)-1))", "percent",
+        "=T.DIST.2T(ABS((AVERAGE({x})-{mu})/(STDEV.S({x})/SQRT(COUNT({x})))),COUNT({x})-1)")],
+     "t = (x̄ − μ₀) ÷ (s ÷ √n), df = n − 1", "Tests whether a sample mean differs from a hypothesized value.",
+     "hypothesis test one sample mean t test", assumptions=STAT_ASSUME + " Population roughly normal or n large.",
+     rules=[R("count(x)", ">=", "2", "Enter at least two values.")], sources=["nist"])
+
+calc("t_test_two", "Two-sample t-test (Welch)", ST,
+     [F("x", "Group 1 data", "series", "23; 25; 28; 30; 26; 27; 24; 29", min=None),
+      F("y", "Group 2 data", "series", "20; 22; 25; 21; 24; 23; 19; 22; 21", min=None)],
+     [O("0", "Difference in means (1 − 2)", "avg(x)-avg(y)", "number", "=AVERAGE({x})-AVERAGE({y})"),
+      O("1", "t statistic", "(avg(x)-avg(y))/sqrt(var(x)/count(x)+var(y)/count(y))", "number"),
+      O("2", "Degrees of freedom (Welch)", "(var(x)/count(x)+var(y)/count(y))^2/((var(x)/count(x))^2/(count(x)-1)+(var(y)/count(y))^2/(count(y)-1))", "number"),
+      O("3", "p-value (two-tailed)", "2*(1-tcdf(abs((avg(x)-avg(y))/sqrt(var(x)/count(x)+var(y)/count(y))),(var(x)/count(x)+var(y)/count(y))^2/((var(x)/count(x))^2/(count(x)-1)+(var(y)/count(y))^2/(count(y)-1))))", "percent",
+        "=T.TEST({x},{y},2,3)")],
+     "t = (x̄₁ − x̄₂) ÷ √(s₁²/n₁ + s₂²/n₂), Welch–Satterthwaite df",
+     "Tests whether two groups have different means without assuming equal variances.",
+     "two sample t test difference in means welch independent groups treatment control",
+     rules=[R("count(x)", ">=", "2", "Group 1 needs at least two values."), R("count(y)", ">=", "2", "Group 2 needs at least two values.")],
+     assumptions="Independent samples; each roughly normal or large.", sources=["nist"],
+     excelNotes="Excel's T.TEST(…,2,3) returns the Welch two-tailed p-value directly; its df may differ slightly because Excel rounds it.")
+
+calc("correlation", "Correlation", ST,
+     [F("x", "X values", "series", RX, min=None), F("y", "Y values", "series", RY, min=None)],
+     [O("0", "Correlation (r)", "corr(x,y)", "number", "=CORREL({x},{y})"),
+      O("1", "R²", "corr(x,y)^2", "percent", "=RSQ({y},{x})"),
+      O("2", "Covariance (sample)", "cov(x,y)", "number", "=COVARIANCE.S({x},{y})"),
+      O("3", "p-value for r ≠ 0", "2*(1-tcdf(abs(corr(x,y)*sqrt((count(x)-2)/(1-corr(x,y)^2))),count(x)-2))", "percent")],
+     "r = cov(x, y) ÷ (sₓ s_y); t = r √((n − 2) ÷ (1 − r²))", "Pearson correlation between two variables and its significance.",
+     "pearson correlation coefficient covariance relationship",
+     rules=[R("count(x)", "==", "count(y)", "Enter the same number of X and Y values."), R("count(x)", ">=", "3", "Enter at least three pairs.")],
+     sources=["nist"])
+
+calc("ols", "Simple linear regression (OLS)", ST,
+     [F("x", "X (independent)", "series", RX, min=None), F("y", "Y (dependent)", "series", RY, min=None)],
+     [O("0", "Slope (β₁)", REG, "number", "=SLOPE({y},{x})"),
+      O("1", "Intercept (β₀)", INT, "number", "=INTERCEPT({y},{x})"),
+      O("2", "R²", "corr(x,y)^2", "percent", "=RSQ({y},{x})"),
+      O("3", "Std. error of slope", SE_B, "number", "=INDEX(LINEST({y},{x},TRUE,TRUE),2,1)"),
+      O("4", "t statistic (slope)", REG + "/" + SE_B, "number"),
+      O("5", "p-value (slope)", "2*(1-tcdf(abs(" + REG + "/" + SE_B + "),count(x)-2))", "percent"),
+      O("6", "Residual std. error", "sqrt(" + SSR + "/(count(x)-2))", "number", "=STEYX({y},{x})")],
+     "β₁ = cov(x, y) ÷ var(x); β₀ = ȳ − β₁x̄; SE(β₁) = √(SSR ÷ (n − 2) ÷ Σ(x − x̄)²)",
+     "Fits y = β₀ + β₁x by least squares, with the slope's standard error and significance.",
+     "regression ols least squares slope intercept linear model econometrics line of best fit", common=True,
+     rules=[R("count(x)", "==", "count(y)", "Enter the same number of X and Y values."), R("count(x)", ">=", "3", "Enter at least three pairs.")],
+     assumptions="Classical linear model: linear relationship, independent errors with constant variance (homoskedastic), errors roughly normal for t-based inference. Standard errors are not robust.",
+     sources=["nist"])
+
+calc("ols_predict", "Regression prediction", ST,
+     [F("x", "X (independent)", "series", RX, min=None), F("y", "Y (dependent)", "series", RY, min=None),
+      F("x0", "Predict at x =", "x", "12", min=None), CONF()],
+     [O("0", "Predicted ŷ", INT + "+" + REG + "*x0", "number", "=FORECAST.LINEAR({x0},{y},{x})"),
+      O("1", "Prediction interval ±", "tinv(1-(1-c)/2,count(x)-2)*sqrt(" + SSR + "/(count(x)-2))*sqrt(1+1/count(x)+(x0-avg(x))^2/" + SXX + ")", "number"),
+      O("2", "Mean-response interval ±", "tinv(1-(1-c)/2,count(x)-2)*sqrt(" + SSR + "/(count(x)-2))*sqrt(1/count(x)+(x0-avg(x))^2/" + SXX + ")", "number")],
+     "ŷ = β₀ + β₁x₀; PI = ŷ ± t* sₑ √(1 + 1/n + (x₀ − x̄)² ÷ Σ(x − x̄)²)",
+     "Predicts y at a chosen x, with intervals for a single new observation and for the average response.",
+     "forecast prediction interval confidence band regression",
+     rules=[R("count(x)", "==", "count(y)", "Enter the same number of X and Y values."), R("count(x)", ">=", "3", "Enter at least three pairs.")],
+     assumptions="Same assumptions as OLS. Predictions far outside the observed x range are extrapolation.", sources=["nist"])
+
+calc("f_test", "Regression F-test & adjusted R²", ST,
+     [F("r2", "R²", "%", "42", max=0.9999), F("k", "Number of regressors (excluding constant)", "count", "3", min=1),
+      F("n", "Observations", "count", "60", min=3)],
+     [O("0", "F statistic", "(r2/k)/((1-r2)/(n-k-1))", "number", "=({r2}/{k})/((1-{r2})/({n}-{k}-1))"),
+      O("1", "p-value", "1-fcdf((r2/k)/((1-r2)/(n-k-1)),k,n-k-1)", "percent", "=F.DIST.RT(({r2}/{k})/((1-{r2})/({n}-{k}-1)),{k},{n}-{k}-1)"),
+      O("2", "Adjusted R²", "1-(1-r2)*(n-1)/(n-k-1)", "percent", "=1-(1-{r2})*({n}-1)/({n}-{k}-1)")],
+     "F = (R²/k) ÷ ((1 − R²)/(n − k − 1)); adj. R² = 1 − (1 − R²)(n − 1)/(n − k − 1)",
+     "Joint significance of all regressors in a multiple regression, from its R².",
+     "f test overall significance anova adjusted r squared multiple regression econometrics",
+     rules=[R("n", ">", "k+1", "Need more observations than regressors plus one.")], sources=["nist"])
+
+calc("durbin_watson", "Durbin–Watson statistic", ST,
+     [F("e", "Residuals in time order", "series", "0.5; 0.8; 0.3; -0.2; -0.6; -0.4; 0.1; 0.6; 0.4; -0.3; -0.7; -0.2", min=None)],
+     [O("0", "Durbin–Watson d", "dw(e)", "number"),
+      O("1", "Implied first-order autocorrelation (≈ 1 − d/2)", "1-dw(e)/2", "number")],
+     "d = Σ(eₜ − eₜ₋₁)² ÷ Σeₜ²", "Checks regression residuals for first-order serial correlation.",
+     "autocorrelation serial correlation time series residuals econometrics",
+     rules=[R("count(e)", ">=", "3", "Enter at least three residuals.")],
+     interpretation="d near 2 suggests no first-order autocorrelation; well below 2 suggests positive, well above 2 negative. Compare with Durbin–Watson critical values for formal tests.",
+     sources=["nist"], excelNotes="With residuals in one row: =SUMXMY2(next cells, previous cells)/SUMSQ(all residuals).")
+
+calc("log_coef", "Interpreting log-model coefficients", ST,
+     [F("b", "Estimated coefficient (β)", "x", "0.08", min=None), F("d", "Change in x to interpret", "x", "1", min=None, hint="Units for level x; percent for logged x (e.g. 10 for 10%).")],
+     [O("0", "Log-level: % change in y (exact)", "exp(b*d)-1", "percent", "=EXP({b}*{d})-1"),
+      O("1", "Log-level: % change in y (approx.)", "b*d", "percent", "={b}*{d}"),
+      O("2", "Level-log: change in y for d% change in x", "b*ln(1+d/100)", "number", "={b}*LN(1+{d}/100)"),
+      O("3", "Log-log: % change in y for d% change in x", "(1+d/100)^b-1", "percent", "=(1+{d}/100)^{b}-1")],
+     "log-level: %Δy = e^(βΔx) − 1; level-log: Δy = β ln(1 + Δ%); log-log: elasticity β",
+     "Translates coefficients from log regression models into plain changes in y.",
+     "log linear semi elasticity log log interpretation econometrics wage regression",
+     interpretation="Read only the row for your model: log-level (ln y on x), level-log (y on ln x), or log-log (ln y on ln x). In log-log, β is an elasticity.")
+
+calc("binomial", "Binomial probability", ST,
+     [F("n", "Trials (n)", "count", "20", min=1, max=100000), F("k", "Successes (k)", "count", "6", min=0),
+      F("p", "Probability of success", "%", "25", max=1)],
+     [O("0", "P(X = k)", "binompmf(n,k,p)", "percent", "=BINOM.DIST({k},{n},{p},FALSE)"),
+      O("1", "P(X ≤ k)", "binomcdf(n,k,p)", "percent", "=BINOM.DIST({k},{n},{p},TRUE)"),
+      O("2", "P(X ≥ k)", "1-binomcdf(n,k-1,p)", "percent", "=1-BINOM.DIST({k}-1,{n},{p},TRUE)"),
+      O("3", "Mean (np)", "n*p", "number", "={n}*{p}"),
+      O("4", "Standard deviation", "sqrt(n*p*(1-p))", "number", "=SQRT({n}*{p}*(1-{p}))")],
+     "P(X = k) = C(n, k) pᵏ (1 − p)ⁿ⁻ᵏ", "Probabilities for the number of successes in independent yes/no trials.",
+     "binomial distribution probability trials successes coin flip",
+     rules=[R("k", "<=", "n", "Successes can't exceed trials.")], sources=["openstax_stats"])
+
+# --- Economics ---------------------------------------------------------------------
+calc("elasticity", "Elasticity (midpoint method)", EC,
+     [F("p1", "Initial price (or income)", "x", "10", min=None), F("q1", "Initial quantity", "x", "1000", min=None),
+      F("p2", "New price (or income)", "x", "12", min=None), F("q2", "New quantity", "x", "850", min=None)],
+     [O("0", "Elasticity", "((q2-q1)/((q1+q2)/2))/((p2-p1)/((p1+p2)/2))", "number",
+        "=(({q2}-{q1})/(({q1}+{q2})/2))/(({p2}-{p1})/(({p1}+{p2})/2))"),
+      O("1", "% change in quantity", "(q2-q1)/((q1+q2)/2)", "percent", "=({q2}-{q1})/(({q1}+{q2})/2)"),
+      O("2", "% change in price", "(p2-p1)/((p1+p2)/2)", "percent", "=({p2}-{p1})/(({p1}+{p2})/2)"),
+      O("3", "Change in total revenue (P × Q)", "p2*q2-p1*q1", "number", "={p2}*{q2}-{p1}*{q1}")],
+     "%ΔQ ÷ %ΔP, each change measured against the midpoint",
+     "Price, income or cross-price elasticity using the arc (midpoint) formula.",
+     "price elasticity of demand supply income elasticity cross price arc midpoint elastic inelastic", common=True,
+     rules=[R("p2", "!=", "p1", "Price (or income) must change.")],
+     interpretation="For price elasticity of demand, |E| > 1 is elastic (revenue falls when price rises) and |E| < 1 is inelastic. For income elasticity, negative means an inferior good; for cross-price, positive means substitutes.",
+     sources=["openstax_econ"])
+
+calc("market_equilibrium", "Supply & demand equilibrium with a tax", EC,
+     [F("a", "Demand intercept (P = a − bQ)", "x", "100", min=None), F("b", "Demand slope b", "x", "2", min=0.0000001),
+      F("c", "Supply intercept (P = c + dQ)", "x", "10", min=None), F("d", "Supply slope d", "x", "1", min=0.0000001),
+      F("t", "Per-unit tax (0 for none)", "x", "6", min=0)],
+     [O("0", "Equilibrium quantity (no tax)", "(a-c)/(b+d)", "number", "=({a}-{c})/({b}+{d})"),
+      O("1", "Equilibrium price (no tax)", "a-b*(a-c)/(b+d)", "number", "={a}-{b}*({a}-{c})/({b}+{d})"),
+      O("2", "Consumer surplus (no tax)", "0.5*b*((a-c)/(b+d))^2", "number", "=0.5*{b}*(({a}-{c})/({b}+{d}))^2"),
+      O("3", "Producer surplus (no tax)", "0.5*d*((a-c)/(b+d))^2", "number", "=0.5*{d}*(({a}-{c})/({b}+{d}))^2"),
+      O("4", "Quantity with tax", "(a-c-t)/(b+d)", "number", "=({a}-{c}-{t})/({b}+{d})"),
+      O("5", "Price buyers pay", "a-b*(a-c-t)/(b+d)", "number", "={a}-{b}*({a}-{c}-{t})/({b}+{d})"),
+      O("6", "Price sellers keep", "a-b*(a-c-t)/(b+d)-t", "number", "={a}-{b}*({a}-{c}-{t})/({b}+{d})-{t}"),
+      O("7", "Tax revenue", "t*(a-c-t)/(b+d)", "number", "={t}*({a}-{c}-{t})/({b}+{d})"),
+      O("8", "Deadweight loss", "0.5*t*((a-c)/(b+d)-(a-c-t)/(b+d))", "number", "=0.5*{t}*(({a}-{c})/({b}+{d})-({a}-{c}-{t})/({b}+{d}))"),
+      O("9", "Share of tax paid by buyers", "b/(b+d)", "percent", "={b}/({b}+{d})")],
+     "Set a − bQ = c + dQ (+ t); surpluses are triangle areas",
+     "Linear market equilibrium, surpluses, and the incidence and deadweight loss of a per-unit tax.",
+     "supply demand equilibrium consumer surplus producer surplus deadweight loss tax incidence welfare",
+     rules=[R("a", ">", "c+t", "Demand intercept must exceed supply intercept plus the tax, or nothing is traded.")],
+     sources=["openstax_econ"])
+
+calc("cpi_inflation", "CPI inflation & real values", EC,
+     [F("c0", "CPI in the base period", "x", "258.8", min=0.0001), F("c1", "CPI in the later period", "x", "322.6", min=0.0001),
+      F("v", "Dollar amount in the base period", "$", "50000")],
+     [O("0", "Inflation between periods", "c1/c0-1", "percent", "={c1}/{c0}-1"),
+      O("1", "Same purchasing power in later dollars", "v*c1/c0", "currency", "={v}*{c1}/{c0}"),
+      O("2", "Later-period amount in base-period dollars", "v*c0/c1", "currency", "={v}*{c0}/{c1}")],
+     "Inflation = CPI₁ ÷ CPI₀ − 1; real value = nominal × CPI_base ÷ CPI_then",
+     "Inflation between two CPI readings and converting dollars between years.",
+     "cpi inflation price index real nominal purchasing power deflate", sources=["bls_cpi"])
+
+calc("gdp_deflator", "Nominal vs. real GDP", EC,
+     [F("ng", "Nominal GDP", "x", "29200", min=0.0001), F("rg", "Real GDP (base-year prices)", "x", "23500", min=0.0001),
+      F("ng0", "Prior-year nominal GDP", "x", "27700", min=0.0001), F("rg0", "Prior-year real GDP", "x", "22900", min=0.0001)],
+     [O("0", "GDP deflator", "ng/rg*100", "number", "={ng}/{rg}*100"),
+      O("1", "Nominal GDP growth", "ng/ng0-1", "percent", "={ng}/{ng0}-1"),
+      O("2", "Real GDP growth", "rg/rg0-1", "percent", "={rg}/{rg0}-1"),
+      O("3", "Inflation (deflator)", "(ng/rg)/(ng0/rg0)-1", "percent", "=({ng}/{rg})/({ng0}/{rg0})-1")],
+     "Deflator = nominal ÷ real × 100", "GDP deflator, nominal and real growth, and implied inflation.",
+     "gdp deflator real gdp nominal growth macroeconomics", sources=["openstax_econ"])
+
+calc("rule70", "Growth & the rule of 70", EC,
+     [F("g", "Annual growth rate", "%", "2", min=0.0001), F("m", "Multiply by", "x", "4", min=1.0001, hint="E.g. 2 to double, 4 to quadruple.")],
+     [O("0", "Rule-of-70 doubling time", "70/(g*100)", "years", "=70/({g}*100)"),
+      O("1", "Exact doubling time", "ln(2)/ln(1+g)", "years", "=LN(2)/LN(1+{g})"),
+      O("2", "Years to multiply by m", "ln(m)/ln(1+g)", "years", "=LN({m})/LN(1+{g})")],
+     "70 ÷ growth %; exact: ln 2 ÷ ln(1 + g)", "How quickly steady growth doubles output, income or prices.",
+     "rule of 70 doubling time economic growth gdp per capita", sources=["openstax_econ"])
+
+calc("multiplier", "Spending & tax multipliers", EC,
+     [F("mpc", "Marginal propensity to consume", "%", "80", max=0.9999), F("t", "Income tax rate (0 for a simple model)", "%", "0", max=0.99),
+      F("dg", "Change in government spending", "x", "100", min=None), F("dt", "Change in lump-sum taxes", "x", "0", min=None)],
+     [O("0", "Spending multiplier", "1/(1-mpc*(1-t))", "number", "=1/(1-{mpc}*(1-{t}))"),
+      O("1", "Tax multiplier", "-mpc/(1-mpc*(1-t))", "number", "=-{mpc}/(1-{mpc}*(1-{t}))"),
+      O("2", "Change in GDP", "dg/(1-mpc*(1-t))-dt*mpc/(1-mpc*(1-t))", "number", "={dg}/(1-{mpc}*(1-{t}))-{dt}*{mpc}/(1-{mpc}*(1-{t}))"),
+      O("3", "Marginal propensity to save", "1-mpc", "percent", "=1-{mpc}")],
+     "Spending multiplier = 1 ÷ (1 − MPC(1 − t)); tax multiplier = −MPC ÷ (1 − MPC(1 − t))",
+     "Keynesian multipliers and the change in GDP from fiscal policy.",
+     "keynesian multiplier mpc mps fiscal policy government spending aggregate demand",
+     assumptions="Simple closed-economy Keynesian cross: fixed prices and interest rates, no crowding out, no imports.", sources=["openstax_econ"])
+
+calc("money", "Money multiplier & quantity theory", EC,
+     [F("rr", "Reserve requirement", "%", "10", min=0.0001, max=1), F("dep", "New reserves / deposit", "x", "1000", min=None),
+      F("gm", "Money growth", "%", "6", min=-0.99), F("gv", "Velocity growth", "%", "0", min=-0.99), F("gy", "Real output growth", "%", "2", min=-0.99)],
+     [O("0", "Simple money multiplier", "1/rr", "number", "=1/{rr}"),
+      O("1", "Maximum new money created", "dep/rr", "number", "={dep}/{rr}"),
+      O("2", "Implied inflation (MV = PY)", "(1+gm)*(1+gv)/(1+gy)-1", "percent", "=(1+{gm})*(1+{gv})/(1+{gy})-1"),
+      O("3", "Approximation (%ΔM + %ΔV − %ΔY)", "gm+gv-gy", "percent", "={gm}+{gv}-{gy}")],
+     "Multiplier = 1 ÷ reserve ratio; %ΔP ≈ %ΔM + %ΔV − %ΔY",
+     "Deposit expansion and the inflation implied by the quantity theory of money.",
+     "money multiplier reserve ratio quantity theory mv=py velocity monetary", sources=["openstax_econ"],
+     assumptions="Textbook multiplier: banks lend all excess reserves and the public holds no extra cash. (The U.S. reserve requirement has been 0% since 2020; the textbook model remains a teaching tool.)")
+
+calc("taylor_rule", "Taylor rule", EC,
+     [F("rn", "Neutral real interest rate", "%", "1", min=-0.1), F("pi", "Inflation", "%", "3", min=-0.2),
+      F("pit", "Inflation target", "%", "2", min=-0.1), F("gap", "Output gap (+ above potential)", "%", "-0.5", min=-0.5, max=0.5),
+      F("wp", "Weight on inflation gap", "x", "0.5", min=0), F("wy", "Weight on output gap", "x", "0.5", min=0)],
+     [O("0", "Suggested policy rate", "rn+pi+wp*(pi-pit)+wy*gap", "percent", "={rn}+{pi}+{wp}*({pi}-{pit})+{wy}*{gap}"),
+      O("1", "Implied real policy rate", "rn+wp*(pi-pit)+wy*gap", "percent", "={rn}+{wp}*({pi}-{pit})+{wy}*{gap}")],
+     "i = r* + π + 0.5(π − π*) + 0.5(output gap)", "Policy interest rate suggested by the Taylor (1993) rule.",
+     "taylor rule federal funds rate monetary policy central bank", sources=["openstax_econ"],
+     interpretation="A benchmark, not a forecast of what the Fed will do. Results swing with the neutral-rate and output-gap estimates.")
+
+calc("labor_market", "Unemployment & labor force rates", EC,
+     [F("u", "Unemployed", "x", "7.1", min=0, hint="Same units throughout (e.g. millions)."), F("e", "Employed", "x", "163.2", min=0),
+      F("pop", "Working-age population (16+, civilian non-institutional)", "x", "272.0", min=0.0001)],
+     [O("0", "Unemployment rate", "u/(u+e)", "percent", "={u}/({u}+{e})"),
+      O("1", "Labor force participation rate", "(u+e)/pop", "percent", "=({u}+{e})/{pop}"),
+      O("2", "Employment-population ratio", "e/pop", "percent", "={e}/{pop}"),
+      O("3", "Labor force", "u+e", "number", "={u}+{e}")],
+     "Unemployment = U ÷ (U + E); participation = (U + E) ÷ population", "Core labor-market rates as defined by the BLS.",
+     "unemployment rate labor force participation employment population", sources=["bls_cps"],
+     rules=[R("u+e", "<=", "pop", "The labor force can't exceed the working-age population.")])
+
+calc("okun", "Okun's law", EC,
+     [F("u", "Unemployment rate", "%", "5.5", max=1), F("un", "Natural rate of unemployment", "%", "4.2", max=1),
+      F("k", "Okun coefficient", "x", "2", min=0), F("yp", "Potential GDP", "x", "29000", min=0)],
+     [O("0", "Output gap", "-k*(u-un)", "percent", "=-{k}*({u}-{un})"),
+      O("1", "Lost output", "-k*(u-un)*yp", "number", "=-{k}*({u}-{un})*{yp}")],
+     "Output gap ≈ −k × (u − u*)", "Rule-of-thumb link between unemployment above its natural rate and lost output.",
+     "okun's law output gap cyclical unemployment recession", sources=["openstax_econ"])
+
+calc("monopoly", "Monopoly vs. competition (linear demand)", EC,
+     [F("a", "Demand intercept (P = a − bQ)", "x", "120", min=None), F("b", "Demand slope b", "x", "2", min=0.0000001),
+      F("mc", "Constant marginal cost", "x", "20", min=0), F("fc", "Fixed cost", "x", "300", min=0)],
+     [O("0", "Monopoly quantity (MR = MC)", "(a-mc)/(2*b)", "number", "=({a}-{mc})/(2*{b})"),
+      O("1", "Monopoly price", "(a+mc)/2", "number", "=({a}+{mc})/2"),
+      O("2", "Monopoly profit", "(a-mc)^2/(4*b)-fc", "number", "=({a}-{mc})^2/(4*{b})-{fc}"),
+      O("3", "Competitive quantity (P = MC)", "(a-mc)/b", "number", "=({a}-{mc})/{b}"),
+      O("4", "Deadweight loss of monopoly", "(a-mc)^2/(8*b)", "number", "=({a}-{mc})^2/(8*{b})"),
+      O("5", "Lerner index (P − MC) ÷ P", "((a+mc)/2-mc)/((a+mc)/2)", "percent", "=(({a}+{mc})/2-{mc})/(({a}+{mc})/2)")],
+     "MR = a − 2bQ = MC; DWL = (a − MC)² ÷ 8b",
+     "Profit-maximizing monopoly outcome compared with perfect competition.",
+     "monopoly marginal revenue market power deadweight loss lerner index microeconomics",
+     rules=[R("a", ">", "mc", "Demand intercept must exceed marginal cost.")], sources=["openstax_econ"])
+
+calc("costs", "Cost curves", EC,
+     [F("fc", "Fixed cost", "x", "500", min=0), F("q1", "Quantity 1", "x", "100", min=0.0000001), F("vc1", "Variable cost at Q1", "x", "1200", min=0),
+      F("q2", "Quantity 2", "x", "110", min=0.0000001), F("vc2", "Variable cost at Q2", "x", "1350", min=0)],
+     [O("0", "Marginal cost (Q1 → Q2)", "(vc2-vc1)/(q2-q1)", "number", "=({vc2}-{vc1})/({q2}-{q1})"),
+      O("1", "Average total cost at Q2", "(fc+vc2)/q2", "number", "=({fc}+{vc2})/{q2}"),
+      O("2", "Average variable cost at Q2", "vc2/q2", "number", "={vc2}/{q2}"),
+      O("3", "Average fixed cost at Q2", "fc/q2", "number", "={fc}/{q2}")],
+     "MC = ΔTC ÷ ΔQ; ATC = TC ÷ Q; AVC = VC ÷ Q; AFC = FC ÷ Q",
+     "Marginal and average costs from two output levels.", "marginal cost average total cost variable fixed cost microeconomics",
+     rules=[R("q2", "!=", "q1", "The two quantities must differ.")], sources=["openstax_econ"])
+
+calc("hhi", "Market concentration (HHI)", EC,
+     [F("s", "Market shares (%)", "series", "30; 25; 20; 15; 10", min=None, hint="Each firm's share in percent, e.g. 30; 25; 20.")],
+     [O("0", "Herfindahl–Hirschman Index", "sum(s^2)", "number", "=SUMSQ({s})"),
+      O("1", "Four-firm concentration ratio (CR4)", "topsum(s,4)/100", "percent", "=SUM(LARGE({s},{1,2,3,4}))/100"),
+      O("2", "Total of shares entered", "sum(s)/100", "percent", "=SUM({s})/100")],
+     "HHI = Σ (share in %)²", "Concentration index used in antitrust review.",
+     "hhi herfindahl concentration ratio antitrust merger market structure oligopoly",
+     interpretation="Under the 2023 U.S. Merger Guidelines, an HHI above 1,800 indicates a highly concentrated market.",
+     sources=["openstax_econ"])
+
+calc("cobb_douglas", "Cobb–Douglas production & growth accounting", EC,
+     [F("A", "Total factor productivity (A)", "x", "1.5", min=0.0000001), F("K", "Capital (K)", "x", "400", min=0.0000001),
+      F("L", "Labor (L)", "x", "100", min=0.0000001), F("al", "Capital share (α)", "%", "33", min=0.0001, max=0.9999),
+      F("gy", "Output growth", "%", "3", min=-0.5), F("gk", "Capital growth", "%", "4", min=-0.5), F("gl", "Labor growth", "%", "1", min=-0.5)],
+     [O("0", "Output Y = A Kᵅ L¹⁻ᵅ", "A*K^al*L^(1-al)", "number", "={A}*{K}^{al}*{L}^(1-{al})"),
+      O("1", "Marginal product of capital", "al*A*K^al*L^(1-al)/K", "number", "={al}*{A}*{K}^{al}*{L}^(1-{al})/{K}"),
+      O("2", "Marginal product of labor", "(1-al)*A*K^al*L^(1-al)/L", "number", "=(1-{al})*{A}*{K}^{al}*{L}^(1-{al})/{L}"),
+      O("3", "Output per worker", "A*K^al*L^(1-al)/L", "number", "={A}*{K}^{al}*{L}^(1-{al})/{L}"),
+      O("4", "TFP growth (Solow residual)", "gy-al*gk-(1-al)*gl", "percent", "={gy}-{al}*{gk}-(1-{al})*{gl}")],
+     "Y = A Kᵅ L¹⁻ᵅ; g_A = g_Y − α g_K − (1 − α) g_L",
+     "Output and marginal products under Cobb–Douglas, plus the Solow growth-accounting residual.",
+     "cobb douglas production function solow growth accounting tfp marginal product macroeconomics", sources=["openstax_econ"])
+
+calc("comparative_advantage", "Comparative advantage", EC,
+     [F("ax", "Country A: max output of good X", "x", "120", min=0.0000001), F("ay", "Country A: max output of good Y", "x", "60", min=0.0000001),
+      F("bx", "Country B: max output of good X", "x", "40", min=0.0000001), F("by", "Country B: max output of good Y", "x", "80", min=0.0000001)],
+     [O("0", "A's opportunity cost of 1 X (in Y)", "ay/ax", "number", "={ay}/{ax}"),
+      O("1", "B's opportunity cost of 1 X (in Y)", "by/bx", "number", "={by}/{bx}"),
+      O("2", "A's opportunity cost of 1 Y (in X)", "ax/ay", "number", "={ax}/{ay}"),
+      O("3", "B's opportunity cost of 1 Y (in X)", "bx/by", "number", "={bx}/{by}")],
+     "Opportunity cost of X = Y given up ÷ X gained",
+     "Opportunity costs from production possibilities, to see who has the comparative advantage.",
+     "comparative advantage absolute advantage opportunity cost trade ppf production possibilities",
+     interpretation="The country with the lower opportunity cost of a good has the comparative advantage in it. Mutually beneficial trade happens at a price between the two opportunity costs.",
+     sources=["openstax_econ"])
+
 # --- Planning & protection ---------------------------------------------------------
 calc("net_worth", "Net worth", PL,
      [F("cash", "Cash and savings", "$", "80000"), F("inv", "Taxable investments", "$", "650000"),
@@ -978,7 +1967,7 @@ def main():
             c["table"] = PROJECTION_TABLES[c["projection"]]
         for rule in c["rules"]:
             ok = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b, ">": lambda a, b: a > b,
-                  ">=": lambda a, b: a >= b, "==": lambda a, b: a == b}[rule["relation"]](
+                  ">=": lambda a, b: a >= b, "==": lambda a, b: a == b, "!=": lambda a, b: a != b}[rule["relation"]](
                 ref_eval(rule["left"], scope), ref_eval(rule["right"], scope))
             assert ok, (c["id"], rule)
         for o in c["outputs"]:

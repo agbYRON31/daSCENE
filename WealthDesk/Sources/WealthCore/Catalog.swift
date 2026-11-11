@@ -16,12 +16,22 @@ public struct Field: Codable, Hashable, Identifiable {
     public let max: Double?
     public let integer: Bool?
     public let options: [ChoiceOption]?
+    /// Pre-filled technical setting (simulation count, seed). Never a dollar amount or market assumption.
+    public let defaultValue: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, label, unit, example, hint, min, max, integer, options
+        case defaultValue = "default"
+    }
 
     public init(id: String, label: String, unit: String, example: String, hint: String,
-                min: Double?, max: Double?, integer: Bool?, options: [ChoiceOption]?) {
+                min: Double?, max: Double?, integer: Bool?, options: [ChoiceOption]?, defaultValue: String? = nil) {
         self.id = id; self.label = label; self.unit = unit; self.example = example; self.hint = hint
-        self.min = min; self.max = max; self.integer = integer; self.options = options
+        self.min = min; self.max = max; self.integer = integer; self.options = options; self.defaultValue = defaultValue
     }
+
+    /// What the field holds before the user types: blank, except pick-lists and technical settings.
+    public var blankValue: String { defaultValue ?? (isChoice ? example : "") }
 
     public var isSeries: Bool { unit == "series" }
     public var isChoice: Bool { unit == "choice" }
@@ -80,6 +90,19 @@ public struct Calculator: Codable, Hashable, Identifiable {
 
     public var exampleInputs: [String: String] {
         Dictionary(uniqueKeysWithValues: fields.map { ($0.id, $0.example) })
+    }
+
+    /// Clean starting state: no amounts or assumptions filled in.
+    public var blankInputs: [String: String] {
+        Dictionary(uniqueKeysWithValues: fields.map { ($0.id, $0.blankValue) })
+    }
+
+    /// True when any formula reads the dated IRS tax table.
+    public var usesTaxTable: Bool {
+        let names = ["incometax(", "margrate(", "bracketroom(", "stddeduction(", "ltcgtax(", "niitthreshold(",
+                     "niitrate(", "rmdfactor(", "limit401k(", "limitira(", "giftexclusion(", "estateexemption(", "estaterate("]
+        let text = (outputs.map(\.expression) + rules.map(\.left) + rules.map(\.right)).joined(separator: " ")
+        return names.contains { text.contains($0) }
     }
 
     /// Lower-cased text used for search.

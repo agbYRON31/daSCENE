@@ -6,20 +6,20 @@ public enum Finance {
     /// Future value of `pv` plus end-of-period payments `pmt`.
     public static func fv(_ r: Double, _ n: Double, _ pmt: Double, _ pv: Double) -> Double {
         if r == 0 { return pv + pmt * n }
-        let g = pow(1 + r, n)
-        return pv * g + pmt * (g - 1) / r
+        let g1 = expm1(n * log1p(r))   // (1+r)^n − 1 without cancellation for tiny r
+        return pv * (1 + g1) + pmt * g1 / r
     }
 
     /// Present value of `n` end-of-period payments.
     public static func pv(_ r: Double, _ n: Double, _ pmt: Double) -> Double {
         if r == 0 { return pmt * n }
-        return pmt * (1 - pow(1 + r, -n)) / r
+        return pmt * -expm1(-n * log1p(r)) / r
     }
 
     /// Level end-of-period payment that amortizes `pv` over `n` periods.
     public static func pmt(_ r: Double, _ n: Double, _ pv: Double) -> Double {
         if r == 0 { return pv / n }
-        return pv * r / (1 - pow(1 + r, -n))
+        return pv * r / -expm1(-n * log1p(r))
     }
 
     /// Periods for `pv` with payment `pmt` (negative = withdrawal) to reach `fv`.
@@ -29,12 +29,15 @@ public enum Finance {
     }
 
     /// Periodic rate at which the PV of `n` payments of `pmt` equals `pv`.
-    public static func rate(_ n: Double, _ pmt: Double, _ pv: Double) -> Double {
+    public static func rate(_ n: Double, _ pmt: Double, _ pv: Double) throws -> Double {
         var lo = -0.99, hi = 10.0
+        func value(_ r: Double) -> Double { r != 0 ? Finance.pv(r, n, pmt) : pmt * n }
+        guard (value(lo) > pv) != (value(hi) > pv) else {
+            throw EvalError.message("No interest rate between −99% and 1,000% per period fits these inputs.")
+        }
         for _ in 0..<400 {
             let mid = (lo + hi) / 2
-            let value = mid != 0 ? Finance.pv(mid, n, pmt) : pmt * n
-            if value > pv { lo = mid } else { hi = mid }
+            if value(mid) > pv { lo = mid } else { hi = mid }
         }
         return (lo + hi) / 2
     }
@@ -44,6 +47,58 @@ public enum Finance {
         var total = 0.0
         for (t, c) in cf.enumerated() { total += c / pow(1 + r, Double(t)) }
         return total
+    }
+
+    // MARK: Bonds (priced on a coupon date, no accrued interest)
+
+    static func periods(_ years: Double, _ freq: Double) -> Int {
+        Int((years * freq + 0.5).rounded(.down))
+    }
+
+    public static func bondPrice(_ face: Double, _ cpn: Double, _ ytm: Double, _ years: Double, _ freq: Double) -> Double {
+        let n = Double(periods(years, freq))
+        let i = ytm / freq
+        let c = face * cpn / freq
+        if i == 0 { return c * n + face }
+        return c * (1 - pow(1 + i, -n)) / i + face * pow(1 + i, -n)
+    }
+
+    public static func bondYTM(_ price: Double, _ face: Double, _ cpn: Double, _ years: Double, _ freq: Double) throws -> Double {
+        var lo = -0.5, hi = 1.0
+        guard (bondPrice(face, cpn, lo, years, freq) > price) != (bondPrice(face, cpn, hi, years, freq) > price) else {
+            throw EvalError.message("No yield between −50% and 100% matches this price.")
+        }
+        for _ in 0..<300 {
+            let mid = (lo + hi) / 2
+            if bondPrice(face, cpn, mid, years, freq) > price { lo = mid } else { hi = mid }
+        }
+        return (lo + hi) / 2
+    }
+
+    public static func macaulayDuration(_ face: Double, _ cpn: Double, _ ytm: Double, _ years: Double, _ freq: Double) -> Double {
+        let n = periods(years, freq)
+        guard n >= 1 else { return .nan }
+        let i = ytm / freq
+        let c = face * cpn / freq
+        var total = 0.0
+        for k in 1...n {
+            let cf = c + (k == n ? face : 0.0)
+            total += (Double(k) / freq) * cf / pow(1 + i, Double(k))
+        }
+        return total / bondPrice(face, cpn, ytm, years, freq)
+    }
+
+    public static func convexity(_ face: Double, _ cpn: Double, _ ytm: Double, _ years: Double, _ freq: Double) -> Double {
+        let n = periods(years, freq)
+        guard n >= 1 else { return .nan }
+        let i = ytm / freq
+        let c = face * cpn / freq
+        var total = 0.0
+        for k in 1...n {
+            let cf = c + (k == n ? face : 0.0)
+            total += cf * Double(k) * Double(k + 1) / pow(1 + i, Double(k + 2))
+        }
+        return total / (bondPrice(face, cpn, ytm, years, freq) * freq * freq)
     }
 
     /// Number of sign changes, ignoring zeros.
@@ -69,6 +124,9 @@ public enum Finance {
         }
         var lo = -0.9999, hi = 10.0
         var flo = npv(lo, cf)
+        guard (flo > 0) != (npv(hi, cf) > 0) else {
+            throw EvalError.message("The return is outside the −99.99% to 1,000% range IRR can solve.")
+        }
         for _ in 0..<300 {
             let mid = (lo + hi) / 2
             let fm = npv(mid, cf)

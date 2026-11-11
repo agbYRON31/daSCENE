@@ -12,6 +12,8 @@ public enum Projections {
         switch kind {
         case "retirement": return retirement(v)
         case "montecarlo": return monteCarlo(v)
+        case "retirementmc": return retirementMonteCarlo(v)
+        case "growth": return growth(v)
         default: throw EvalError.message("Unknown projection \(kind).")
         }
     }
@@ -122,6 +124,87 @@ public enum Projections {
             "p_end_p10": percentile(ending, 0.10),
             "p_end_p50": percentile(ending, 0.50),
             "p_end_p90": percentile(ending, 0.90),
+        ], rows: rows)
+    }
+
+    /// Full-plan Monte Carlo: the retirement timeline's cash flows with a random return each year.
+    static func retirementMonteCarlo(_ v: [String: Double]) -> ProjectionResult {
+        let a0 = Int(v["age"]!), ar = Int(v["retire"]!), ae = Int(v["plan"]!)
+        let sims = Int(v["sims"]!)
+        let c = v["c"]!, cg = v["cg"]!, rpre = v["rpre"]!, rpost = v["rpost"]!, sd = v["sd"]!
+        let spend = v["spend"]!, infl = v["infl"]!, other = v["other"]!, oage = v["oage"]!
+        var rng = SplitMix64(state: UInt64(max(0, v["seed"]!)))
+        let years = max(0, ae - a0)
+        var paths = [[Double]](repeating: [], count: sims)
+        var retireBals: [Double] = []
+        var ok = 0
+        for s in 0..<sims {
+            var bal = v["bal"]!
+            var failed = false
+            var path = [Double]()
+            path.reserveCapacity(years)
+            var retireBal: Double? = ar <= a0 ? bal : nil
+            if years > 0 {
+                for age in a0..<ae {
+                    let t = Double(age - a0)
+                    let z = rng.normal()
+                    if age == ar { retireBal = bal }
+                    if !failed {
+                        let contrib = age < ar ? c * pow(1 + cg, t) : 0.0
+                        let need = age >= ar ? spend * pow(1 + infl, t) : 0.0
+                        let oth = (age >= ar && Double(age) >= oage) ? other * pow(1 + infl, t) : 0.0
+                        let w = max(0.0, need - oth)
+                        if w > bal + contrib {
+                            bal = 0
+                            failed = true
+                        } else {
+                            let mean = age < ar ? rpre : rpost
+                            bal = max(0.0, (bal + contrib - w) * (1 + mean + sd * z))
+                        }
+                    }
+                    path.append(bal)
+                }
+            }
+            if !failed { ok += 1 }
+            paths[s] = path
+            retireBals.append(retireBal ?? bal)
+        }
+        guard years > 0 else {
+            return ProjectionResult(scalars: ["p_success": 1, "p_retire_p50": v["bal"]!, "p_end_p10": v["bal"]!,
+                                              "p_end_p50": v["bal"]!, "p_end_p90": v["bal"]!], rows: [])
+        }
+        let ending = paths.map { $0[years - 1] }.sorted()
+        var rows: [[Double]] = []
+        for y in 0..<years {
+            let col = paths.map { $0[y] }.sorted()
+            rows.append([Double(a0 + y + 1), percentile(col, 0.10), percentile(col, 0.50), percentile(col, 0.90)])
+        }
+        return ProjectionResult(scalars: [
+            "p_success": Double(ok) / Double(sims),
+            "p_retire_p50": percentile(retireBals.sorted(), 0.50),
+            "p_end_p10": percentile(ending, 0.10),
+            "p_end_p50": percentile(ending, 0.50),
+            "p_end_p90": percentile(ending, 0.90),
+        ], rows: rows)
+    }
+
+    /// Monthly compounding with end-of-month contributions, reported at each year end.
+    static func growth(_ v: [String: Double]) -> ProjectionResult {
+        let p = v["p"]!, m = v["m"]!, r = v["r"]!, y = Int(v["y"]!), infl = v["infl"]!
+        let i = r / 12
+        var bal = p
+        var rows: [[Double]] = []
+        if y >= 1 {
+            for year in 1...y {
+                for _ in 0..<12 { bal = bal * (1 + i) + m }
+                let contributed = p + m * 12 * Double(year)
+                rows.append([Double(year), contributed, bal - contributed, bal, bal / pow(1 + infl, Double(year))])
+            }
+        }
+        let contributed = p + m * 12 * Double(y)
+        return ProjectionResult(scalars: [
+            "p_balance": bal, "p_contributed": contributed, "p_growth": bal - contributed,
+            "p_real": bal / pow(1 + infl, Double(y)),
         ], rows: rows)
     }
 }
