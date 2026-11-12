@@ -169,41 +169,7 @@ struct RoRoView: View {
     @State private var tab = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            statusBar
-            Picker("", selection: $tab) {
-                Text("Overview").tag(0)
-                Text("Factors").tag(1)
-                Text("Scenarios & history").tag(2)
-                Text("Data status").tag(3)
-                Text("Full report").tag(4)
-            }
-            .pickerStyle(.segmented).labelsHidden()
-            .frame(maxWidth: 620)
-            .padding(.bottom, 8)
-            Divider()
-            if let m = roro.model {
-                switch tab {
-                case 0: ScrollView { RoRoOverview(m: m).padding(22).frame(maxWidth: 1100).frame(maxWidth: .infinity) }
-                case 1: ScrollView { RoRoFactors(m: m).padding(22).frame(maxWidth: 1100).frame(maxWidth: .infinity) }
-                case 2: ScrollView { RoRoScenarios(m: m).padding(22).frame(maxWidth: 1100).frame(maxWidth: .infinity) }
-                case 3: ScrollView { RoRoDataStatus(m: m).padding(22).frame(maxWidth: 1100).frame(maxWidth: .infinity) }
-                default:
-                    if let html = roro.html { DashboardWebView(html: html) }
-                    else { ContentUnavailable(title: "Report unavailable", message: "The report template is missing from the app.", symbol: "doc") }
-                }
-            } else if roro.running {
-                VStack(spacing: 12) {
-                    ProgressView(value: Double(roro.progress.0), total: Double(max(roro.progress.1, 1))).frame(width: 260)
-                    Text("Downloading \(roro.progress.1) public data series from FRED and Yahoo Finance…").foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ContentUnavailable(title: "RoRo Composite",
-                                   message: roro.error ?? "Press Refresh to download the data and score the model.",
-                                   symbol: "gauge.medium")
-            }
-        }
+        GeometryReader { geo in page(compact: geo.size.width < 720) }
         .navigationTitle("RoRo Composite")
         .navigationSubtitle(roro.model?["asof"].map { "Data as of \($0.str)" } ?? "Risk-on / risk-off conditions")
         .toolbar {
@@ -220,9 +186,57 @@ struct RoRoView: View {
         .onAppear { roro.refreshIfStale() }
     }
 
-    private var statusBar: some View {
+    /// The wide tables keep their full width in a small window and scroll sideways instead of being squeezed.
+    private func wide<V: View>(_ compact: Bool, _ content: V) -> some View {
+        ScrollView(compact ? [.vertical, .horizontal] : .vertical) {
+            content.padding(compact ? 14 : 22)
+                .frame(minWidth: compact ? 860 : nil, maxWidth: 1100)
+                .frame(maxWidth: compact ? nil : .infinity)
+        }
+    }
+
+    private func page(compact: Bool) -> some View {
+        VStack(spacing: 0) {
+            statusBar(compact: compact)
+            Picker("View", selection: $tab) {
+                Text("Overview").tag(0)
+                Text("Factors").tag(1)
+                Text("Scenarios & history").tag(2)
+                Text("Data status").tag(3)
+                Text("Full report").tag(4)
+            }
+            .modifier(TabPickerStyle(compact: compact))
+            .padding(.bottom, 8)
+            Divider()
+            if let m = roro.model {
+                switch tab {
+                case 0: ScrollView { RoRoOverview(m: m, compact: compact).padding(compact ? 14 : 22).frame(maxWidth: 1100).frame(maxWidth: .infinity) }
+                case 1: wide(compact, RoRoFactors(m: m))
+                case 2: wide(compact, RoRoScenarios(m: m))
+                case 3: wide(compact, RoRoDataStatus(m: m))
+                default:
+                    if let html = roro.html { DashboardWebView(html: html) }
+                    else { ContentUnavailable(title: "Report unavailable", message: "The report template is missing from the app.", symbol: "doc") }
+                }
+            } else if roro.running {
+                VStack(spacing: 12) {
+                    ProgressView(value: Double(roro.progress.0), total: Double(max(roro.progress.1, 1))).frame(width: 260)
+                    Text("Downloading \(roro.progress.1) public data series from FRED and Yahoo Finance…").foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ContentUnavailable(title: "RoRo Composite",
+                                   message: roro.error ?? "Press Refresh to download the data and score the model.",
+                                   symbol: "gauge.medium")
+            }
+        }
+    }
+
+    private func statusBar(compact: Bool) -> some View {
         let s = roro.status
-        return HStack(spacing: 10) {
+        let layout = compact ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 10))
+        return layout {
+          HStack(spacing: 10) {
             if roro.running {
                 ProgressView(value: Double(roro.progress.0), total: Double(max(roro.progress.1, 1))).frame(width: 120)
                 Text(roro.progress.0 < roro.progress.1 ? "Downloading \(roro.progress.0)/\(roro.progress.1) series…" : "Scoring…").foregroundStyle(.secondary)
@@ -232,11 +246,22 @@ struct RoRoView: View {
                     .background(s.color.opacity(0.18), in: Capsule()).foregroundStyle(s.color)
                 Text(s.detail).foregroundStyle(.secondary).lineLimit(2)
             }
-            Spacer()
+          }
+            if !compact { Spacer() }
             Text("Model output for discussion. Not investment advice.").font(.caption).foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .font(.callout)
         .padding(.horizontal, 14).padding(.vertical, 8)
+    }
+}
+
+/// Segmented tabs when there is room; a pop-up menu in a small window.
+struct TabPickerStyle: ViewModifier {
+    let compact: Bool
+    func body(content: Content) -> some View {
+        if compact { content.pickerStyle(.menu).labelsHidden().frame(maxWidth: 240).padding(.horizontal, 14).frame(maxWidth: .infinity, alignment: .leading) }
+        else { content.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 620) }
     }
 }
 
@@ -308,6 +333,7 @@ struct RoRoCard<Content: View>: View {
 struct RoRoOverview: View {
     @EnvironmentObject var state: AppState
     let m: JSONValue
+    var compact = false
     struct Pt: Identifiable { let id = UUID(); let date: Date; let value: Double; let dial: String }
 
     var history: [Pt] {
@@ -323,31 +349,33 @@ struct RoRoOverview: View {
     var body: some View {
         let p = m["posture"] ?? .null
         let master = m["master"] ?? .null
+        let row = compact ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14)) : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
+            row {
                 RoRoCard(title: "Posture · driven by the Intermediate dial (1–3 months)") {
                     let band = p["band"]?.str ?? "—"
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Text(band).font(.system(size: 40, weight: .bold, design: .serif)).foregroundStyle(RoRoStyle.bandColor(band))
                             .lineLimit(1).minimumScaleFactor(0.5).layoutPriority(1)
-                        if let lean = p["lean"]?.str, !lean.isEmpty { Text(lean).font(.caption.weight(.semibold)).foregroundStyle(.secondary) }
-                        Spacer()
+                        if let lean = p["lean"]?.str, !lean.isEmpty { Text(lean).font(.caption.weight(.semibold)).foregroundStyle(.secondary).fixedSize().layoutPriority(2) }
+                        Spacer(minLength: 0)
                         Text(RoRoStyle.signed(p["value"]?.num ?? .nan)).font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
+                            .fixedSize()
                     }
                     ScoreBar(value: p["value"]?.num ?? .nan, height: 12)
                     Text("\(p["status"]?.str ?? "") · in \(band) since \(p["since"]?.str ?? "—") (\(Int(p["days_in"]?.num ?? 0)) sessions) · \(RoRoStyle.signed(p["delta"]?.num ?? .nan)) pts since \(p["prev_date"]?.str ?? "last run")")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Text("Offense above +20, Defense below −20. \(Int(p["to_off"]?.num ?? 0)) pts from the Offense line, \(Int(p["to_def"]?.num ?? 0)) from the Defense line.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 RoRoCard(title: "Master signal", note: "Generic model playbook for discussion. It is not a recommendation and takes no account of any person's situation.") {
                     Text(master["head"]?.str ?? "—").font(.title2.weight(.bold))
                     Text("\(master["regime"]?.str ?? "") · confidence \(master["confidence"]?.str ?? "")").font(.callout).foregroundStyle(.secondary)
                     Text(master["action"]?.str ?? "").font(.callout).fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: 380)
+                .frame(maxWidth: compact ? .infinity : 380)
             }
-            HStack(alignment: .top, spacing: 16) {
+            row {
                 ForEach(Array((m["horizons"]?.items ?? []).enumerated()), id: \.offset) { _, h in
                     RoRoCard(title: "\(h["label"]?.str ?? "") · \(h["span"]?.str ?? "")") {
                         HStack(alignment: .firstTextBaseline) {
@@ -368,12 +396,14 @@ struct RoRoOverview: View {
                 Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 9) {
                     ForEach(Array((m["buckets"]?.items ?? []).enumerated()), id: \.offset) { _, b in
                         GridRow {
-                            Text(b["name"]?.str ?? "").frame(width: 170, alignment: .leading)
-                            ScoreBar(value: b["score"]?.num ?? .nan).frame(minWidth: 160)
+                            Text(b["name"]?.str ?? "").lineLimit(2).frame(width: compact ? 96 : 170, alignment: .leading)
+                            ScoreBar(value: b["score"]?.num ?? .nan).frame(minWidth: compact ? 60 : 160)
                             Text(RoRoStyle.signed(b["score"]?.num ?? .nan)).monospacedDigit().fontWeight(.semibold).frame(width: 44, alignment: .trailing)
-                            Text("\(RoRoStyle.signed(b["wow"]?.num ?? .nan)) wk").font(.caption).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
-                            Spark(values: b["spark"]?.items.compactMap(\.double) ?? [])
-                            Text("\(Int(b["factors_live"]?.num ?? 0))/\(Int(b["factors_total"]?.num ?? 0)) live").font(.caption).foregroundStyle(.secondary)
+                            if !compact {
+                                Text("\(RoRoStyle.signed(b["wow"]?.num ?? .nan)) wk").font(.caption).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
+                                Spark(values: b["spark"]?.items.compactMap(\.double) ?? [])
+                                Text("\(Int(b["factors_live"]?.num ?? 0))/\(Int(b["factors_total"]?.num ?? 0)) live").font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -408,7 +438,7 @@ struct RoRoOverview: View {
                 }
             }
             RoRoCard(title: "Explore a what-if", note: "RoRo scores describe current conditions. They are not converted into return predictions. The stress test shows the effect of a market move you choose; it says nothing about how likely that move is.") {
-                HStack(spacing: 12) {
+                row {
                     Button("Open the Portfolio stress test") { state.showInAdvisor("portfolio_stress") }
                     Button("Open the risk tool in Client Mode") { state.showClient(.risk) }
                 }

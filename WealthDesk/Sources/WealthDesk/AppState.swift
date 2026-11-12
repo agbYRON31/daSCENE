@@ -92,7 +92,7 @@ enum SidebarItem: Hashable {
 }
 
 enum ClientTool: String, CaseIterable, Identifiable {
-    case growth, retirement, risk, decisions, taxes
+    case growth, retirement, risk, decisions, taxes, market
     var id: String { rawValue }
 }
 

@@ -15,6 +15,7 @@ let package = Package(
         .executableTarget(name: "WealthDesk", dependencies: ["WealthCore"]),
         .executableTarget(name: "wdcheck", dependencies: ["WealthCore"]),
         .executableTarget(name: "roro", dependencies: ["WealthCore"]),
+        .executableTarget(name: "offlinecheck", dependencies: ["WealthCore"]),
         .executableTarget(name: "wdparity", dependencies: ["WealthCore"]),
     ]
 )

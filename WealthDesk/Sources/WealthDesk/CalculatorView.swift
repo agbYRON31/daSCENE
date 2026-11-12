@@ -154,22 +154,39 @@ struct InputsCard: View {
 
     var body: some View {
         Card(title: "Inputs") {
-            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 14, verticalSpacing: 12) {
-                ForEach(calc.fields) { field in
-                    GridRow {
-                        Text(field.label)
-                            .frame(minWidth: 200, alignment: .leading)
-                            .gridColumnAlignment(.leading)
-                        VStack(alignment: .leading, spacing: 3) {
-                            control(field)
-                            if let err = errors[field.id], !(inputs[field.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
-                                Text(err).font(.caption).foregroundStyle(.red)
-                            } else {
-                                Text(field.hint).font(.caption).foregroundStyle(.secondary)
-                            }
+            ViewThatFits(in: .horizontal) {
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 14, verticalSpacing: 12) {
+                    ForEach(calc.fields) { field in
+                        GridRow {
+                            Text(field.label)
+                                .frame(minWidth: 200, alignment: .leading)
+                                .gridColumnAlignment(.leading)
+                            controlAndHint(field)
                         }
                     }
                 }
+                .frame(minWidth: 500, idealWidth: 500, maxWidth: .infinity, alignment: .leading)
+                // Small window: label above its box.
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(calc.fields) { field in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(field.label).fixedSize(horizontal: false, vertical: true)
+                            controlAndHint(field)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func controlAndHint(_ field: Field) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            control(field)
+            if let err = errors[field.id], !(inputs[field.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
+                Text(err).font(.caption).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(field.hint).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -379,7 +396,7 @@ struct DetailsCard: View {
                         Text("Excel").font(.headline)
                         ForEach(calc.outputs) { o in
                             HStack(alignment: .firstTextBaseline) {
-                                Text(o.label).foregroundStyle(.secondary).frame(width: 220, alignment: .leading)
+                                Text(o.label).foregroundStyle(.secondary).frame(minWidth: 90, maxWidth: 220, alignment: .leading)
                                 Text(state.engine?.excelFormula(calc, o) ?? "No single-cell formula")
                                     .font(.system(.callout, design: .monospaced))
                                     .textSelection(.enabled)

@@ -101,12 +101,12 @@ struct MarketsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Markets").font(.title.weight(.semibold))
                     Text("Treasury yields from Treasury.gov (official, end of day). Quotes are from Yahoo Finance's unofficial feed and may be delayed or stop working. Data is fetched only when you open this page or press Refresh; the symbols you add are sent to Yahoo.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 curveCard
                 watchlistCard
             }
-            .padding(24)
+            .padding(18)
             .frame(maxWidth: 860, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
@@ -139,7 +139,7 @@ struct MarketsView: View {
                 .chartYAxis { AxisMarks { v in AxisGridLine(); AxisValueLabel { if let d = v.as(Double.self) { Text(String(format: "%.2f%%", d)) } } } }
                 .frame(height: 200)
 
-                HStack(spacing: 12) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
                     spreadTile("10Y − 2Y", curve.spread("10 Yr", "2 Yr"))
                     spreadTile("10Y − 3M", curve.spread("10 Yr", "3 Mo"))
                     spreadTile("30Y − 10Y", curve.spread("30 Yr", "10 Yr"))
@@ -222,7 +222,15 @@ struct MarketsView: View {
         }
     }
 
+    /// Full row when it fits; in a small window the 52-week and day ranges are dropped.
     private func quoteRow(_ sym: String) -> some View {
+        ViewThatFits(in: .horizontal) {
+            quoteRow(sym, ranges: true).frame(minWidth: 470, idealWidth: 470, maxWidth: .infinity)
+            quoteRow(sym, ranges: false)
+        }
+    }
+
+    private func quoteRow(_ sym: String, ranges: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(sym).font(.body.weight(.semibold))
@@ -232,10 +240,10 @@ struct MarketsView: View {
                     Text(e).font(.caption).foregroundStyle(.red).lineLimit(1)
                 }
             }
-            .frame(width: 380, alignment: .leading)
-            Spacer()
+            .frame(minWidth: 70, maxWidth: 380, alignment: .leading)
+            Spacer(minLength: 0)
             if let q = market.quotes[sym] {
-                VStack(alignment: .trailing, spacing: 2) {
+                if ranges { VStack(alignment: .trailing, spacing: 2) {
                     if let lo = q.low52, let hi = q.high52 {
                         Text("52-wk \(Format.plain(lo, maxDecimals: 2)) – \(Format.plain(hi, maxDecimals: 2))")
                             .font(.caption).foregroundStyle(.secondary).monospacedDigit()
@@ -244,7 +252,7 @@ struct MarketsView: View {
                         Text("Day \(Format.plain(lo, maxDecimals: 2)) – \(Format.plain(hi, maxDecimals: 2))")
                             .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     }
-                }
+                } }
                 Button {
                     state.openCalculator("position_pl", setting: ["price": Format.plain(q.price, maxDecimals: 4)])
                 } label: {
@@ -254,7 +262,7 @@ struct MarketsView: View {
                             .font(.caption).monospacedDigit()
                             .foregroundStyle(q.change >= 0 ? Color.green : Color.red)
                     }
-                    .frame(width: 130, alignment: .trailing)
+                    .frame(width: ranges ? 130 : 110, alignment: .trailing)
                 }
                 .buttonStyle(.plain)
                 .help("Open Position gain/loss at this price")

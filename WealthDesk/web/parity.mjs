@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { Engine, TaxData, exampleInputs } from "./engine.js";
+import { Engine, TaxData, Scientific, exampleInputs } from "./engine.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -114,6 +114,45 @@ cases.forEach((c, i) => {
   checked++;
 });
 
+// Calculator page: the same typed lines through both engines' Scientific.evaluate, including
+// keyboard-style input (5 x 3, 2x, 250k, 15%, 2(3 + 4), a trailing =) and lines that must fail.
+const LINES = ["5 x 3", "5x3", "5 X 3", "(2)x(4)", "5 x -3", "x = 5", "x^2 + 1", "2x", "3x + 1", "x x 2", "2 x x", "2 x - 1",
+  "k = 4", "2k", "250k", "1.2m", "3b", "2K + 1", "401k", "15%", "200 * 15%", "50% x 3", "2(3 + 4)", "(1 + 2)(3 + 4)", "2pi", "2 sqrt(9)",
+  "pi(2)", "x(2)", "5 + 3 =", "y = 2 + 3 =", "x =", "= 5", "3 <= 4", "3 == 3", "limit401k(2026)", "2e3", "2e", "1e-05", "2 * (-5)",
+  "z + 1", "5 x", "x", "ans * 2", "ans", "2 3", "6 × 7 − 2 ÷ 4", "2π", "sin(30)", "log(8, 2)", "fact(5)", "fact(2.5)", "sqrt(-1)", "1/0",
+  "pi = 3", "1x = 2", "", "   ", "5 $ 3", "((2)", "ncr(5, 2) x 2", "abs(-3)k", "2 m", "m2", "x2", "5x2k", ".5k", "1,000"];
+const POOL = ["5", "2.5", "250k", "1.2m", "3b", "1e-05", "15%", "7", "0", "x", "X", "k", "m", "z", "pi", "e", "ans", "sqrt(9)", "ncr(5, 2)",
+  "sin(30)", "(", ")", " + ", " - ", " x ", "x", " * ", "/", "^", " ", "−", "×", "%", "=", "(2 + 3)"];
+const lineCases = LINES.map((line) => ({ line, vars: { x: 3, k: 4 }, ans: 21, deg: true }))
+  .concat(LINES.map((line) => ({ line, vars: {}, ans: null, deg: false })));
+for (let i = 0; i < 2500; i++) {
+  let line = "";
+  const n = 1 + Math.floor(rnd() * 6);
+  for (let j = 0; j < n; j++) line += pick(POOL);
+  const vars = {};
+  if (rnd() < 0.5) vars.x = Number((rnd() * 10 - 3).toFixed(2));
+  if (rnd() < 0.3) vars.k = 4;
+  if (rnd() < 0.2) vars.m = 2;
+  lineCases.push({ line, vars, ans: rnd() < 0.5 ? 12.5 : null, deg: rnd() < 0.5 });
+}
+writeFileSync(join(dir, "lines.json"), JSON.stringify(lineCases.map((c) => (c.ans === null ? { ...c, ans: undefined } : c))));
+execFileSync(bin, ["lines", resources, join(dir, "lines.json"), join(dir, "lines-swift.json")], { stdio: "inherit" });
+const swiftLines = JSON.parse(readFileSync(join(dir, "lines-swift.json"), "utf8"));
+let lineValues = 0;
+lineCases.forEach((c, i) => {
+  const sw = swiftLines[i];
+  let js;
+  try { const r = Scientific.evaluate(c.line, c.vars, c.ans, c.deg, engine.tax); js = { value: r.value, name: r.name }; }
+  catch (e) { js = { error: e.message }; }
+  const where = `line ${JSON.stringify(c.line)} vars ${JSON.stringify(c.vars)} ans ${c.ans}`;
+  if ((js.error ?? null) !== (sw.error ?? null)) failures.push(`${where}\n    web ${js.error ?? js.value} vs app ${sw.error ?? sw.value}`);
+  else if (js.error === undefined) {
+    lineValues++;
+    if (!same(js.value, sw.value)) failures.push(`${where}\n    web ${js.value} vs app ${sw.value}`);
+    if ((js.name ?? null) !== (sw.name ?? null)) failures.push(`${where}\n    assigned name web ${js.name} vs app ${sw.name}`);
+  }
+});
+
 const calcs = new Set(cases.map((c) => c.calc)).size;
 if (failures.length) {
   console.log(`PARITY FAILED: ${failures.length} differences in ${checked} cases. First 25:`);
@@ -121,3 +160,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Parity OK: ${checked} cases across ${calcs} calculators, ${values} values identical to the Mac app's engine.`);
+console.log(`Calculator page OK: ${lineCases.length} typed lines give the same result or the same message as the Mac app (${lineValues} results).`);

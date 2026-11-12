@@ -317,25 +317,123 @@ export const Scientific = {
     return r;
   },
   reserved: new Set(["ans", "pi", "e"]),
-  /** One scratchpad line: an expression, or `name = expression`. */
+  /** True for a valid variable name (letters, digits and _; not starting with a digit). */
+  isName(s) { return /^[\p{L}_][\p{L}\p{N}_]*$/u.test(s); },
+  /** "5 + 3 =" → "5 + 3". Leaves comparison operators (<=, >=, ==, !=) alone. */
+  stripTrailingEquals(s) {
+    let t = s;
+    while (t.endsWith("=")) {
+      const before = t.slice(0, -1).slice(-1);
+      if (before && "<>!=".includes(before)) break;
+      t = t.slice(0, -1).trim();
+    }
+    return t;
+  },
+  /** One scratchpad line: an expression, or `name = expression`. Read the way people type
+   *  (see rewrite); the catalog formula language itself is unchanged. Twin of Scientific.swift. */
   evaluate(line, variables, ans, degrees, tax) {
-    let text = line.trim();
+    let text = Scientific.stripTrailingEquals(line.trim());
     if (!text) fail("Type an expression.");
     let name = null;
     const eq = text.indexOf("=");
     if (eq > 0 && text[eq + 1] !== "=" && !"<>!=".includes(text[eq - 1])) {
       const lhs = text.slice(0, eq).trim();
-      if (!/^[\p{L}_][\p{L}\p{N}_]*$/u.test(lhs)) fail("Only a name can go on the left of =, like x = 5.");
+      if (!Scientific.isName(lhs)) fail("Only a name can go on the left of =, like x = 5.");
       if (Scientific.reserved.has(lhs)) fail(`“${lhs}” is built in and can't be reassigned.`);
       name = lhs;
-      text = text.slice(eq + 1);
+      text = text.slice(eq + 1).trim();
+      if (!text) fail(`Type a value after =, like ${lhs} = 5.`);
     }
     const scope = { pi: Math.PI, e: Math.E, ...variables };
     if (ans !== null && ans !== undefined) scope.ans = ans;
-    const value = new Expression(text).number(scope, tax, degrees);
+    const rewritten = Scientific.rewrite(text, new Set(Object.keys(scope)));
+    const value = new Expression(rewritten).number(scope, tax, degrees);
     if (Number.isNaN(value)) fail("Not a real number (check the inputs, e.g. √ of a negative).");
     if (!Number.isFinite(value)) fail("Result is infinite (division by zero?).");
     return { name, value };
+  },
+  /**
+   * Reads a calculator line the way people type it and returns it in the strict formula language:
+   * x or X between two values means × (5 x 3, 5x3); elsewhere x is a variable. k, m and b right
+   * after a number scale it (250k), unless a variable has that name. A value next to a name or
+   * bracket multiplies (2x, 2pi, 2(3 + 4)). % divides by 100. Unset names explain how to set them.
+   */
+  rewrite(text, names) {
+    const chars = [...text.replaceAll("×", "*").replaceAll("÷", "/").replaceAll("−", "-").replaceAll("π", "pi")];
+    const isDigit = (c) => c !== undefined && /\p{Nd}/u.test(c);
+    const isLetter = (c) => c !== undefined && /\p{L}/u.test(c);
+    const isWord = (c) => isLetter(c) || isDigit(c) || c === "_";
+    const SUFFIX = { k: "1000", K: "1000", m: "1000000", M: "1000000", b: "1000000000", B: "1000000000" };
+    const toks = [];
+    const endsOperand = (t) => !!t && (t.t === "num" || t.t === "rparen" || t.t === "percent" || t.t === "name");
+    let i = 0;
+    while (i < chars.length) {
+      const c = chars[i];
+      if (/\s/u.test(c)) { i++; continue; }
+      if (isDigit(c) || (c === "." && isDigit(chars[i + 1]))) {
+        let j = i;
+        while (j < chars.length && (isDigit(chars[j]) || chars[j] === ".")) j++;
+        if (chars[j] === "e" || chars[j] === "E") {
+          let k = j + 1;
+          if (chars[k] === "+" || chars[k] === "-") k++;
+          if (isDigit(chars[k])) { j = k; while (isDigit(chars[j])) j++; }
+        }
+        const number = chars.slice(i, j).join("");
+        const sc = SUFFIX[chars[j]];
+        if (j < chars.length && sc && !names.has(chars[j]) && !isWord(chars[j + 1])) {
+          toks.push({ t: "lparen" }, { t: "num", v: number }, { t: "op", v: "*" }, { t: "num", v: sc }, { t: "rparen" });
+          i = j + 1;
+        } else { toks.push({ t: "num", v: number }); i = j; }
+        continue;
+      }
+      if (isLetter(c) || c === "_") {
+        let j = i;
+        while (j < chars.length && isWord(chars[j])) j++;
+        const word = chars.slice(i, j).join("");
+        if ((c === "x" || c === "X") && word.length > 1 && isDigit(chars[i + 1]) && !names.has(word) && endsOperand(toks.at(-1))) {
+          toks.push({ t: "op", v: "*" }); i++; continue;
+        }
+        toks.push({ t: "name", v: word }); i = j; continue;
+      }
+      if (c === "(") toks.push({ t: "lparen" });
+      else if (c === ")") toks.push({ t: "rparen" });
+      else if (c === ",") toks.push({ t: "comma" });
+      else if (c === "%") toks.push({ t: "percent" });
+      else {
+        const two = c + (chars[i + 1] ?? "");
+        if (["<=", ">=", "==", "!="].includes(two)) { toks.push({ t: "op", v: two }); i += 2; continue; }
+        toks.push("+-*/^<>".includes(c) ? { t: "op", v: c } : { t: "raw", v: c });
+      }
+      i++;
+    }
+    const startsOperand = (t) => !!t && (t.t === "num" || t.t === "lparen" || t.t === "name");
+    for (let k = 0; k < toks.length; k++) {
+      const w = toks[k];
+      if (w.t !== "name" || (w.v !== "x" && w.v !== "X")) continue;
+      const prev = toks[k - 1], next = toks[k + 1];
+      const signedNext = !!next && next.t === "op" && (next.v === "-" || next.v === "+") && k + 2 < toks.length
+        && !names.has(w.v) && startsOperand(toks[k + 2]);
+      if (endsOperand(prev) && (startsOperand(next) || signedNext)) toks[k] = { t: "op", v: "*" };
+    }
+    const isCall = (k) => toks[k].t === "name" && toks[k + 1]?.t === "lparen" && !names.has(toks[k].v);
+    const out = [];
+    for (let k = 0; k < toks.length; k++) {
+      const t = toks[k];
+      if (k > 0) {
+        const prev = toks[k - 1];
+        const prevEnds = prev.t === "num" || prev.t === "rparen" || prev.t === "percent" || (prev.t === "name" && !isCall(k - 1));
+        const starts = t.t === "lparen" || t.t === "name" || (t.t === "num" && prev.t !== "num");
+        if (prevEnds && starts) out.push("*");
+      }
+      if (t.t === "name" && !isCall(k) && !names.has(t.v)) {
+        const w = t.v;
+        if (w === "ans") fail("There's no previous result yet, so ans isn't available.");
+        if (w === "x" || w === "X") fail(`“${w}” isn't set. To multiply, put a number on both sides (5 x 3) or use × or *. To use it as a variable, set it first: ${w} = 5.`);
+        fail(`“${w}” isn't set. Set it first, like ${w} = 5, or use × or * to multiply.`);
+      }
+      out.push({ num: t.v, name: t.v, op: t.v, raw: t.v, lparen: "(", rparen: ")", comma: ",", percent: "/ 100" }[t.t]);
+    }
+    return out.join(" ");
   },
   display(v) {
     if (v === 0) return "0";

@@ -18,6 +18,17 @@
 | No automatic storage | After typing inputs, the app's container held only `preferences.json`; searched the container for the typed value: not found | Pass |
 | RoRo in the sandbox | Downloaded 60 series and rendered the native dashboard with source/date/status | Pass |
 
+## Follow-up testing (same day, after 2.0 merged)
+
+| Area | How | Result |
+| --- | --- | --- |
+| All five Client Mode tools | `--qa-client` hook fills each tool, evaluates it and renders its PDF; blank session shows no results | Pass |
+| Client tools on screen (light mode) | Growth, retirement, risk, decisions typed by hand in the packaged app; taxes tool opened blank | Pass |
+| PDF save from the sandboxed app | Pressed PDF report, chose Documents, Save; opened the resulting PDF | Pass |
+| Offline | Data layer run with all network access denied (`sandbox-exec`): no cache gives "no data"; with cache the model is built and all 60 series are flagged cached; Treasury unreachable | Pass, after fixing a 2.5-minute retry delay |
+
+Fixed in follow-up: offline detection no longer retries every series; age axes on Client Mode charts no longer start at zero.
+
 ## Bug found and fixed by the audit
 - Supply & demand: "Share of tax paid by buyers" showed the sellers' share (used the supply slope). Fixed.
 
@@ -29,9 +40,7 @@
 ## Not tested, or limitations
 - **Not notarized, no Developer ID.** No Apple Developer credentials were available, so the app is ad-hoc signed. Other Macs will show a Gatekeeper warning; firm-managed Macs will likely block it. `build_app.sh` signs and notarizes when credentials are supplied.
 - **Not tested on a clean Mac** or on macOS 13/14; it was built and run on one Mac (macOS 15.7, Apple silicon). The Intel build passed its self-tests under Rosetta but its UI was not exercised.
-- **PDF save dialog:** the dialog opened from the sandboxed app, but the final Save click was not confirmed in UI testing. The report engine itself was verified.
-- **Not individually clicked through:** the other four Client Mode tools, password-protected save/open dialogs, and light mode were compiled and are covered by engine tests, but were not each exercised by hand in the packaged app.
-- **Offline behavior** is implemented (cached data with a warning, or a clear "unavailable" message) but was not tested with the network actually disconnected.
+- **Not exercised by hand:** the password-protected scenario save/open dialogs (the encryption itself is unit-tested) and the Intel build's UI.
 - **Yahoo Finance is an unofficial, unlicensed feed** (see `docs/DATA_SOURCES.md`).
 - **Tax scope:** federal only; no state tax, AMT, credits or phase-outs. 2027 retirement-plan limits were unpublished and use 2026 values (flagged in the app).
 - **RoRo** is a hand-calibrated model, not validated as a return predictor. The app never converts its scores into return estimates.
