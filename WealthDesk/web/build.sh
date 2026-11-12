@@ -19,11 +19,12 @@ for a in "$@"; do
 done
 
 node web/check.mjs
+node web/client-market-check.mjs Tests/roro_expected.json Tests/roro_expected_2022-06-16.json
 
 out=dist/web
 rm -rf "$out"
 mkdir -p "$out/data"
-cp web/index.html web/styles.css web/app.js web/engine.js web/scenario.js "$out/"
+cp web/index.html web/styles.css web/app.js web/engine.js web/scenario.js web/client_market.js "$out/"
 cp Resources/catalog.json Resources/taxdata.json "$out/data/"
 touch "$out/.nojekyll"
 
@@ -46,6 +47,8 @@ if [[ $full == 1 ]]; then
       if (!t.includes("/*__DATA__*/null")) throw new Error("template placeholder missing");
       fs.writeFileSync(process.argv[2], t.replace("/*__DATA__*/null", () => JSON.stringify(JSON.parse(m))));
     ' "$out/data/roro.json" "$out/roro_report.html"
+    # Client Mode's market summary must read today's model correctly.
+    node web/client-market-check.mjs Tests/roro_expected.json Tests/roro_expected_2022-06-16.json "$out/data/roro.json"
   else
     echo "RoRo data unavailable this run; publishing without it." >&2
   fi
