@@ -101,7 +101,10 @@ public enum Stats {
     static func betai(_ a: Double, _ b: Double, _ x: Double) -> Double {
         if x <= 0 { return 0 }
         if x >= 1 { return 1 }
-        let bt = exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * log(x) + b * log(1.0 - x))
+        // Split into typed steps (same left-to-right order) so newer compilers type-check it quickly.
+        let gammas: Double = lgamma(a + b) - lgamma(a) - lgamma(b)
+        let logs: Double = gammas + a * log(x)
+        let bt: Double = exp(logs + b * log(1.0 - x))
         if x < (a + 1.0) / (a + b + 2.0) { return bt * betacf(a, b, x) / a }
         return 1.0 - bt * betacf(b, a, 1.0 - x) / b
     }
@@ -134,8 +137,10 @@ public enum Stats {
         if k < 0 || k > n { return 0 }
         if p == 0 { return k == 0 ? 1 : 0 }
         if p == 1 { return k == n ? 1 : 0 }
-        return exp(lgamma(Double(n + 1)) - lgamma(Double(k + 1)) - lgamma(Double(n - k + 1))
-                   + Double(k) * log(p) + Double(n - k) * log(1 - p))
+        // Typed steps in the same left-to-right order, so newer compilers type-check it quickly.
+        let gammas: Double = lgamma(Double(n + 1)) - lgamma(Double(k + 1)) - lgamma(Double(n - k + 1))
+        let withK: Double = gammas + Double(k) * log(p)
+        return exp(withK + Double(n - k) * log(1 - p))
     }
 
     public static func binomCDF(_ n: Double, _ k: Double, _ p: Double) -> Double {

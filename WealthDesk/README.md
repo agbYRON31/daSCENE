@@ -20,6 +20,28 @@ open "dist/Wealth Desk.app"
 
 During development: `swift run WealthDesk` (app) and `swift run wdcheck` (self-test).
 
+## Web version (Windows, Linux, phones)
+
+`web/` is a browser version for people without a Mac, laid out like the app: the start screen, Advisor Mode (sidebar, all 109 calculators, Calculator, Markets, RoRo Composite, session scenarios and history) and Client Mode. It reads the same `catalog.json` and `taxdata.json`, and `web/engine.js` is a line-by-line port of `Sources/WealthCore`.
+
+How it's checked:
+
+| Check | What it proves |
+| --- | --- |
+| `web/check.mjs` | The web `wdcheck`: every catalog example matches its Python-computed expected value (Monte Carlo included: same SplitMix64 stream), plus parser and IRS bracket checks. |
+| `web/parity.mjs` | Thousands of generated inputs per run across all 109 calculators (variations, every input style, invalid and edge-case entries) give the same field errors, rule errors, outputs and tables as the Swift engine (`swift run wdparity`). |
+| `web/scenario-check.mjs` | Scenario files, plain and password-protected, open both ways between the web and the app. |
+
+Browsers can't reach Yahoo, FRED or Treasury.gov directly, so RoRo and Markets on the web come from a scheduled build: each weekday after the US close, GitHub Actions runs the app's own engine (`roro fetch/build/meta/markets`) on a Mac runner and publishes the results with the site. The Mac app still fetches live and lets you add watchlist symbols. PDF reports use the browser's print dialog. Preferences (favorites, tax year, calculator mode) are kept in the browser; calculator inputs are memory-only and gone when the tab closes.
+
+```bash
+web/build.sh                  # self-test, then assemble dist/web
+web/build.sh --full           # also parity, scenario interop, live RoRo and Markets data (needs Swift)
+web/build.sh --full --serve   # then serve at http://localhost:8765
+```
+
+Pushing to `main` (or the weekday schedule) publishes it to GitHub Pages (`.github/workflows/wealthdesk-web.yml`).
+
 ## How it fits together
 
 | Piece | What it does |

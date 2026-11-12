@@ -8,6 +8,7 @@ let package = Package(
         .executable(name: "WealthDesk", targets: ["WealthDesk"]),
         .executable(name: "wdcheck", targets: ["wdcheck"]),
         .executable(name: "roro", targets: ["roro"]),
+        .executable(name: "wdparity", targets: ["wdparity"]),
     ],
     targets: [
         .target(name: "WealthCore"),
@@ -15,5 +16,6 @@ let package = Package(
         .executableTarget(name: "wdcheck", dependencies: ["WealthCore"]),
         .executableTarget(name: "roro", dependencies: ["WealthCore"]),
         .executableTarget(name: "offlinecheck", dependencies: ["WealthCore"]),
+        .executableTarget(name: "wdparity", dependencies: ["WealthCore"]),
     ]
 )

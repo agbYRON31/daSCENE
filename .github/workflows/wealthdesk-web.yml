@@ -1,0 +1,55 @@
+name: Wealth Desk web
+
+# Publishes WealthDesk/web to GitHub Pages. Runs on a Mac so the app's own Swift engine can:
+#   - check every calculator in the web engine against it (web/parity.mjs),
+#   - check scenario files open both ways (web/scenario-check.mjs),
+#   - download and score today's RoRo data and the Markets snapshot.
+# Rebuilds each weekday after the US close so RoRo and Markets stay current.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "WealthDesk/web/**"
+      - "WealthDesk/Sources/**"
+      - "WealthDesk/Package.swift"
+      - "WealthDesk/Resources/**"
+      - ".github/workflows/wealthdesk-web.yml"
+  schedule:
+    - cron: "15 22 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      # Dates follow the US market calendar, as on a Mac in New York (the runner defaults to UTC).
+      TZ: America/New_York
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Self-test, parity with the Swift engine, RoRo and Markets data, build
+        run: WealthDesk/web/build.sh --full
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: WealthDesk/dist/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
