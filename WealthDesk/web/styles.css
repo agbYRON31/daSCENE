@@ -354,6 +354,10 @@ table.grid tbody tr + tr td { border-top: 1px solid var(--fill-2); }
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
 .toggle input { accent-color: var(--accent); }
 .headline { background: var(--accent-08); border-radius: 14px; padding: 18px; }
+.mword { font-size: 22px; font-weight: 600; }
+.cbuckets { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+.cbrow { display: grid; grid-template-columns: minmax(150px, 290px) minmax(110px, 1fr) 92px; gap: 4px 14px; align-items: center; }
+.cbrow .wd { font-weight: 600; }
 .headline .big { font-size: 21px; font-weight: 500; }
 .headline .cap { font-size: 13px; color: var(--secondary); margin-top: 6px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
@@ -397,6 +401,8 @@ table.cmp thead th { font-size: 14px; border-bottom: 1px solid var(--sep); }
 @media (max-width: 900px) {
   .row2, .row3 { grid-template-columns: 1fr; }
   .bucketgrid { grid-template-columns: 120px 1fr 44px; }
+  .cbrow { grid-template-columns: 1fr auto; }
+  .cbrow .scorebar { grid-column: 1 / -1; grid-row: 2; }
   .bucketgrid .wk, .bucketgrid .spark, .bucketgrid .live { display: none; }
 }
 @media (max-width: 760px) {

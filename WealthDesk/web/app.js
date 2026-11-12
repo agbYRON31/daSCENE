@@ -7,6 +7,7 @@ import {
   Engine, TaxData, Format, Scientific, fieldKind, usesTaxTable, exampleInputs, blankInputs, categories, search,
 } from "./engine.js";
 import { scenarioFileText, readScenarioFile } from "./scenario.js";
+import { clientMarketSummary, marketTone } from "./client_market.js";
 
 // ---------------------------------------------------------------------------
 // Preferences (this browser only) and session (memory only)
@@ -346,7 +347,7 @@ function startPage() {
         h("p", { class: "lede", text: "Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent." })),
       h("div", { class: "modecards" },
         h("a", { class: "modecard", href: "#/client" }, icon("people"), h("h2", { text: "Client Mode" }),
-          h("p", { text: "Five plain-language tools with sliders and charts: growth, retirement, risk, decisions, taxes and inflation." }),
+          h("p", { text: "Six plain-language tools with sliders and charts: growth, retirement, risk, decisions, taxes and inflation, and market conditions." }),
           h("span", { class: "go" }, "Open Client Mode", icon("chevron"))),
         h("a", { class: "modecard", href: "#/advisor" }, icon("squares"), h("h2", { text: "Advisor Mode" }),
           h("p", { text: `The full workspace: ${engine.calculators.length} calculators with formulas and methodology, market data and the RoRo Composite.` }),
@@ -371,7 +372,7 @@ function advisorHome() {
         tile("#/advisor/roro", "gauge", "RoRo Composite", "Market risk conditions across 37 factors"),
         tile("#/advisor/markets", "chart", "Markets", "Treasury yield curve and a quote watchlist"),
         tile("#/advisor/calculator", "plusminus", "Calculator", "Basic and scientific, with a history tape"),
-        tile("#/client", "people", "Client Mode", "Five simple, visual tools for a conversation")),
+        tile("#/client", "people", "Client Mode", "Six simple, visual tools for a conversation")),
       categories(engine.calculators).map((cat) => h("div", { class: "cat" }, h("h2", { text: cat }),
         h("div", { class: "catgrid" }, engine.calculators.filter((c) => c.category === cat).map((c) =>
           h("a", { href: `#/advisor/${c.id}`, title: c.summary }, h("span", { class: "grow", text: c.name }), icon("chevron")))))),
@@ -1057,6 +1058,7 @@ const TOOLS = [
   { id: "risk", title: "How much investment risk am I taking?", blurb: "See what a market drop or a rate change would do to a portfolio mix.", icon: "shield" },
   { id: "decisions", title: "How do my decisions change my future?", blurb: "Compare two choices side by side: retire earlier, save more, spend less.", icon: "branch" },
   { id: "taxes", title: "How do taxes and inflation affect my money?", blurb: "See what inflation does to buying power and what taxes take from growth.", icon: "percent" },
+  { id: "market", title: "What are market conditions right now?", blurb: "A plain summary of today's economic and market backdrop from public data.", icon: "gauge" },
 ];
 
 const raw = (key, id) => S.client[key]?.[id] ?? "";
@@ -1151,7 +1153,7 @@ function toolPage(tool, inputPanel, renderResults, calcsForReport) {
   clientCalcs = calcsForReport;
   return {
     title: tool.title, subtitle: "Client Mode",
-    leading: () => h("a", { class: "tbtn", href: "#/client", title: "Back to the five questions" }, icon("grid"), h("span", { text: "All tools" })),
+    leading: () => h("a", { class: "tbtn", href: "#/client", title: "Back to all six questions" }, icon("grid"), h("span", { text: "All tools" })),
     actions: () => [
       tbtn("doc", "PDF report", () => { clientCalcs().some((c) => c?.ok) ? window.print() : toast("Nothing to report yet. Fill in the numbers first."); },
         { help: "Print, or choose Save as PDF in the print dialog" }),
@@ -1271,7 +1273,7 @@ function riskTool(tool) {
       V?.ok ? chartCard("Typical ups and downs", "Volatility is a yardstick for normal fluctuation, not a worst case and not a prediction.",
         stats(stat("Volatility of this mix", Format.percent(V.v(0)), "Standard deviation of yearly returns, from your assumptions"),
           stat("A typical one-year swing", "± " + Format.currency(V.v(1))), stat("Share of the risk from stocks", Format.percent(V.v(2))))) : null,
-      h("div", {}, h("a", { href: "#/advisor/roro", class: "callout", text: "See current market conditions (RoRo, Advisor Mode)" })),
+      h("div", {}, h("a", { href: "#/client/market", class: "callout", text: "See current market conditions" })),
       howItWorks([A, ...(V?.ok ? [V] : [])]),
     ];
   }, () => [a()]);
@@ -1383,6 +1385,66 @@ function taxesTool(tool) {
 }
 
 // ---------------------------------------------------------------------------
+// Client: market conditions (a plain reading of the published RoRo model)
+// Mirrors ClientMarketView in the Mac app. Numbers come straight from data/roro.json
+// via clientMarketSummary (web/client_market.js, tested by web/client-market-check.mjs).
+
+function marketTool(tool) {
+  const m = data.roro;
+  const sum = clientMarketSummary(m);
+  let content;
+  if (m === undefined) {
+    content = [h("div", { class: "secondary", text: "Loading the latest published market data…" })];
+  } else if (!sum) {
+    content = [headline("Market data isn't available right now.", "It is published every weekday after the US market close. Try again later."),
+      h("div", {}, tbtn("refresh", "Try again", async () => { await loadRoRo(true); route(); }))];
+  } else {
+    const st = roroStatus(m);
+    const A = cssVar("--accent");
+    content = [
+      h("div", { class: "statusbar", style: "padding:0" },
+        h("span", { class: "statuspill " + st.cls, style: "background:color-mix(in srgb, currentColor 16%, transparent)", text: st.label.toUpperCase() }),
+        h("span", { class: "callout secondary", style: "flex:1;min-width:200px", text: st.detail }),
+        h("button", { class: "btn no-print", text: "Reload", onclick: async () => { await loadRoRo(true); route(); toast("Reloaded the latest published market data."); } })),
+      headline(sum.headline, `This summarizes ${sum.indicators} public economic and market indicators on a scale from −100 (stressed) to +100 (supportive). It describes conditions today. It does not predict returns and is not advice about any portfolio.`),
+      h("div", { class: "row3" }, sum.horizons.map((z) => h("section", { class: "card", style: "gap:8px" },
+        h("div", { class: "callout secondary", text: z.name }),
+        h("div", { style: "display:flex;align-items:baseline;justify-content:space-between;gap:8px" },
+          h("span", { class: "mword c-" + marketTone(z.value), text: z.word }),
+          h("span", { class: "secondary tnum", text: signed(z.value) })),
+        scoreBar(z.value),
+        h("div", { class: "caption secondary", text: z.desc })))),
+      chartCard("What is behind it", "Each bar summarizes a group of indicators. Left of center is more stressed, right is more supportive.",
+        h("div", { class: "cbuckets" }, sum.buckets.map((b) => h("div", { class: "cbrow" },
+          h("span", { class: "lbl", text: b.label }), scoreBar(b.value),
+          h("span", { class: "wd c-" + marketTone(b.value), text: b.word }))))),
+      chartCard("The last two years", "The medium-term reading over time. Conditions change; today's reading says nothing certain about tomorrow's.",
+        chart("line", { labels: sum.history.map((p) => p.x), datasets: [
+          { label: "Medium-term reading", data: sum.history.map((p) => p.y), borderColor: A, backgroundColor: A, borderWidth: 2 }] },
+        { money: false, yMin: -100, yMax: 100, zero: false, maxXTicks: 8, legend: false, label: "Medium-term market reading over the last two years",
+          tooltip: (c) => `Reading: ${signed(c.parsed.y, 1)}`, lines: { y: [{ value: 0, color: rgba("#8e8e93", 0.6) }] } })),
+      h("div", { class: "no-print", style: "display:flex;gap:14px;flex-wrap:wrap;align-items:center" },
+        h("a", { class: "btn", href: "#/client/risk", text: "Explore a what-if with the risk tool" }),
+        h("a", { class: "callout", href: "#/advisor/roro", text: "Full detail (Advisor Mode)" })),
+      h("p", { class: "note", text: "Sources: Federal Reserve Economic Data (FRED) and delayed market prices from Yahoo Finance's unofficial feed, scored once each weekday after the US close by the same engine as the Mac app. Readings come from a hand-calibrated model that has not been validated as a predictor of returns. This is general market information, not investment advice or a recommendation." }),
+    ];
+  }
+  clientCalcs = () => [];
+  return {
+    title: tool.title, subtitle: "Client Mode",
+    leading: () => h("a", { class: "tbtn", href: "#/client", title: "Back to all six questions" }, icon("grid"), h("span", { text: "All tools" })),
+    actions: () => [
+      tbtn("doc", "PDF report", () => { sum ? window.print() : toast("Market data hasn't loaded yet."); }, { help: "Print, or choose Save as PDF in the print dialog" }),
+      tbtn("eraser", "Clear", clearSession, { help: "Erase everything typed this session" }),
+    ],
+    body: h("div", { class: "page wide" },
+      printHead("Client illustration", tool.title),
+      h("h1", { class: "serif", style: "margin:0", text: tool.title }),
+      ...content, footnote()),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Router
 
 const ADVISOR_PAGES = { roro: roroPage, markets: marketsPage, calculator: padPage, scenarios: scenariosPage, history: historyPage };
@@ -1403,7 +1465,8 @@ function route() {
   if (mode === "client") {
     const tool = TOOLS.find((t) => t.id === sub);
     if (!tool) return show(clientHome(), { mode });
-    const make = { growth: growthTool, retirement: retirementTool, risk: riskTool, decisions: decisionsTool, taxes: taxesTool }[tool.id];
+    if (tool.id === "market" && data.roro === undefined) loadRoRo().then(route);
+    const make = { growth: growthTool, retirement: retirementTool, risk: riskTool, decisions: decisionsTool, taxes: taxesTool, market: marketTool }[tool.id];
     return show(make(tool), { mode });
   }
   show(startPage());
