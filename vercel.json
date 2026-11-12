@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "bash WealthDesk/web/build.sh",
+  "outputDirectory": "WealthDesk/dist/web",
+  "rewrites": [
+    { "source": "/data/roro.json", "destination": "https://agbyron31.github.io/daSCENE/data/roro.json" },
+    { "source": "/data/roro_meta.json", "destination": "https://agbyron31.github.io/daSCENE/data/roro_meta.json" },
+    { "source": "/data/markets.json", "destination": "https://agbyron31.github.io/daSCENE/data/markets.json" },
+    { "source": "/roro_report.html", "destination": "https://agbyron31.github.io/daSCENE/roro_report.html" }
+  ]
+}
