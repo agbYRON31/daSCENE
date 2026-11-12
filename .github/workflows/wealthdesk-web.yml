@@ -30,6 +30,9 @@ concurrency:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      # Dates follow the US market calendar, as on a Mac in New York (the runner defaults to UTC).
+      TZ: America/New_York
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
