@@ -28,7 +28,8 @@ cp Resources/catalog.json Resources/taxdata.json "$out/data/"
 touch "$out/.nojekyll"
 
 if [[ $full == 1 ]]; then
-  swift build -c release --product wdparity --product roro 2>&1 | tail -1
+  swift build -c release --product wdparity
+  swift build -c release --product roro
   node web/parity.mjs 80
   node web/scenario-check.mjs
 
