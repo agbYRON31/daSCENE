@@ -1,15 +1,21 @@
 name: Wealth Desk web
 
-# Publishes WealthDesk/web to GitHub Pages. Runs the engine self-test first,
-# so a calculator that disagrees with its reference value never ships.
+# Publishes WealthDesk/web to GitHub Pages. Runs on a Mac so the app's own Swift engine can:
+#   - check every calculator in the web engine against it (web/parity.mjs),
+#   - check scenario files open both ways (web/scenario-check.mjs),
+#   - download and score today's RoRo data and the Markets snapshot.
+# Rebuilds each weekday after the US close so RoRo and Markets stay current.
 on:
   push:
     branches: [main]
     paths:
       - "WealthDesk/web/**"
-      - "WealthDesk/Resources/catalog.json"
-      - "WealthDesk/Resources/taxdata.json"
+      - "WealthDesk/Sources/**"
+      - "WealthDesk/Package.swift"
+      - "WealthDesk/Resources/**"
       - ".github/workflows/wealthdesk-web.yml"
+  schedule:
+    - cron: "15 22 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -23,14 +29,14 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Self-test and build
-        run: WealthDesk/web/build.sh
+      - name: Self-test, parity with the Swift engine, RoRo and Markets data, build
+        run: WealthDesk/web/build.sh --full
       - uses: actions/upload-pages-artifact@v3
         with:
           path: WealthDesk/dist/web

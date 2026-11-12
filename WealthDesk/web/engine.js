@@ -54,10 +54,17 @@ export function erfc(x) {
   return x < 0 ? 2 - result : result;
 }
 
-// Lanczos approximation (g = 7, n = 9), ~1e-15 relative.
+// Lanczos approximation (g = 7, n = 9) for small x; Stirling's series for x ≥ 10, where it is
+// accurate to the last bit and avoids the cancellation Lanczos suffers at very large x.
 const LANCZOS = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
   -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+const HALF_LOG_2PI = 0.91893853320467274178;
 export function lgamma(x) {
+  if (x >= 10) {
+    const r = 1 / x, r2 = r * r;
+    const series = r * (1 / 12 - r2 * (1 / 360 - r2 * (1 / 1260 - r2 * (1 / 1680 - r2 / 1188))));
+    return (x - 0.5) * Math.log(x) - x + HALF_LOG_2PI + series;
+  }
   if (x < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * x))) - lgamma(1 - x);
   x -= 1;
   let a = LANCZOS[0];
@@ -612,8 +619,12 @@ class Evaluator {
       case "estaterate": need(0); return tax.estateTopRate;
       case "min": case "max": {
         if (!args.length) fail(`${name}() needs arguments.`);
+        // Swift's Sequence.min()/max(): keep the running value unless the next one compares
+        // strictly smaller/larger, so NaN never replaces a number (Math.min/max would return NaN).
         const all = args.flatMap(list);
-        return name === "min" ? Math.min(...all) : Math.max(...all);
+        let best = all[0];
+        for (const x of all.slice(1)) if (name === "min" ? x < best : best < x) best = x;
+        return best;
       }
       case "abs": return m1(Math.abs);
       case "sin": return m1((x) => Math.sin(x * angle));
