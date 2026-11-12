@@ -53,6 +53,22 @@ let threw = false;
 try { Finance.irr([-100, 50, -20, 90]); } catch { threw = true; }
 expect(threw, "IRR rejects multiple sign changes");
 expect(Scientific.evaluate("x = 2*3", {}, null, false, engine.tax).value === 6, "scratchpad assignment");
+// Keyboard-style lines on the Calculator page (same expectations as wdcheck in the Mac app).
+const line = (t, vars = {}, ans = null) => { try { return Scientific.evaluate(t, vars, ans, false, engine.tax).value; } catch { return null; } };
+const msg = (t, vars = {}) => { try { Scientific.evaluate(t, vars, null, false, engine.tax); return ""; } catch (e) { return e.message; } };
+const near = (a, b) => a !== null && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
+expect(line("r = 5%") === 0.05 && line("50%") === 0.5 && line("200 * 15%") === 30, "% means ÷ 100");
+expect(line("5 x 3") === 15 && line("5x3") === 15 && line("5 X 3") === 15 && line("(2)x(4)") === 8, "x between numbers multiplies");
+expect(line("x^2 + 1", { x: 3 }) === 10 && line("2 * x", { x: 3 }) === 6 && line("x", { x: 3 }) === 3, "x as a variable");
+expect(line("2x", { x: 3 }) === 6 && line("3x + 1", { x: 2 }) === 7, "number next to a variable multiplies");
+expect(line("x x 2", { x: 3 }) === 6 && line("2 x x", { x: 3 }) === 6, "x times x-the-variable");
+expect(line("2k", { k: 4 }) === 8, "a defined variable wins over the k suffix");
+expect(line("250k") === 250000 && line("1.2m") === 1200000 && line("3b") === 3e9 && line("2K + 1") === 2001, "k / m / b suffixes");
+expect(line("2(3 + 4)") === 14 && line("(1 + 2)(3 + 4)") === 21 && near(line("2pi"), 2 * Math.PI) && line("2 sqrt(9)") === 6, "implicit multiplication");
+expect(line("5 x -3") === -15 && line("2 x - 1", { x: 3 }) === 5, "x before a sign");
+expect(line("5 + 3 =") === 8 && line("y = 2 + 3 =") === 5, "a trailing = is ignored");
+expect(line("limit401k(2026)") !== null && line("2e3") === 2000 && near(line("2e"), 2 * Math.E), "function names and scientific notation");
+expect(msg("z + 1").includes("z = ") && msg("5 x").includes("×") && msg("2 3") !== "", "helpful errors");
 expect(Math.abs(Scientific.evaluate("sin(30)", {}, null, true, engine.tax).value - 0.5) < 1e-12, "degrees mode");
 
 // IRS bracket base amounts, every year and status: tax at each bracket floor equals the

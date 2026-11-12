@@ -19,6 +19,27 @@ if args.count == 4 && args[1].hasPrefix("scenario-") {
     }
     exit(0)
 }
+// Calculator-page lines: wdparity lines <Resources> <lines.json> <out.json>
+// lines.json: [{"line": "5 x 3", "vars": {"x": 2}, "ans": 4, "deg": false}] → [{"value": n} | {"error": "message"}]
+if args.count == 5 && args[1] == "lines" {
+    let taxData = try! TaxData.load(from: URL(fileURLWithPath: args[2]).appendingPathComponent("taxdata.json"))
+    let tax = taxData.table(for: taxData.referenceYear)!
+    let items = try! JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: args[3]))) as! [[String: Any]]
+    var out: [Any] = []
+    for it in items {
+        let vars = (it["vars"] as? [String: Double]) ?? [:]
+        do {
+            let r = try Scientific.evaluate(it["line"] as! String, variables: vars, ans: it["ans"] as? Double,
+                                            degrees: (it["deg"] as? Bool) ?? false, tax: tax)
+            out.append(["value": r.value, "name": r.assignedName ?? NSNull()] as [String: Any])
+        } catch {
+            out.append(["error": error.localizedDescription])
+        }
+    }
+    try! JSONSerialization.data(withJSONObject: out).write(to: URL(fileURLWithPath: args[4]))
+    print("evaluated \(out.count) calculator lines")
+    exit(0)
+}
 guard args.count == 4 else { print("usage: wdparity <Resources> <cases.json> <out.json>"); exit(2) }
 let res = URL(fileURLWithPath: args[1])
 let taxData = try! TaxData.load(from: res.appendingPathComponent("taxdata.json"))
