@@ -817,7 +817,8 @@ export const Projections = {
     const { c, cg, rpre, rpost, spend, infl, other, oage } = v;
     let bal = v.bal;
     const rows = [];
-    let retireBal = ar <= a0 ? bal : null, depletion = -1, totalW = 0, firstW = 0;
+    let retireBal = ar <= a0 ? bal : null, depletion = -1, totalW = 0, totalTax = 0, firstW = 0;
+    const keep = 1 - (v.wtax ?? 0);   // share of each withdrawal left after tax
     for (let age = a0; age < ae; age++) {
       const t = age - a0;
       if (age === ar) retireBal = bal;
@@ -825,17 +826,18 @@ export const Projections = {
       const contrib = age < ar ? c * Math.pow(1 + cg, t) : 0;
       const need = age >= ar ? spend * Math.pow(1 + infl, t) : 0;
       const oth = (age >= ar && age >= oage) ? other * Math.pow(1 + infl, t) : 0;
-      let w = Math.max(0, need - oth);
+      let w = Math.max(0, need - oth) / keep;   // grossed up so spending after tax is met
       if (w > start + contrib) { w = start + contrib; if (depletion < 0) depletion = age; }
       if (age === ar) firstW = w;
       const r = age < ar ? rpre : rpost;
       const base = start + contrib - w, end = base * (1 + r);
       totalW += w;
-      rows.push([age, start, contrib, w, end - base, end]);
+      totalTax += w * (1 - keep);
+      rows.push([age, start, contrib, w, end - base, end, w * (1 - keep)]);
       bal = end;
     }
     return {
-      scalars: { p_retire_balance: retireBal ?? bal, p_end_balance: bal, p_depletion_age: depletion, p_first_withdrawal: firstW, p_total_withdrawn: totalW },
+      scalars: { p_retire_balance: retireBal ?? bal, p_end_balance: bal, p_depletion_age: depletion, p_first_withdrawal: firstW, p_total_withdrawn: totalW, p_total_tax: totalTax },
       rows,
     };
   },
@@ -873,7 +875,7 @@ export const Projections = {
     const a0 = trunc(v.age), ar = trunc(v.retire), ae = trunc(v.plan), sims = trunc(v.sims);
     const { c, cg, rpre, rpost, sd, spend, infl, other, oage } = v;
     const rng = new SplitMix64(seedOf(v.seed));
-    const years = Math.max(0, ae - a0);
+    const years = Math.max(0, ae - a0), keep = 1 - (v.wtax ?? 0);
     const paths = new Array(sims), retireBals = [];
     let ok = 0;
     for (let s = 0; s < sims; s++) {
@@ -887,7 +889,7 @@ export const Projections = {
           const contrib = age < ar ? c * Math.pow(1 + cg, t) : 0;
           const need = age >= ar ? spend * Math.pow(1 + infl, t) : 0;
           const oth = (age >= ar && age >= oage) ? other * Math.pow(1 + infl, t) : 0;
-          const w = Math.max(0, need - oth);
+          const w = Math.max(0, need - oth) / keep;
           if (w > bal + contrib) { bal = 0; failed = true; }
           else { const m = age < ar ? rpre : rpost; bal = Math.max(0, (bal + contrib - w) * (1 + m + sd * z)); }
         }
@@ -914,17 +916,27 @@ export const Projections = {
       rows,
     };
   },
+  /** Monthly compounding with end-of-month contributions and withdrawals; the balance never goes below zero. */
   growth(v) {
-    const { p, m, r, infl } = v, y = trunc(v.y), i = r / 12;
-    let bal = p;
+    const { p, m, r, infl } = v, y = trunc(v.y), i = r / 12, wd = v.wd ?? 0;
+    let bal = p, withdrawn = 0, runsOut = -1;
     const rows = [];
     for (let year = 1; year <= y; year++) {
-      for (let k = 0; k < 12; k++) bal = bal * (1 + i) + m;
+      for (let k = 0; k < 12; k++) {
+        const avail = Math.max(0, bal * (1 + i) + m);
+        const take = Math.min(wd, avail);
+        if (take < wd && runsOut < 0) runsOut = year;
+        withdrawn += take;
+        bal = avail - take;
+      }
       const contributed = p + m * 12 * year;
-      rows.push([year, contributed, bal - contributed, bal, bal / Math.pow(1 + infl, year)]);
+      rows.push([year, contributed, bal - contributed + withdrawn, bal, bal / Math.pow(1 + infl, year), withdrawn]);
     }
     const contributed = p + m * 12 * y;
-    return { scalars: { p_balance: bal, p_contributed: contributed, p_growth: bal - contributed, p_real: bal / Math.pow(1 + infl, y) }, rows };
+    return {
+      scalars: { p_balance: bal, p_contributed: contributed, p_growth: bal - contributed + withdrawn, p_real: bal / Math.pow(1 + infl, y), p_withdrawn: withdrawn, p_runs_out: runsOut },
+      rows,
+    };
   },
 };
 

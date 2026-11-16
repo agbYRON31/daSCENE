@@ -1028,6 +1028,7 @@ function roroPage() {
 const F = (id, label, lo, hi, step, blankValue) => ({ id, label, range: [lo, hi], step, blank: blankValue });
 const Spec = {
   growth: [F("p", "Starting amount", 0, 2e6, 5000, "0"), F("m", "Added each month", 0, 10000, 50, "0"),
+    F("wd", "Taken out each month", 0, 20000, 100, "0"),
     F("r", "Yearly return", 0, 12, 0.25), F("y", "Years", 1, 50, 1), F("infl", "Inflation", 0, 8, 0.25, "0")],
   retirementYou: [F("age", "Age today", 18, 90, 1), F("retire", "Retirement age", 40, 80, 1),
     F("bal", "Invested today", 0, 5e6, 10000, "0"), F("c", "Saved per year until retirement", 0, 200000, 1000, "0"),
@@ -1036,6 +1037,7 @@ const Spec = {
   retirementAssumptions: [F("rpre", "Yearly return before retirement", 0, 12, 0.25), F("rpost", "Yearly return in retirement", 0, 12, 0.25),
     F("infl", "Inflation", 0, 8, 0.25), F("plan", "Plan through age", 70, 110, 1, "95"),
     F("oage", "Other income starts at age", 55, 75, 1, "67"), F("cg", "Yearly increase in saving", 0, 10, 0.5, "0"),
+    F("wtax", "Tax rate on withdrawals (0 for Roth or after-tax money)", 0, 50, 1, "0"),
     F("sd", "Market ups and downs (volatility)", 0, 30, 1)],
   risk: [F("v", "Portfolio value", 0, 1e7, 50000), F("we", "Stocks", 0, 100, 5), F("wb", "Bonds", 0, 100, 5),
     F("eq", "Stock market change", -60, 40, 1), F("dy", "Interest-rate change", -3, 3, 0.25, "0"),
@@ -1167,23 +1169,44 @@ function toolPage(tool, inputPanel, renderResults, calcsForReport) {
 function growthTool(tool) {
   const run = () => clientRun("client.growth", "growth_schedule", Spec.growth);
   return toolPage(tool, (on) => [
-    group("Your numbers", null, inputs("client.growth", "growth_schedule", Spec.growth.slice(0, 2), on)),
-    group("Assumptions", "These are yours to set. A return is an assumption, not a promise.", inputs("client.growth", "growth_schedule", Spec.growth.slice(2), on)),
+    group("Your numbers", "Leave “taken out” empty if nothing is withdrawn.", inputs("client.growth", "growth_schedule", Spec.growth.slice(0, 3), on)),
+    group("Assumptions", "These are yours to set. A return is an assumption, not a promise.", inputs("client.growth", "growth_schedule", Spec.growth.slice(3), on)),
   ], () => {
     const c = run();
     if (!c?.ok || !c.ev.table) return needsInput(c);
-    const rows = c.ev.table.rows, years = rows.length ? rows[rows.length - 1][0] : 0, A = cssVar("--accent"), G = "#8e8e93";
+    const rows = c.ev.table.rows, years = rows.length ? rows[rows.length - 1][0] : 0, A = cssVar("--accent"), G = "#8e8e93", O = cssVar("--orange");
+    const takesOut = c.v(4) > 0, runsOut = c.v(5) >= 0;
+    if (!takesOut) {
+      return [
+        headline(`After ${years} years this could grow to ${Format.currency(c.v(0))}.`, `${Format.currency(c.v(1))} is money put in; ${Format.currency(c.v(2))} is growth on top of it.`),
+        stats(stat("Ending balance", Format.currency(c.v(0))), stat("Money put in", Format.currency(c.v(1))),
+          stat("Growth earned", Format.currency(c.v(2)), null, c.v(2) < 0), stat("What it buys in today's dollars", Format.currency(c.v(3)), "After the inflation entered")),
+        chartCard("Year by year", "Growth compounds: each year's gains earn gains of their own.",
+          chart("line", { datasets: [
+            { label: "Money put in", data: rows.map((r) => ({ x: r[0], y: r[1] })), fill: "origin", stack: "a", backgroundColor: rgba(G, 0.45), borderColor: rgba(G, 0.8), borderWidth: 1 },
+            { label: "Growth", data: rows.map((r) => ({ x: r[0], y: Math.max(r[2], 0) })), fill: "-1", stack: "a", backgroundColor: rgba(A, 0.6), borderColor: A, borderWidth: 1 },
+            { label: "Balance in today's dollars", data: rows.map((r) => ({ x: r[0], y: r[4] })), stack: "b", borderColor: cssVar("--secondary"), borderDash: [4, 3], borderWidth: 1.5 },
+          ] }, { xType: "linear", stacked: true, xTitle: "Years from now", size: "h260" }),
+          h("div", { class: "caption secondary", text: "Dashed line: the balance in today's dollars." })),
+        howItWorks([c]),
+      ];
+    }
     return [
-      headline(`After ${years} years this could grow to ${Format.currency(c.v(0))}.`, `${Format.currency(c.v(1))} is money put in; ${Format.currency(c.v(2))} is growth on top of it.`),
-      stats(stat("Ending balance", Format.currency(c.v(0))), stat("Money put in", Format.currency(c.v(1))),
-        stat("Growth earned", Format.currency(c.v(2)), null, c.v(2) < 0), stat("What it buys in today's dollars", Format.currency(c.v(3)), "After the inflation entered")),
-      chartCard("Year by year", "Growth compounds: each year's gains earn gains of their own.",
+      runsOut
+        ? headline(`At this rate the money runs out in year ${Math.trunc(c.v(5))}.`,
+            `${Format.currency(c.v(4))} is taken out in total before the balance reaches zero. After that only new deposits can be taken out.`)
+        : headline(`After ${years} years, ${Format.currency(c.v(0))} would be left after taking out ${Format.currency(c.v(4))}.`,
+            `${Format.currency(c.v(1))} is money put in and ${Format.currency(c.v(2))} is growth earned along the way.`),
+      stats(stat(runsOut ? "Balance at the end" : "Ending balance", Format.currency(c.v(0)), null, runsOut),
+        stat("Total taken out", Format.currency(c.v(4))), stat("Money put in", Format.currency(c.v(1))),
+        stat("Growth earned", Format.currency(c.v(2)), null, c.v(2) < 0),
+        stat("Ending balance in today's dollars", Format.currency(c.v(3)), "After the inflation entered")),
+      chartCard("Year by year", "The balance after each year's deposits, withdrawals and growth, and the running total taken out.",
         chart("line", { datasets: [
-          { label: "Money put in", data: rows.map((r) => ({ x: r[0], y: r[1] })), fill: "origin", stack: "a", backgroundColor: rgba(G, 0.45), borderColor: rgba(G, 0.8), borderWidth: 1 },
-          { label: "Growth", data: rows.map((r) => ({ x: r[0], y: Math.max(r[2], 0) })), fill: "-1", stack: "a", backgroundColor: rgba(A, 0.6), borderColor: A, borderWidth: 1 },
-          { label: "Balance in today's dollars", data: rows.map((r) => ({ x: r[0], y: r[4] })), stack: "b", borderColor: cssVar("--secondary"), borderDash: [4, 3], borderWidth: 1.5 },
-        ] }, { xType: "linear", stacked: true, xTitle: "Years from now", size: "h260" }),
-        h("div", { class: "caption secondary", text: "Dashed line: the balance in today's dollars." })),
+          { label: "Balance", data: rows.map((r) => ({ x: r[0], y: r[3] })), fill: "origin", backgroundColor: rgba(A, 0.25), borderColor: A, borderWidth: 2 },
+          { label: "Taken out so far", data: rows.map((r) => ({ x: r[0], y: r[5] })), borderColor: O, borderWidth: 2 },
+          { label: "Balance in today's dollars", data: rows.map((r) => ({ x: r[0], y: r[4] })), borderColor: cssVar("--secondary"), borderDash: [4, 3], borderWidth: 1.5 },
+        ] }, { xType: "linear", xTitle: "Years from now", size: "h260" })),
       howItWorks([c]),
     ];
   }, () => [run()]);
@@ -1208,16 +1231,26 @@ function retirementTool(tool) {
     }
     ds.push({ label: "Steady path", data: rows.map((r) => ({ x: r[0] + 1, y: r[5] })), borderColor: A, borderWidth: 2.5 });
     const retire = Number(c.inputs.retire);
+    const outRows = rows.filter((r) => r[3] > 0), taxed = c.v(5) > 0, O = cssVar("--orange");
+    const takenText = c.v(4) > 0 ? `${Format.currency(c.v(4))} is taken out over the retirement years${taxed ? `, ${Format.currency(c.v(5))} of it for taxes` : ""}.` : "";
     return [
       headline(lasts ? `On this steady path the money lasts through age ${plan}.` : `On this steady path the money runs out around age ${Math.trunc(c.v(3))}.`,
-        lasts ? `About ${Format.currency(c.v(2))} would remain at the end of the plan.` : `That is ${Math.trunc(plan - c.v(3))} years before the end of the plan.`),
+        (lasts ? `About ${Format.currency(c.v(2))} would remain at the end of the plan. ` : `That is ${Math.trunc(plan - c.v(3))} years before the end of the plan. `) + takenText),
       stats(stat("Savings at retirement", Format.currency(c.v(0))),
-        stat("First-year withdrawal", Format.currency(c.v(1)), Number.isNaN(rate) ? null : `${Format.percent(rate)} of savings at retirement`),
+        stat("First-year withdrawal", Format.currency(c.v(1)), Number.isNaN(rate) ? null : `${Format.percent(rate)} of savings at retirement${taxed ? ", including tax" : ""}`),
+        stat("Total taken out in retirement", Format.currency(c.v(4)), taxed ? `Including ${Format.currency(c.v(5))} in taxes` : "Spending not covered by other income"),
         stat(lasts ? "Left at end of plan" : "Money runs out at age", lasts ? Format.currency(c.v(2)) : String(Math.trunc(c.v(3))), null, !lasts),
         mc?.ok ? stat("Simulated paths where the money lasts", Format.percent(mc.v(0)), `Out of ${mc.inputs.sims} random market paths`) : null),
       chartCard("Savings over time", mc?.ok ? "Shaded band: the middle 80% of simulated outcomes. Solid line: the steady path. Markets don't deliver the same return every year, so the band is the more realistic picture."
         : "A single steady path with the same return every year. Enter a volatility assumption to see a range.",
       chart("line", { datasets: ds }, { xType: "linear", xTitle: "Age", legend: false, size: "h280", lines: Number.isFinite(retire) ? { x: [{ value: retire, label: "Retire" }] } : {} })),
+      outRows.length ? chartCard("Taken out each year", taxed
+        ? "Each bar is the year's withdrawal: what is spent, plus the income tax on it at the rate entered. Amounts grow with inflation; other income such as Social Security reduces them once it starts."
+        : "Each bar is the year's withdrawal: spending not covered by other income. Amounts grow with inflation and drop when other income such as Social Security starts. Taxes on withdrawals aren't included; enter a tax rate to add them.",
+        chart("bar", { labels: outRows.map((r) => r[0]), datasets: [
+          { label: "Spending", data: outRows.map((r) => r[3] - r[6]), backgroundColor: A, stack: "w" },
+          ...(taxed ? [{ label: "Tax on withdrawals", data: outRows.map((r) => r[6]), backgroundColor: O, stack: "w" }] : []),
+        ] }, { stacked: true, legend: taxed, size: "h220", maxXTicks: 12, xTitle: "Age" })) : null,
       mc && !mc.ok ? needsInput(mc) : null,
       howItWorks([c, ...(mc?.ok ? [mc] : [])]),
     ];

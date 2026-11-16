@@ -124,9 +124,9 @@ enum QAHooks {
     static func runClient(_ folder: URL) {
         let state = AppState()
         let fill: [String: [String: String]] = [
-            "client.growth": ["p": "25000", "m": "1000", "r": "6", "y": "25", "infl": "2.5"],
+            "client.growth": ["p": "250000", "m": "0", "wd": "1500", "r": "6", "y": "25", "infl": "2.5"],
             "client.retirement": ["age": "45", "retire": "65", "bal": "750000", "c": "30000", "spend": "110000", "other": "45000",
-                                  "rpre": "6", "rpost": "5", "infl": "2.5", "sd": "12"],
+                                  "rpre": "6", "rpost": "5", "infl": "2.5", "sd": "12", "wtax": "22"],
             "client.decisions.B": ["retire": "60", "c": "45000"],
             "client.risk": ["v": "2000000", "we": "60", "wb": "40", "eq": "-20", "dy": "1"],
             "client.risk.B": ["we": "40", "wb": "60"],

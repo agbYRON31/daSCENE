@@ -74,6 +74,7 @@ enum ClientSpec {
     static let growth: [ClientField] = [
         .init(id: "p", label: "Starting amount", range: 0...2_000_000, step: 5_000, blank: "0"),
         .init(id: "m", label: "Added each month", range: 0...10_000, step: 50, blank: "0"),
+        .init(id: "wd", label: "Taken out each month", range: 0...20_000, step: 100, blank: "0"),
         .init(id: "r", label: "Yearly return", range: 0...12, step: 0.25),
         .init(id: "y", label: "Years", range: 1...50, step: 1),
         .init(id: "infl", label: "Inflation", range: 0...8, step: 0.25, blank: "0"),
@@ -93,6 +94,7 @@ enum ClientSpec {
         .init(id: "plan", label: "Plan through age", range: 70...110, step: 1, blank: "95"),
         .init(id: "oage", label: "Other income starts at age", range: 55...75, step: 1, blank: "67"),
         .init(id: "cg", label: "Yearly increase in saving", range: 0...10, step: 0.5, blank: "0"),
+        .init(id: "wtax", label: "Tax rate on withdrawals (0 for Roth or after-tax money)", range: 0...50, step: 1, blank: "0"),
         .init(id: "sd", label: "Market ups and downs (volatility)", range: 0...30, step: 1),
     ]
     static var retirement: [ClientField] { retirementYou + retirementAssumptions }
@@ -536,46 +538,90 @@ struct GrowthTool: View {
     var body: some View {
         let c = state.clientRun("client.growth", "growth_schedule", ClientSpec.growth)
         ToolLayout(question: ClientSpec.title(.growth)) {
-            InputGroup(title: "Your numbers") {
-                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.prefix(2)))
+            InputGroup(title: "Your numbers", note: "Leave “taken out” empty if nothing is withdrawn.") {
+                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.prefix(3)))
             }
             InputGroup(title: "Assumptions", note: "These are yours to set. A return is an assumption, not a promise.") {
-                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.dropFirst(2)))
+                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.dropFirst(3)))
             }
         } results: {
             if let c, c.ok, let table = c.eval.table {
                 let years = Int(table.rows.last?[0] ?? 0)
-                Headline(text: "After \(years) years this could grow to \(Format.currency(c.v(0))).",
-                         caption: "\(Format.currency(c.v(1))) is money put in; \(Format.currency(c.v(2))) is growth on top of it.")
-                StatGrid {
-                    StatTile(label: "Ending balance", value: Format.currency(c.v(0)))
-                    StatTile(label: "Money put in", value: Format.currency(c.v(1)))
-                    StatTile(label: "Growth earned", value: Format.currency(c.v(2)), negative: c.v(2) < 0)
-                    StatTile(label: "What it buys in today's dollars", value: Format.currency(c.v(3)), caption: "After the inflation entered")
-                }
-                ChartCard(title: "Year by year", note: "Growth compounds: each year's gains earn gains of their own.") {
-                    let pts = table.rows.flatMap { r in [Pt(year: r[0], value: r[1], part: "Money put in"), Pt(year: r[0], value: max(r[2], 0), part: "Growth")] }
-                    Chart {
-                        ForEach(pts) { p in
-                            AreaMark(x: .value("Year", p.year), y: .value("Balance", p.value), stacking: .standard)
-                                .foregroundStyle(by: .value("Part", p.part))
-                        }
-                        ForEach(table.rows, id: \.self) { r in
-                            LineMark(x: .value("Year", r[0]), y: .value("Balance", r[4]), series: .value("Line", "today"))
-                                .foregroundStyle(Color.primary.opacity(0.6))
-                                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                        }
+                if c.v(4) > 0 {
+                    withdrawals(c, table, years: years)
+                } else {
+                    Headline(text: "After \(years) years this could grow to \(Format.currency(c.v(0))).",
+                             caption: "\(Format.currency(c.v(1))) is money put in; \(Format.currency(c.v(2))) is growth on top of it.")
+                    StatGrid {
+                        StatTile(label: "Ending balance", value: Format.currency(c.v(0)))
+                        StatTile(label: "Money put in", value: Format.currency(c.v(1)))
+                        StatTile(label: "Growth earned", value: Format.currency(c.v(2)), negative: c.v(2) < 0)
+                        StatTile(label: "What it buys in today's dollars", value: Format.currency(c.v(3)), caption: "After the inflation entered")
                     }
-                    .chartForegroundStyleScale(["Money put in": Color.gray.opacity(0.45), "Growth": Color.wealthAccent])
-                    .chartYAxis { moneyAxis() }
-                    .chartXAxisLabel("Years from now")
-                    .frame(height: 260)
-                    Text("Dashed line: the balance in today's dollars.").font(.caption).foregroundStyle(.secondary)
+                    ChartCard(title: "Year by year", note: "Growth compounds: each year's gains earn gains of their own.") {
+                        let pts = table.rows.flatMap { r in [Pt(year: r[0], value: r[1], part: "Money put in"), Pt(year: r[0], value: max(r[2], 0), part: "Growth")] }
+                        Chart {
+                            ForEach(pts) { p in
+                                AreaMark(x: .value("Year", p.year), y: .value("Balance", p.value), stacking: .standard)
+                                    .foregroundStyle(by: .value("Part", p.part))
+                            }
+                            ForEach(table.rows, id: \.self) { r in
+                                LineMark(x: .value("Year", r[0]), y: .value("Balance", r[4]), series: .value("Line", "today"))
+                                    .foregroundStyle(Color.primary.opacity(0.6))
+                                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                            }
+                        }
+                        .chartForegroundStyleScale(["Money put in": Color.gray.opacity(0.45), "Growth": Color.wealthAccent])
+                        .chartYAxis { moneyAxis() }
+                        .chartXAxisLabel("Years from now")
+                        .frame(height: 260)
+                        Text("Dashed line: the balance in today's dollars.").font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 HowItWorks(calcs: [c])
             } else {
                 NeedsInput(calc: c)
             }
+        }
+    }
+
+    /// Results when money is being taken out: the balance can shrink, so show it with the running total withdrawn.
+    @ViewBuilder
+    private func withdrawals(_ c: ClientCalc, _ table: TableResult, years: Int) -> some View {
+        let runsOut = c.v(5) >= 0
+        if runsOut {
+            Headline(text: "At this rate the money runs out in year \(Int(c.v(5))).",
+                     caption: "\(Format.currency(c.v(4))) is taken out in total before the balance reaches zero. After that only new deposits can be taken out.")
+        } else {
+            Headline(text: "After \(years) years, \(Format.currency(c.v(0))) would be left after taking out \(Format.currency(c.v(4))).",
+                     caption: "\(Format.currency(c.v(1))) is money put in and \(Format.currency(c.v(2))) is growth earned along the way.")
+        }
+        StatGrid {
+            StatTile(label: runsOut ? "Balance at the end" : "Ending balance", value: Format.currency(c.v(0)), negative: runsOut)
+            StatTile(label: "Total taken out", value: Format.currency(c.v(4)))
+            StatTile(label: "Money put in", value: Format.currency(c.v(1)))
+            StatTile(label: "Growth earned", value: Format.currency(c.v(2)), negative: c.v(2) < 0)
+            StatTile(label: "Ending balance in today's dollars", value: Format.currency(c.v(3)), caption: "After the inflation entered")
+        }
+        ChartCard(title: "Year by year", note: "The balance after each year's deposits, withdrawals and growth, and the running total taken out.") {
+            let pts = table.rows.flatMap { r in [Pt(year: r[0], value: r[3], part: "Balance"), Pt(year: r[0], value: r[5], part: "Taken out so far"),
+                                                 Pt(year: r[0], value: r[4], part: "Balance in today's dollars")] }
+            Chart {
+                ForEach(table.rows, id: \.self) { r in
+                    AreaMark(x: .value("Year", r[0]), y: .value("Balance", r[3]))
+                        .foregroundStyle(Color.wealthAccent.opacity(0.22))
+                }
+                ForEach(pts) { p in
+                    LineMark(x: .value("Year", p.year), y: .value("Amount", p.value), series: .value("Line", p.part))
+                        .foregroundStyle(by: .value("Line", p.part))
+                        .lineStyle(StrokeStyle(lineWidth: p.part == "Balance in today's dollars" ? 1.5 : 2,
+                                               dash: p.part == "Balance in today's dollars" ? [4, 3] : []))
+                }
+            }
+            .chartForegroundStyleScale(["Balance": Color.wealthAccent, "Taken out so far": Color.orange, "Balance in today's dollars": Color.secondary])
+            .chartYAxis { moneyAxis() }
+            .chartXAxisLabel("Years from now")
+            .frame(height: 260)
         }
     }
 }
@@ -602,14 +648,18 @@ struct RetirementTool: View {
                 let plan = (table.rows.last?[0] ?? 0) + 1
                 let lasts = t.v(3) < 0
                 let rate = t.v(0) > 0 ? t.v(1) / t.v(0) : .nan
+                let taxed = t.v(5) > 0
+                let taken = t.v(4) > 0 ? "\(Format.currency(t.v(4))) is taken out over the retirement years\(taxed ? ", \(Format.currency(t.v(5))) of it for taxes" : "")." : ""
                 Headline(text: lasts ? "On this steady path the money lasts through age \(Int(plan))."
                                      : "On this steady path the money runs out around age \(Int(t.v(3))).",
-                         caption: lasts ? "About \(Format.currency(t.v(2))) would remain at the end of the plan."
-                                        : "That is \(Int(plan - t.v(3))) years before the end of the plan.")
+                         caption: (lasts ? "About \(Format.currency(t.v(2))) would remain at the end of the plan. "
+                                         : "That is \(Int(plan - t.v(3))) years before the end of the plan. ") + taken)
                 StatGrid {
                     StatTile(label: "Savings at retirement", value: Format.currency(t.v(0)))
                     StatTile(label: "First-year withdrawal", value: Format.currency(t.v(1)),
-                             caption: rate.isNaN ? nil : "\(Format.percent(rate)) of savings at retirement")
+                             caption: rate.isNaN ? nil : "\(Format.percent(rate)) of savings at retirement\(taxed ? ", including tax" : "")")
+                    StatTile(label: "Total taken out in retirement", value: Format.currency(t.v(4)),
+                             caption: taxed ? "Including \(Format.currency(t.v(5))) in taxes" : "Spending not covered by other income")
                     StatTile(label: lasts ? "Left at end of plan" : "Money runs out at age", value: lasts ? Format.currency(t.v(2)) : "\(Int(t.v(3)))", negative: !lasts)
                     if let mc, mc.ok {
                         StatTile(label: "Simulated paths where the money lasts", value: Format.percent(mc.v(0)),
@@ -642,10 +692,38 @@ struct RetirementTool: View {
                     .chartXScale(domain: .automatic(includesZero: false))
                     .frame(height: 280)
                 }
+                WithdrawalBars(rows: table.rows.filter { $0[3] > 0 }, taxed: taxed)
                 if let mc, !mc.ok, hasVol { NeedsInput(calc: mc) }
                 HowItWorks(calcs: [t] + (mc?.ok == true ? [mc!] : []))
             } else {
                 NeedsInput(calc: t)
+            }
+        }
+    }
+}
+
+/// Each retirement year's withdrawal, split into spending and the tax on it.
+struct WithdrawalBars: View {
+    let rows: [[Double]]
+    let taxed: Bool
+    struct Part: Identifiable { let id = UUID(); let age: Double; let part: String; let value: Double }
+
+    var body: some View {
+        if !rows.isEmpty {
+            ChartCard(title: "Taken out each year",
+                      note: taxed ? "Each bar is the year's withdrawal: what is spent, plus the income tax on it at the rate entered. Amounts grow with inflation; other income such as Social Security reduces them once it starts."
+                                  : "Each bar is the year's withdrawal: spending not covered by other income. Amounts grow with inflation and drop when other income such as Social Security starts. Taxes on withdrawals aren't included; enter a tax rate to add them.") {
+                let parts = rows.flatMap { r in [Part(age: r[0], part: "Spending", value: r[3] - r[6])] + (taxed ? [Part(age: r[0], part: "Tax on withdrawals", value: r[6])] : []) }
+                Chart(parts) { p in
+                    BarMark(x: .value("Age", p.age), y: .value("Withdrawal", p.value), width: .fixed(rows.count > 30 ? 6 : 10))
+                        .foregroundStyle(by: .value("Part", p.part))
+                }
+                .chartForegroundStyleScale(["Spending": Color.wealthAccent, "Tax on withdrawals": Color.orange])
+                .chartLegend(taxed ? .visible : .hidden)
+                .chartYAxis { moneyAxis() }
+                .chartXAxisLabel("Age")
+                .chartXScale(domain: .automatic(includesZero: false))
+                .frame(height: 220)
             }
         }
     }

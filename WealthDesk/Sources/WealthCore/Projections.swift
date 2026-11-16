@@ -27,7 +27,9 @@ public enum Projections {
         var retireBal: Double? = ar <= a0 ? bal : nil
         var depletion = -1.0
         var totalW = 0.0
+        var totalTax = 0.0
         var firstW = 0.0
+        let keep = 1 - (v["wtax"] ?? 0)   // share of each withdrawal left after tax
         if a0 < ae {
             for age in a0..<ae {
                 let t = Double(age - a0)
@@ -36,7 +38,7 @@ public enum Projections {
                 let contrib = age < ar ? c * pow(1 + cg, t) : 0.0
                 let need = age >= ar ? spend * pow(1 + infl, t) : 0.0
                 let oth = (age >= ar && Double(age) >= oage) ? other * pow(1 + infl, t) : 0.0
-                var w = max(0.0, need - oth)
+                var w = max(0.0, need - oth) / keep   // grossed up so spending after tax is met
                 if w > start + contrib {
                     w = start + contrib
                     if depletion < 0 { depletion = Double(age) }
@@ -46,7 +48,8 @@ public enum Projections {
                 let base = start + contrib - w
                 let end = base * (1 + r)
                 totalW += w
-                rows.append([Double(age), start, contrib, w, end - base, end])
+                totalTax += w * (1 - keep)
+                rows.append([Double(age), start, contrib, w, end - base, end, w * (1 - keep)])
                 bal = end
             }
         }
@@ -56,6 +59,7 @@ public enum Projections {
             "p_depletion_age": depletion,
             "p_first_withdrawal": firstW,
             "p_total_withdrawn": totalW,
+            "p_total_tax": totalTax,
         ], rows: rows)
     }
 
@@ -135,6 +139,7 @@ public enum Projections {
         let spend = v["spend"]!, infl = v["infl"]!, other = v["other"]!, oage = v["oage"]!
         var rng = SplitMix64(state: UInt64(max(0, v["seed"]!)))
         let years = max(0, ae - a0)
+        let keep = 1 - (v["wtax"] ?? 0)
         var paths = [[Double]](repeating: [], count: sims)
         var retireBals: [Double] = []
         var ok = 0
@@ -153,7 +158,7 @@ public enum Projections {
                         let contrib = age < ar ? c * pow(1 + cg, t) : 0.0
                         let need = age >= ar ? spend * pow(1 + infl, t) : 0.0
                         let oth = (age >= ar && Double(age) >= oage) ? other * pow(1 + infl, t) : 0.0
-                        let w = max(0.0, need - oth)
+                        let w = max(0.0, need - oth) / keep
                         if w > bal + contrib {
                             bal = 0
                             failed = true
@@ -188,23 +193,33 @@ public enum Projections {
         ], rows: rows)
     }
 
-    /// Monthly compounding with end-of-month contributions, reported at each year end.
+    /// Monthly compounding with end-of-month contributions and withdrawals, reported at each year end.
+    /// A withdrawal takes what is there when the balance can't cover it; the balance never goes below zero.
     static func growth(_ v: [String: Double]) -> ProjectionResult {
         let p = v["p"]!, m = v["m"]!, r = v["r"]!, y = Int(v["y"]!), infl = v["infl"]!
+        let wd = v["wd"] ?? 0
         let i = r / 12
         var bal = p
+        var withdrawn = 0.0
+        var runsOut = -1.0
         var rows: [[Double]] = []
         if y >= 1 {
             for year in 1...y {
-                for _ in 0..<12 { bal = bal * (1 + i) + m }
+                for _ in 0..<12 {
+                    let avail = max(0.0, bal * (1 + i) + m)
+                    let take = min(wd, avail)
+                    if take < wd && runsOut < 0 { runsOut = Double(year) }
+                    withdrawn += take
+                    bal = avail - take
+                }
                 let contributed = p + m * 12 * Double(year)
-                rows.append([Double(year), contributed, bal - contributed, bal, bal / pow(1 + infl, Double(year))])
+                rows.append([Double(year), contributed, bal - contributed + withdrawn, bal, bal / pow(1 + infl, Double(year)), withdrawn])
             }
         }
         let contributed = p + m * 12 * Double(y)
         return ProjectionResult(scalars: [
-            "p_balance": bal, "p_contributed": contributed, "p_growth": bal - contributed,
-            "p_real": bal / pow(1 + infl, Double(y)),
+            "p_balance": bal, "p_contributed": contributed, "p_growth": bal - contributed + withdrawn,
+            "p_real": bal / pow(1 + infl, Double(y)), "p_withdrawn": withdrawn, "p_runs_out": runsOut,
         ], rows: rows)
     }
 }
