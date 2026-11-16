@@ -118,6 +118,7 @@ struct CalculatorView: View {
                 .font(.system(.callout, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
+            FormulaBreakdown(calc: calc)
         }
     }
 
@@ -540,5 +541,44 @@ struct TaxDataPanel: View {
         }
         Text("The check reads public IRS.gov release pages only; nothing about you is sent.")
             .font(.caption2).foregroundStyle(.tertiary)
+    }
+}
+
+/// "What each part means": a drop-down under a formula explaining why it works and each of its parts.
+struct FormulaBreakdown: View {
+    let calc: Calculator
+    var compact = false
+    @State private var open = false
+
+    var body: some View {
+        if let e = calc.explain {
+            DisclosureGroup(isExpanded: $open) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(e.why)
+                        .font(compact ? .caption : .callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Grid(alignment: .topLeading, horizontalSpacing: 12, verticalSpacing: 8) {
+                        ForEach(Array(e.parts.enumerated()), id: \.offset) { _, p in
+                            GridRow {
+                                Text(p.term)
+                                    .font(.system(compact ? .caption : .callout, design: .monospaced).weight(.semibold))
+                                    .foregroundStyle(Color.wealthAccent)
+                                    .frame(minWidth: 70, maxWidth: 220, alignment: .leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .textSelection(.enabled)
+                                Text(p.meaning)
+                                    .font(compact ? .caption : .callout)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } label: {
+                Text("What each part means").font((compact ? Font.caption : .callout).weight(.medium))
+            }
+        }
     }
 }

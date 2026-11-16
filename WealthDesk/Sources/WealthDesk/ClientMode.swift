@@ -506,6 +506,7 @@ struct HowItWorks: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(c.calc.name).font(.subheadline.weight(.semibold))
                         Text(c.calc.math).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary).textSelection(.enabled)
+                        FormulaBreakdown(calc: c.calc, compact: true)
                         Text(c.calc.assumptions).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         Text(c.calc.interpretation).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         Button("Open the full calculator in Advisor Mode") { state.openInAdvisor(c) }.buttonStyle(.link).font(.caption)

@@ -328,6 +328,20 @@ function show(page, { mode, selected } = {}) {
   shell.detail.scrollTop = 0;
 }
 
+/** "What each part means": why the formula works and what each piece does (tools/formula_notes.py). */
+function formulaBreakdown(calc, compact) {
+  const e = calc.explain;
+  if (!e) return null;
+  return h("details", { class: "disc formula" + (compact ? " compact" : "") },
+    h("summary", { text: "What each part means" }),
+    h("div", { class: "disc-body" },
+      h("p", { class: "why", text: e.why }),
+      h("dl", {}, e.parts.map((p) => [h("dt", { text: p.term }), h("dd", { text: p.meaning })]))));
+}
+// Printing (Save as PDF) opens every formula breakdown so it appears in the report.
+window.addEventListener("beforeprint", () => document.querySelectorAll("details.formula").forEach((d) => { d.dataset.wasOpen = d.open ? "1" : ""; d.open = true; }));
+window.addEventListener("afterprint", () => document.querySelectorAll("details.formula").forEach((d) => { d.open = d.dataset.wasOpen === "1"; }));
+
 const card = (title, trailing, ...kids) => h("section", { class: "card" },
   title || trailing ? h("div", { class: "card-head" }, title ? h("h3", { text: title }) : h("span"), trailing) : null, ...kids);
 const unavailable = (ic, title, message) => h("div", { class: "unavailable" }, icon(ic), h("h2", { text: title }), h("p", { text: message }));
@@ -502,7 +516,8 @@ function calcPage(calc) {
       h("div", { class: "calc-head" },
         h("h1", {}, calc.name, calc.acronym ? h("span", { class: "pill", text: calc.acronym }) : null),
         h("p", { text: calc.summary }),
-        h("div", { class: "math", text: calc.math })),
+        h("div", { class: "math", text: calc.math }),
+        formulaBreakdown(calc)),
       usesTaxTable(calc) ? taxBanner(update) : null,
       card("Inputs", null, h("div", { class: "inputs-grid" }, calc.fields.map(field))),
       live),
@@ -1122,7 +1137,7 @@ function needsInput(c) {
 }
 function howItWorks(calcs) {
   return h("details", { class: "how disc" }, h("summary", { text: "How this is calculated, and what it assumes" }),
-    calcs.map((c) => h("div", { class: "how-item" }, h("h4", { text: c.calc.name }), h("code", { text: c.calc.math }),
+    calcs.map((c) => h("div", { class: "how-item" }, h("h4", { text: c.calc.name }), h("code", { text: c.calc.math }), formulaBreakdown(c.calc, true),
       h("p", { text: c.calc.assumptions }), h("p", { text: c.calc.interpretation }),
       h("button", { class: "link no-print", style: "align-self:flex-start;font-size:12px", text: "Open the full calculator in Advisor Mode",
         onclick: () => { S.working[c.calc.id] = { ...c.inputs }; location.hash = `#/advisor/${c.calc.id}`; } }))));
