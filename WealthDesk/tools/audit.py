@@ -265,7 +265,8 @@ ind("employer_match", DEF, cases=[dict(c=0.10), dict(c=0.0)])(lambda v: [v.s * m
 def timeline(v):
     bal, infl, contrib = v.bal, 1.0, v.c
     retire_bal = v.bal if v.retire <= v.age else None
-    dep, total, first = -1.0, 0.0, 0.0
+    dep, total, first, tax = -1.0, 0.0, 0.0, 0.0
+    rate = getattr(v, "wtax", 0.0)
     for age in range(int(v.age), int(v.plan)):
         working = age < v.retire
         if age == int(v.retire):
@@ -273,7 +274,8 @@ def timeline(v):
         add = contrib if working else 0.0
         need = 0.0 if working else v.spend * infl
         income = v.other * infl if (not working and age >= v.oage) else 0.0
-        draw = max(0.0, need - income)
+        # Gross withdrawal g must satisfy g − rate·g = spending gap.
+        draw = max(0.0, need - income) / (1 - rate)
         if draw > bal + add:
             draw = bal + add
             dep = float(age) if dep < 0 else dep
@@ -281,17 +283,34 @@ def timeline(v):
             first = draw
         bal = (bal + add - draw) * (1 + (v.rpre if working else v.rpost))
         total += draw
+        tax += draw * rate
         infl *= 1 + v.infl
         contrib *= 1 + v.cg
-    return [bal if retire_bal is None else retire_bal, first, bal, dep, total]
+    return [bal if retire_bal is None else retire_bal, first, bal, dep, total, tax]
 
 
 ind("retirement_timeline", "Separate year-by-year implementation", cases=[
     dict(spend=400000.0), dict(retire=45), dict(rpre=0.0, rpost=0.0, infl=0.0, cg=0.0), dict(rpre=-0.03, rpost=-0.03),
-    dict(plan=120), dict(other=0.0), dict(oage=60), dict(bal=0.0, c=0.0)])(timeline)
-ind("growth_schedule", "Closed-form future value (the app simulates month by month)", cases=[dict(r=0.0), dict(r=-0.1), dict(y=100), dict(m=0.0), dict(infl=0.0)])(
-    lambda v: (lambda N, i: (lambda b: [b, v.p + v.m * N, b - v.p - v.m * N, b / (1 + v.infl) ** v.y])(
-        v.p + v.m * N if i == 0 else v.p * (1 + i) ** N + v.m * ((1 + i) ** N - 1) / i))(v.y * 12, v.r / 12))
+    dict(plan=120), dict(other=0.0), dict(oage=60), dict(bal=0.0, c=0.0),
+    dict(wtax=0.22), dict(wtax=0.37, spend=200000.0), dict(wtax=0.24, other=200000.0)])(timeline)
+@ind("growth_schedule", "Closed-form future value of the net monthly flow, and the month it turns negative (the app simulates month by month)",
+     cases=[dict(r=0.0), dict(r=-0.1), dict(y=100), dict(m=0.0), dict(infl=0.0),
+            dict(wd=800.0), dict(m=0.0, wd=1500.0), dict(m=0.0, wd=4000.0), dict(m=500.0, wd=3000.0, r=0.0), dict(p=0.0, m=0.0, wd=100.0)])
+def _(v):
+    i, N, net = v.r / 12, int(v.y * 12), v.m - v.wd
+    B = lambda k: v.p + net * k if i == 0 else v.p * (1 + i) ** k + net * ((1 + i) ** k - 1) / i
+    # First month whose closed-form balance would go below zero.
+    k = next((k for k in range(1, N + 1) if B(k) < -1e-9), None)
+    if k is None:
+        bal, withdrawn, out = B(N), v.wd * N, -1.0
+    else:
+        # Month k takes everything there; after that the balance is zero and each month's
+        # deposit is all that can be taken (deposits are smaller than the withdrawal here).
+        bal = 0.0
+        withdrawn = v.wd * (k - 1) + max(0.0, B(k - 1) * (1 + i) + v.m) + min(v.m, v.wd) * (N - k)
+        out = float((k - 1) // 12 + 1)
+    contributed = v.p + v.m * N
+    return [bal, contributed, bal - contributed + withdrawn, bal / (1 + v.infl) ** v.y, withdrawn, out]
 @ind("mix_volatility", "Variance built from the covariance matrix", cases=[dict(rho=-1.0), dict(rho=1.0), dict(we=0.0, wb=1.0), dict(we=0.3, wb=0.3), dict(we=0.0, wb=0.0)])
 def _(v):
     w, s = [v.we, v.wb], [v.sa, v.sb]
@@ -595,7 +614,8 @@ def custom_checks():
         want = [1.0 if ok else 0.0, bal, bal, bal]
         check(f"Monte Carlo withdrawal test, zero volatility ({label}) equals the deterministic path",
               all(abs(g - x) <= 1e-9 * max(1, abs(x)) for g, x in zip(got, want)), f"{got} vs {want}")
-    for label, over in (("base", {}), ("depleting", dict(spend=300000.0)), ("already retired", dict(age=66, retire=66))):
+    for label, over in (("base", {}), ("depleting", dict(spend=300000.0)), ("already retired", dict(age=66, retire=66)),
+                        ("taxed withdrawals", dict(wtax=0.24)), ("taxed and depleting", dict(wtax=0.30, spend=180000.0))):
         v = example_inputs(rmc); v.update(sd=0.0, sims=200.0, **over)
         t = timeline(v)
         got = app_eval(rmc, v)

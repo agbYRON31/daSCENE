@@ -446,7 +446,9 @@ def proj_retirement(v):
     retire_bal = bal if ar <= a0 else None
     depletion = -1.0
     total_w = 0.0
+    total_tax = 0.0
     first_w = 0.0
+    keep = 1 - v.get("wtax", 0.0)   # share of each withdrawal left after tax
     for age in range(a0, ae):
         t = age - a0
         if age == ar:
@@ -455,7 +457,7 @@ def proj_retirement(v):
         contrib = v["c"] * (1 + v["cg"]) ** t if age < ar else 0.0
         need = v["spend"] * (1 + v["infl"]) ** t if age >= ar else 0.0
         other = v["other"] * (1 + v["infl"]) ** t if (age >= ar and age >= v["oage"]) else 0.0
-        w = max(0.0, need - other)
+        w = max(0.0, need - other) / keep   # grossed up so spending after tax is met
         if w > start + contrib:
             w = start + contrib
             if depletion < 0:
@@ -466,7 +468,8 @@ def proj_retirement(v):
         base = start + contrib - w
         end = base * (1 + r)
         total_w += w
-        rows.append([age, start, contrib, w, end - base, end])
+        total_tax += w * (1 - keep)
+        rows.append([age, start, contrib, w, end - base, end, w * (1 - keep)])
         bal = end
     if retire_bal is None:
         retire_bal = bal
@@ -476,6 +479,7 @@ def proj_retirement(v):
         "p_depletion_age": depletion,
         "p_first_withdrawal": first_w,
         "p_total_withdrawn": total_w,
+        "p_total_tax": total_tax,
     }, rows
 
 
@@ -553,6 +557,7 @@ def proj_retirement_mc(v):
     sims = int(v["sims"])
     rng = SplitMix(int(v["seed"]))
     years = ae - a0
+    keep = 1 - v.get("wtax", 0.0)
     paths, retire_bals = [], []
     ok = 0
     for _ in range(sims):
@@ -569,7 +574,7 @@ def proj_retirement_mc(v):
                 contrib = v["c"] * (1 + v["cg"]) ** t if age < ar else 0.0
                 need = v["spend"] * (1 + v["infl"]) ** t if age >= ar else 0.0
                 other = v["other"] * (1 + v["infl"]) ** t if (age >= ar and age >= v["oage"]) else 0.0
-                w = max(0.0, need - other)
+                w = max(0.0, need - other) / keep
                 if w > bal + contrib:
                     bal = 0.0
                     failed = True
@@ -598,22 +603,33 @@ def proj_retirement_mc(v):
 
 
 def proj_growth(v):
-    """Monthly compounding with end-of-month contributions, reported at each year end."""
+    """Monthly compounding with end-of-month contributions and withdrawals, reported at each year end.
+    A withdrawal takes what is there when the balance can't cover it; the balance never goes below zero."""
     p, m, r, y, infl = v["p"], v["m"], v["r"], int(v["y"]), v["infl"]
+    wd = v.get("wd", 0.0)
     i = r / 12
     bal = p
+    withdrawn = 0.0
+    runs_out = -1.0
     rows = []
     for year in range(1, y + 1):
         for _ in range(12):
-            bal = bal * (1 + i) + m
+            avail = max(0.0, bal * (1 + i) + m)
+            take = min(wd, avail)
+            if take < wd and runs_out < 0:
+                runs_out = float(year)
+            withdrawn += take
+            bal = avail - take
         contributed = p + m * 12 * year
-        rows.append([year, contributed, bal - contributed, bal, bal / (1 + infl) ** year])
+        rows.append([year, contributed, bal - contributed + withdrawn, bal, bal / (1 + infl) ** year, withdrawn])
     contributed = p + m * 12 * y
     return {
         "p_balance": bal,
         "p_contributed": contributed,
-        "p_growth": bal - contributed,
+        "p_growth": bal - contributed + withdrawn,
         "p_real": bal / (1 + infl) ** y,
+        "p_withdrawn": withdrawn,
+        "p_runs_out": runs_out,
     }, rows
 
 
@@ -623,7 +639,8 @@ PROJECTION_TABLES = {
     "retirement": {"columns": [
         {"label": "Age", "format": "age"}, {"label": "Start balance", "format": "currency"},
         {"label": "Contributions", "format": "currency"}, {"label": "Withdrawals", "format": "currency"},
-        {"label": "Growth", "format": "currency"}, {"label": "End balance", "format": "currency"}],
+        {"label": "Growth", "format": "currency"}, {"label": "End balance", "format": "currency"},
+        {"label": "Of which tax", "format": "currency"}],
         "chartColumns": [5]},
     "montecarlo": {"columns": [
         {"label": "Year", "format": "number"}, {"label": "10th percentile", "format": "currency"},
@@ -636,7 +653,8 @@ PROJECTION_TABLES = {
     "growth": {"columns": [
         {"label": "Year", "format": "number"}, {"label": "Total contributed", "format": "currency"},
         {"label": "Total growth", "format": "currency"}, {"label": "Balance", "format": "currency"},
-        {"label": "Balance in today's dollars", "format": "currency"}],
+        {"label": "Balance in today's dollars", "format": "currency"},
+        {"label": "Total withdrawn", "format": "currency"}],
         "chartColumns": [3, 4]},
 }
 
@@ -1007,19 +1025,22 @@ calc("retirement_timeline", "Retirement timeline", RET,
       F("c", "Saving each year while working", "$", "30000"), F("cg", "Annual increase in saving", "%", "2", min=-0.5),
       F("rpre", "Return before retirement", "%", "6", min=-0.99), F("rpost", "Return in retirement", "%", "5", min=-0.99),
       F("spend", "Retirement spending (today's $)", "$", "110000"), F("infl", "Inflation", "%", "2.5", min=-0.5),
-      F("other", "Other income in retirement (today's $)", "$", "45000"), F("oage", "Other income starts at age", "age", "67", max=120)],
+      F("other", "Other income in retirement (today's $)", "$", "45000"), F("oage", "Other income starts at age", "age", "67", max=120),
+      F("wtax", "Tax rate on withdrawals", "%", "0", max=0.9, default="0",
+        hint="Income tax on money taken out (for example from a 401(k) or traditional IRA). Withdrawals are grossed up so spending after tax is met. 0 for Roth or already-taxed money.")],
      [O("0", "Balance at retirement", "p_retire_balance", "currency"),
       O("1", "First-year withdrawal (nominal)", "p_first_withdrawal", "currency"),
       O("2", "Balance at end of plan", "p_end_balance", "currency"),
       O("3", "Age money runs out", "p_depletion_age", "age"),
-      O("4", "Total withdrawn", "p_total_withdrawn", "currency")],
-     "Each year: (start + saving − withdrawal) × (1 + return); spending and other income grow with inflation",
+      O("4", "Total withdrawn", "p_total_withdrawn", "currency"),
+      O("5", "Of which taxes on withdrawals", "p_total_tax", "currency")],
+     "Each year: (start + saving − withdrawal) × (1 + return); withdrawal = (spending − other income) ÷ (1 − tax rate); spending and other income grow with inflation",
      "Year-by-year projection from today through the end of the plan.",
      "projection cash flow plan retirement income timeline", common=True, projection="retirement",
      rules=[R("plan", ">", "age", "Plan age must exceed current age."),
             R("retire", ">=", "age", "Retirement age can't be before current age."),
             R("plan-age", "<=", "100", "Projection is limited to 100 years.")],
-     assumptions="Saving is added and withdrawals taken at the start of each year, then the year's return applies. Spending and other income are in today's dollars and grow with inflation; other income only offsets spending once retired. Pre-tax and after-tax money are not distinguished, and taxes are excluded.",
+     assumptions="Saving is added and withdrawals taken at the start of each year, then the year's return applies. Spending and other income are in today's dollars and grow with inflation; other income only offsets spending once retired. With a tax rate on withdrawals, each withdrawal is grossed up so the spending entered is what is left after tax; one flat rate applies to every withdrawal (no brackets, state tax, or tax on other income). With 0%, taxes are excluded.",
      excelNotes="This is a year-by-year table, not a single formula. Use Copy table and paste into Excel.")
 
 calc("retirement_mc", "Retirement Monte Carlo (full plan)", RET,
@@ -1031,7 +1052,9 @@ calc("retirement_mc", "Retirement Monte Carlo (full plan)", RET,
       F("spend", "Retirement spending (today's $)", "$", "110000"), F("infl", "Inflation", "%", "2.5", min=-0.5),
       F("other", "Other income in retirement (today's $)", "$", "45000"), F("oage", "Other income starts at age", "age", "67", max=120),
       F("sims", "Number of simulations", "count", "1000", min=100, max=20000, default="1000"),
-      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.", default="42")],
+      F("seed", "Random seed", "count", "42", hint="Same seed gives the same result; change it to see a different draw.", default="42"),
+      F("wtax", "Tax rate on withdrawals", "%", "0", max=0.9, default="0",
+        hint="Income tax on money taken out (for example from a 401(k) or traditional IRA). Withdrawals are grossed up so spending after tax is met. 0 for Roth or already-taxed money.")],
      [O("0", "Chance the money lasts through the plan", "p_success", "percent"),
       O("1", "Median balance at retirement", "p_retire_p50", "currency"),
       O("2", "Ending balance: 10th percentile", "p_end_p10", "currency"),
@@ -1043,23 +1066,26 @@ calc("retirement_mc", "Retirement Monte Carlo (full plan)", RET,
      rules=[R("plan", ">", "age", "Plan age must exceed current age."),
             R("retire", ">=", "age", "Retirement age can't be before current age."),
             R("plan-age", "<=", "100", "Projection is limited to 100 years.")],
-     assumptions="Same cash-flow rules as the Retirement timeline (saving added and withdrawals taken at the start of each year). Annual returns are independent normal draws; real markets have fatter tails and streaks. Taxes and fees are excluded.",
+     assumptions="Same cash-flow rules as the Retirement timeline (saving added and withdrawals taken at the start of each year, grossed up for the tax rate on withdrawals). Annual returns are independent normal draws; real markets have fatter tails and streaks. Fees are excluded.",
      interpretation="The success rate summarizes simulated outcomes under the assumptions entered. It is not a forecast or a guarantee, and it is not a recommendation.",
      excelNotes="Simulation results aren't a cell formula. Use Copy table for the percentile paths.")
 
 calc("growth_schedule", "Investment growth schedule", G,
      [F("p", "Starting amount", "$", "25000"), F("m", "Monthly contribution", "$", "1000"),
       F("r", "Annual return", "%", "6", min=-0.5), F("y", "Years", "years", "25", min=1, max=100, integer=True),
-      F("infl", "Inflation", "%", "2.5", min=-0.5)],
+      F("infl", "Inflation", "%", "2.5", min=-0.5),
+      F("wd", "Monthly withdrawal", "$", "0", default="0", hint="Money taken out at the end of each month, for example retirement income. 0 if nothing is taken out.")],
      [O("0", "Ending balance", "p_balance", "currency"),
       O("1", "Total contributed", "p_contributed", "currency"),
       O("2", "Total growth", "p_growth", "currency"),
-      O("3", "Ending balance in today's dollars", "p_real", "currency")],
-     "Each month: balance × (1 + annual return ÷ 12) + contribution; today's dollars = balance ÷ (1 + inflation)^years",
+      O("3", "Ending balance in today's dollars", "p_real", "currency"),
+      O("4", "Total withdrawn", "p_withdrawn", "currency"),
+      O("5", "Year the money runs out", "p_runs_out", "age")],
+     "Each month: balance × (1 + annual return ÷ 12) + contribution − withdrawal (never below zero); today's dollars = balance ÷ (1 + inflation)^years",
      "Year-by-year growth of savings, split into what you put in and what it earned, with inflation's effect.",
      "compound growth schedule table contributions inflation today's dollars", projection="growth",
-     assumptions="Monthly compounding at a constant return, contributions at the end of each month. Taxes and fees are excluded.",
-     excelNotes="Balance: =FV(r/12, years*12, -monthly, -start). The yearly table is available via Copy table.")
+     assumptions="Monthly compounding at a constant return, contributions and withdrawals at the end of each month. If the balance can't cover a withdrawal, what is left is taken and the balance stays at zero. Taxes and fees are excluded.",
+     excelNotes="Balance, while the money lasts: =FV(r/12, years*12, -(monthly - withdrawal), -start). The yearly table is available via Copy table.")
 
 calc("mix_volatility", "Portfolio mix volatility", PF,
      [F("v", "Portfolio value", "$", "2000000", min=0.01), F("we", "Stocks", "%", "60", max=1), F("wb", "Bonds", "%", "40", max=1),
