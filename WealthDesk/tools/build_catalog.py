@@ -2001,6 +2001,15 @@ def main():
             o["expected"] = None if (isinstance(v, float) and math.isnan(v)) else float(v)
         if c["projection"] is None:
             del c["projection"]
+    # Every formula gets its plain-language breakdown (tools/formula_notes.py).
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from formula_notes import NOTES
+    missing, extra = ids - set(NOTES), set(NOTES) - ids
+    assert not missing and not extra, f"formula_notes: missing {sorted(missing)}, unknown {sorted(extra)}"
+    for c in CATALOG:
+        why, parts = NOTES[c["id"]]
+        assert why.strip() and parts and all(t.strip() and m.strip() for t, m in parts), c["id"]
+        c["explain"] = {"why": why, "parts": [{"term": t, "meaning": m} for t, m in parts]}
     out = os.path.join(ROOT, "Resources", "catalog.json")
     with open(out, "w") as fh:
         json.dump(CATALOG, fh, indent=1, ensure_ascii=False)

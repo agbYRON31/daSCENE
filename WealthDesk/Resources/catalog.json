@@ -111,7 +111,28 @@
    }
   ],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "“Percent” means “per hundred”, so a percentage is a fraction with 100 underneath. Every percentage question is one of three moves: take a share of a number, see what share one number is of another, or measure a change against where you started.",
+   "parts": [
+    {
+     "term": "x/100 × y",
+     "meaning": "Turns x% into a fraction (for example 15% → 0.15) and multiplies, giving that share of y."
+    },
+    {
+     "term": "part ÷ whole",
+     "meaning": "How big one number is relative to another. Multiply by 100 to read it as a percent."
+    },
+    {
+     "term": "(new − old)",
+     "meaning": "How much the value moved, in its own units."
+    },
+    {
+     "term": "÷ |old|",
+     "meaning": "Measures that move against the starting value, so it becomes a percent change. The absolute value keeps the sign meaningful when the starting value is negative."
+    }
+   ]
+  }
  },
  {
   "id": "tip_split",
@@ -195,7 +216,28 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A tip is usually figured on the food and service, not on the sales tax, so tax comes out before the rate is applied. Splitting is then just dividing the total evenly.",
+   "parts": [
+    {
+     "term": "bill − tax",
+     "meaning": "The pre-tax amount the tip is based on."
+    },
+    {
+     "term": "× rate",
+     "meaning": "The tip percentage applied to that amount."
+    },
+    {
+     "term": "total",
+     "meaning": "Bill plus tip: what everyone pays together."
+    },
+    {
+     "term": "÷ people",
+     "meaning": "Each person's equal share of the total."
+    }
+   ]
+  }
  },
  {
   "id": "discount",
@@ -281,7 +323,28 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Stacked discounts multiply rather than add: a second discount applies to the already-reduced price, so 20% then 10% off is 28% off, not 30%. Sales tax is then charged on the final price.",
+   "parts": [
+    {
+     "term": "Price",
+     "meaning": "The original sticker price."
+    },
+    {
+     "term": "(1 − d₁)",
+     "meaning": "What's left after the first discount; 20% off leaves 0.80 of the price."
+    },
+    {
+     "term": "(1 − d₂)",
+     "meaning": "The second discount, applied to what was left after the first."
+    },
+    {
+     "term": "(1 + tax)",
+     "meaning": "Adds sales tax on the discounted price."
+    }
+   ]
+  }
  },
  {
   "id": "unit_price",
@@ -356,7 +419,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Dividing price by quantity puts different package sizes on the same footing, so the cheaper option per unit is obvious.",
+   "parts": [
+    {
+     "term": "Price",
+     "meaning": "What you pay for the package."
+    },
+    {
+     "term": "÷ quantity",
+     "meaning": "Spreads the price over each unit (ounce, count, sheet…)."
+    }
+   ]
+  }
  },
  {
   "id": "weighted_avg",
@@ -426,7 +502,24 @@
    }
   ],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A weighted average lets some items count more than others. Each score is scaled by its weight, and dividing by the total weight brings the result back to the score's scale.",
+   "parts": [
+    {
+     "term": "score × weight",
+     "meaning": "Each item's contribution, bigger for heavier weights."
+    },
+    {
+     "term": "Σ(…)",
+     "meaning": "Adds those contributions up across all items."
+    },
+    {
+     "term": "÷ Σ weight",
+     "meaning": "Divides by the total weight so the weights don't need to add to 100%."
+    }
+   ]
+  }
  },
  {
   "id": "grade_needed",
@@ -476,7 +569,28 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Your final grade is a blend: your current grade counts for the part of the course already done, and the final exam counts for its weight. Solving that blend for the exam score gives what you need.",
+   "parts": [
+    {
+     "term": "target",
+     "meaning": "The overall grade you want."
+    },
+    {
+     "term": "current × (1 − w)",
+     "meaning": "How much your current grade contributes, since it covers everything except the final."
+    },
+    {
+     "term": "target − …",
+     "meaning": "The points still needed, which must come from the final."
+    },
+    {
+     "term": "÷ w",
+     "meaning": "Scales those points up by the final's weight to give the exam score required."
+    }
+   ]
+  }
  },
  {
   "id": "fv_lump",
@@ -540,7 +654,24 @@
     "title": "Investor.gov • Compound interest calculator",
     "url": "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Compound growth: each year's return is earned on the original amount and on all the returns before it. Multiplying by the same growth factor once per year captures that.",
+   "parts": [
+    {
+     "term": "Amount",
+     "meaning": "What you invest today."
+    },
+    {
+     "term": "(1 + return)",
+     "meaning": "The growth factor for one year: each dollar becomes 1 + r dollars (a 6% return turns $1 into $1.06)."
+    },
+    {
+     "term": "^years",
+     "meaning": "Applies that factor once for each year, so gains earn gains. This is what makes growth speed up over time."
+    }
+   ]
+  }
  },
  {
   "id": "fv_contrib",
@@ -620,7 +751,28 @@
     "title": "Investor.gov • Compound interest calculator",
     "url": "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Two pieces grow side by side: what you have today compounds for the whole period, and each year's contribution compounds from when it goes in. The second piece is the sum of a growing series, which has a short closed form.",
+   "parts": [
+    {
+     "term": "Balance × (1+r)^n",
+     "meaning": "Today's balance compounded for n years."
+    },
+    {
+     "term": "contribution",
+     "meaning": "The amount added each year."
+    },
+    {
+     "term": "((1+r)^n − 1) / r",
+     "meaning": "The future-value factor for a series of equal yearly deposits: early deposits grow for longer, later ones for less, and this adds them all up."
+    },
+    {
+     "term": "+",
+     "meaning": "The two pieces together are the projected balance."
+    }
+   ]
+  }
  },
  {
   "id": "fv_monthly",
@@ -692,7 +844,24 @@
     "title": "Investor.gov • Compound interest calculator",
     "url": "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The same compound-growth idea as yearly saving, but in monthly steps: the yearly return is split into twelve monthly returns and deposits are counted each month.",
+   "parts": [
+    {
+     "term": "annual ÷ 12",
+     "meaning": "The monthly growth rate."
+    },
+    {
+     "term": "years × 12",
+     "meaning": "The number of monthly periods."
+    },
+    {
+     "term": "FV",
+     "meaning": "Future value of the starting amount plus each monthly deposit, each compounding monthly until the end."
+    }
+   ]
+  }
  },
  {
   "id": "pv_goal",
@@ -743,7 +912,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Present value runs compound growth backwards: it asks how much you'd need today so that growth alone reaches the goal.",
+   "parts": [
+    {
+     "term": "Goal",
+     "meaning": "The amount you want in the future."
+    },
+    {
+     "term": "(1 + r)^years",
+     "meaning": "How much one dollar grows to over the period."
+    },
+    {
+     "term": "÷",
+     "meaning": "Dividing by that growth undoes it, giving today's equivalent amount."
+    }
+   ]
+  }
  },
  {
   "id": "savings_needed",
@@ -817,7 +1003,24 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "First see how much of the goal your current savings will reach on their own. The yearly saving must then fill the rest, and the fill-the-gap amount comes from turning the future-value-of-deposits formula around.",
+   "parts": [
+    {
+     "term": "current × (1+r)^n",
+     "meaning": "What today's savings grow to without adding anything."
+    },
+    {
+     "term": "Goal − …",
+     "meaning": "The shortfall that yearly saving must cover."
+    },
+    {
+     "term": "× r ÷ ((1+r)^n − 1)",
+     "meaning": "The inverse of the deposit-growth factor: the level yearly amount that grows to exactly that shortfall."
+    }
+   ]
+  }
  },
  {
   "id": "years_to_goal",
@@ -889,7 +1092,28 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The future-value formula is solved for time instead of money. Because time sits in an exponent, a logarithm is what brings it down.",
+   "parts": [
+    {
+     "term": "goal × r + c",
+     "meaning": "The goal, expressed in the form the deposit formula needs (deposits c per year at rate r)."
+    },
+    {
+     "term": "balance × r + c",
+     "meaning": "The same expression for where you are today."
+    },
+    {
+     "term": "ln(… ÷ …)",
+     "meaning": "The log of how many times larger the goal is in those terms."
+    },
+    {
+     "term": "÷ ln(1 + r)",
+     "meaning": "Divides by the log of one year's growth, which counts how many years of growth that takes."
+    }
+   ]
+  }
  },
  {
   "id": "cagr",
@@ -940,7 +1164,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "CAGR is the single steady yearly rate that would take the start value to the end value. Taking the n-th root of total growth spreads it evenly across the years.",
+   "parts": [
+    {
+     "term": "End ÷ start",
+     "meaning": "Total growth as a multiple (for example 2.0 means it doubled)."
+    },
+    {
+     "term": "^(1 ÷ years)",
+     "meaning": "The n-th root: the yearly multiple that compounds to that total."
+    },
+    {
+     "term": "− 1",
+     "meaning": "Turns the yearly multiple into a rate (1.072 → 7.2%)."
+    }
+   ]
+  }
  },
  {
   "id": "real_return",
@@ -991,7 +1232,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A real return measures growth in what money can buy. Dividing by inflation's growth factor removes the part of the return that only kept up with prices.",
+   "parts": [
+    {
+     "term": "1 + nominal",
+     "meaning": "How much each dollar grew."
+    },
+    {
+     "term": "÷ (1 + inflation)",
+     "meaning": "Removes the rise in prices over the same period."
+    },
+    {
+     "term": "− 1",
+     "meaning": "Turns the result back into a rate. Simply subtracting inflation is a close shortcut, not exact."
+    }
+   ]
+  }
  },
  {
   "id": "rule72",
@@ -1034,7 +1292,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The Rule of 72 is a mental-math shortcut for doubling time. The exact answer comes from solving (1 + r)^t = 2 with logarithms; 72 works well because it divides evenly by many common rates.",
+   "parts": [
+    {
+     "term": "72 ÷ rate in percent",
+     "meaning": "Approximate years to double (6% → about 12 years)."
+    },
+    {
+     "term": "ln 2",
+     "meaning": "The log of doubling."
+    },
+    {
+     "term": "÷ ln(1 + r)",
+     "meaning": "The log of one year's growth; the ratio is the exact number of years."
+    }
+   ]
+  }
  },
  {
   "id": "inflation_cost",
@@ -1093,7 +1368,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Prices compound like investments do: each year's increase builds on the last.",
+   "parts": [
+    {
+     "term": "Cost",
+     "meaning": "What something costs today."
+    },
+    {
+     "term": "(1 + inflation)",
+     "meaning": "One year's price increase as a growth factor."
+    },
+    {
+     "term": "^years",
+     "meaning": "Applies it once per year to give the future price."
+    }
+   ]
+  }
  },
  {
   "id": "effective_rate",
@@ -1137,7 +1429,28 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A quoted APR is split into smaller periods, and interest on interest within the year makes the true yearly rate a little higher.",
+   "parts": [
+    {
+     "term": "APR ÷ periods",
+     "meaning": "The rate charged each period (for example monthly)."
+    },
+    {
+     "term": "1 + …",
+     "meaning": "One period's growth factor."
+    },
+    {
+     "term": "^periods",
+     "meaning": "Compounds it across the year."
+    },
+    {
+     "term": "− 1",
+     "meaning": "Turns the yearly multiple back into a rate: the effective annual rate."
+    }
+   ]
+  }
  },
  {
   "id": "nest_egg",
@@ -1197,7 +1510,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Only the spending that other income doesn't cover has to come from savings. A withdrawal rate says what share of the portfolio you plan to take each year, so dividing the gap by it gives the portfolio size that supports it.",
+   "parts": [
+    {
+     "term": "Spending − other income",
+     "meaning": "The yearly gap savings must fill (other income is Social Security, a pension, and so on)."
+    },
+    {
+     "term": "÷ withdrawal rate",
+     "meaning": "Scales the gap up to a portfolio size: $40,000 at 4% needs $1,000,000."
+    }
+   ]
+  }
  },
  {
   "id": "retire_gap",
@@ -1297,7 +1623,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Compares what your savings are projected to become with what you'd need. Both sides use the same steps as the growth and nest-egg calculators.",
+   "parts": [
+    {
+     "term": "Projected FV of savings",
+     "meaning": "Today's savings plus yearly saving, compounded to retirement."
+    },
+    {
+     "term": "spending gap ÷ withdrawal rate",
+     "meaning": "The nest egg needed, as in the Retirement nest egg calculator."
+    },
+    {
+     "term": "−",
+     "meaning": "Positive means a projected surplus; negative means a shortfall."
+    }
+   ]
+  }
  },
  {
   "id": "withdrawal_rate",
@@ -1340,7 +1683,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A withdrawal rate is the year's withdrawals as a share of the portfolio, the common yardstick for whether spending is sustainable.",
+   "parts": [
+    {
+     "term": "Withdrawals",
+     "meaning": "What you take out in a year."
+    },
+    {
+     "term": "÷ balance",
+     "meaning": "As a share of the portfolio."
+    }
+   ]
+  }
  },
  {
   "id": "level_withdrawal",
@@ -1391,7 +1747,28 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "This is the loan-payment formula in reverse: the portfolio is “lent” to you and paid back in equal amounts, with the money not yet withdrawn still earning the return.",
+   "parts": [
+    {
+     "term": "Balance",
+     "meaning": "The starting portfolio."
+    },
+    {
+     "term": "× r",
+     "meaning": "One year's return on it."
+    },
+    {
+     "term": "(1 + r)^−n",
+     "meaning": "The value today of one dollar received in n years."
+    },
+    {
+     "term": "÷ (1 − …)",
+     "meaning": "Spreads the balance and its future earnings evenly over n years so it reaches exactly zero at the end."
+    }
+   ]
+  }
  },
  {
   "id": "longevity",
@@ -1449,7 +1826,28 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Solves the level-withdrawal formula for time: how many years of fixed withdrawals the balance can pay. If the return covers the withdrawal, the money never runs out.",
+   "parts": [
+    {
+     "term": "balance × r",
+     "meaning": "What the balance earns in a year."
+    },
+    {
+     "term": "w − balance × r",
+     "meaning": "How much each withdrawal exceeds those earnings, i.e. what eats into principal."
+    },
+    {
+     "term": "ln(w ÷ (…))",
+     "meaning": "Log of how fast principal is used up relative to the withdrawal."
+    },
+    {
+     "term": "÷ ln(1 + r)",
+     "meaning": "Converts that into years of growth."
+    }
+   ]
+  }
  },
  {
   "id": "growing_annuity",
@@ -1508,7 +1906,28 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Spending that rises with inflation each year is a growing stream of payments. Its value today has a closed form: payments grow at g while money is discounted at r.",
+   "parts": [
+    {
+     "term": "Spending",
+     "meaning": "The first year's withdrawal."
+    },
+    {
+     "term": "÷ (r − g)",
+     "meaning": "The value of a growing stream that lasts forever."
+    },
+    {
+     "term": "((1+g) ÷ (1+r))^n",
+     "meaning": "How much of that forever-value lies beyond n years."
+    },
+    {
+     "term": "1 − …",
+     "meaning": "Keeps only the first n years: the amount needed today to fund them."
+    }
+   ]
+  }
  },
  {
   "id": "ss_breakeven",
@@ -1595,7 +2014,24 @@
     "title": "SSA • Benefit reduction for early retirement",
     "url": "https://www.ssa.gov/benefits/retirement/planner/agereduction.html"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Claiming later pays more per month but starts later. The breakeven age is when total benefits received from both choices are equal; living past it favors waiting.",
+   "parts": [
+    {
+     "term": "benefit × age",
+     "meaning": "Total collected by a given age, before adjusting for when payments start."
+    },
+    {
+     "term": "Later … − earlier …",
+     "meaning": "The head start the earlier claim has to be overcome."
+    },
+    {
+     "term": "÷ (later − earlier benefit)",
+     "meaning": "Divided by how much more each year of the later benefit pays, giving the age where totals meet."
+    }
+   ]
+  }
  },
  {
   "id": "pension_value",
@@ -1670,7 +2106,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A pension is a stream of monthly payments. Its value today is the sum of each payment discounted back to the present at a chosen rate.",
+   "parts": [
+    {
+     "term": "monthly payments",
+     "meaning": "The pension amount received each month."
+    },
+    {
+     "term": "discount rate ÷ 12",
+     "meaning": "The monthly rate used to discount; a higher rate means a lower value today."
+    },
+    {
+     "term": "PV",
+     "meaning": "Present value: each payment divided by (1 + monthly rate) raised to its month number, all added up."
+    }
+   ]
+  }
  },
  {
   "id": "rmd",
@@ -1736,7 +2189,20 @@
     "title": "IRS • Publication 590-B (distributions from IRAs)",
     "url": "https://www.irs.gov/publications/p590b"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The IRS sets each year's required minimum withdrawal by spreading the account over your remaining life expectancy from its Uniform Lifetime Table.",
+   "parts": [
+    {
+     "term": "Prior year-end balance",
+     "meaning": "The account value on December 31 of last year."
+    },
+    {
+     "term": "÷ table factor",
+     "meaning": "The IRS life-expectancy factor for your age; it shrinks each year, so the required share grows."
+    }
+   ]
+  }
  },
  {
   "id": "contrib_limits",
@@ -1822,7 +2288,24 @@
     "title": "IRS • IRA contribution limits",
     "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-ira-contribution-limits"
    }
-  ]
+  ],
+  "explain": {
+   "why": "IRS limits have a base amount for everyone plus a catch-up for older savers. From age 60 to 63, 401(k)-type plans allow a larger catch-up.",
+   "parts": [
+    {
+     "term": "Base limit",
+     "meaning": "The standard yearly limit for the account type and year."
+    },
+    {
+     "term": "+ catch-up",
+     "meaning": "Extra allowed from age 50 (the larger amount at ages 60–63 for workplace plans)."
+    },
+    {
+     "term": "− contributed",
+     "meaning": "What's left of the limit this year after contributions so far."
+    }
+   ]
+  }
  },
  {
   "id": "employer_match",
@@ -1892,7 +2375,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Employers usually match a share of what you contribute up to a cap. Contributing below the cap leaves free money unclaimed.",
+   "parts": [
+    {
+     "term": "Salary",
+     "meaning": "Pay the match is based on."
+    },
+    {
+     "term": "min(your rate, cap)",
+     "meaning": "Only contributions up to the cap are matched."
+    },
+    {
+     "term": "× match share",
+     "meaning": "How much the employer adds per dollar matched (for example 50%)."
+    }
+   ]
+  }
  },
  {
   "id": "retirement_timeline",
@@ -2127,6 +2627,35 @@
    ],
    "chartColumns": [
     5
+   ]
+  },
+  "explain": {
+   "why": "The plan is rolled forward one year at a time with the same rules every year, so each year's saving, spending, tax and growth show up exactly. Spending and other income are in today's dollars and rise with inflation.",
+   "parts": [
+    {
+     "term": "start",
+     "meaning": "The balance at the start of the year."
+    },
+    {
+     "term": "+ saving",
+     "meaning": "Added each year while working; it can rise each year by the increase in saving."
+    },
+    {
+     "term": "spending − other income",
+     "meaning": "Once retired, the part of spending not covered by Social Security or a pension."
+    },
+    {
+     "term": "÷ (1 − tax rate)",
+     "meaning": "Grosses the withdrawal up so the spending entered is what's left after tax. At 22%, $78,000 of spending needs a $100,000 withdrawal."
+    },
+    {
+     "term": "− withdrawal",
+     "meaning": "Taken out at the start of each retired year (capped at what's there)."
+    },
+    {
+     "term": "× (1 + return)",
+     "meaning": "The year's return on what remains, using the before- or in-retirement rate."
+    }
    ]
   }
  },
@@ -2376,6 +2905,27 @@
     2,
     3
    ]
+  },
+  "explain": {
+   "why": "The same yearly cash flows as the Retirement timeline, but each year's return is drawn at random around the average you enter. Running many paths shows how often the plan works and the range of outcomes.",
+   "parts": [
+    {
+     "term": "cash flows",
+     "meaning": "Saving, spending, other income and tax on withdrawals, exactly as in the Retirement timeline."
+    },
+    {
+     "term": "Normal(average, volatility)",
+     "meaning": "Each year's return is random: centered on the average, spread by the volatility."
+    },
+    {
+     "term": "many simulations",
+     "meaning": "Each path is one possible sequence of market returns."
+    },
+    {
+     "term": "success rate",
+     "meaning": "The share of paths where every year's spending was fully met through the end of the plan."
+    }
+   ]
   }
  },
  {
@@ -2527,6 +3077,31 @@
     3,
     4
    ]
+  },
+  "explain": {
+   "why": "The balance is rolled forward one month at a time: it earns a month of return, then the month's deposit is added and any withdrawal taken out. Doing it month by month shows exactly where the balance stands each year.",
+   "parts": [
+    {
+     "term": "annual return ÷ 12",
+     "meaning": "The monthly growth rate."
+    },
+    {
+     "term": "balance × (1 + …)",
+     "meaning": "Last month's balance after a month of growth."
+    },
+    {
+     "term": "+ contribution",
+     "meaning": "Money added at the end of the month."
+    },
+    {
+     "term": "− withdrawal",
+     "meaning": "Money taken out at the end of the month. If there isn't enough, what's there is taken and the balance stays at zero."
+    },
+    {
+     "term": "÷ (1 + inflation)^years",
+     "meaning": "Restates the balance in today's dollars, i.e. what it would buy at today's prices."
+    }
+   ]
   }
  },
  {
@@ -2630,7 +3205,28 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A portfolio's risk isn't just the weighted average of its parts. How the parts move together (correlation) matters: when they don't move in lockstep, they partly offset and total risk falls. That's diversification.",
+   "parts": [
+    {
+     "term": "wS²σS²",
+     "meaning": "Stock risk, scaled by how much is in stocks (squared because variance is in squared units)."
+    },
+    {
+     "term": "wB²σB²",
+     "meaning": "The same for bonds."
+    },
+    {
+     "term": "2·wS·wB·ρ·σS·σB",
+     "meaning": "How the two interact: positive correlation ρ adds risk, negative takes it away."
+    },
+    {
+     "term": "√(…)",
+     "meaning": "Square root turns variance back into volatility, in the same units as returns."
+    }
+   ]
+  }
  },
  {
   "id": "portfolio_stress",
@@ -2804,7 +3400,28 @@
    }
   ],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A what-if, not a forecast: you choose a stock move and a rate change, and each part of the portfolio reacts in its own way. Bond prices move opposite to interest rates in proportion to their duration.",
+   "parts": [
+    {
+     "term": "Stocks × market change",
+     "meaning": "Stock holdings move with the market change you enter."
+    },
+    {
+     "term": "−duration × rate change",
+     "meaning": "Bond prices fall about duration % for each 1% rise in rates, and rise when rates fall."
+    },
+    {
+     "term": "cash unchanged",
+     "meaning": "Cash doesn't move in the scenario."
+    },
+    {
+     "term": "− withdrawal",
+     "meaning": "Any money taken out during the period is removed afterwards."
+    }
+   ]
+  }
  },
  {
   "id": "monte_carlo",
@@ -2953,6 +3570,23 @@
     2,
     3
    ]
+  },
+  "explain": {
+   "why": "Simulates many possible market paths for a fixed withdrawal plan. The order of good and bad years matters once you're withdrawing, which a single average return can't show.",
+   "parts": [
+    {
+     "term": "draw return ~ Normal(mean, sd)",
+     "meaning": "A random return each year, centered on the mean and spread by the standard deviation."
+    },
+    {
+     "term": "withdraw, then grow",
+     "meaning": "Each year's withdrawal comes out first, then the rest earns that year's return; the withdrawal rises with inflation."
+    },
+    {
+     "term": "success",
+     "meaning": "A path succeeds if every withdrawal was fully met; the success rate is the share of paths that did."
+    }
+   ]
   }
  },
  {
@@ -3040,7 +3674,24 @@
     "title": "IRS • Federal income tax rates and brackets",
     "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
    }
-  ]
+  ],
+  "explain": {
+   "why": "US income tax is progressive by slices: each bracket's rate applies only to the income inside that bracket, not to all of it. That's why moving into a higher bracket never lowers take-home pay.",
+   "parts": [
+    {
+     "term": "each slice of income",
+     "meaning": "The part of taxable income that falls inside one bracket."
+    },
+    {
+     "term": "× its bracket rate",
+     "meaning": "Taxed at that bracket's rate."
+    },
+    {
+     "term": "sum",
+     "meaning": "Total tax; divided by income it gives the average rate. The marginal rate is the top bracket reached."
+    }
+   ]
+  }
  },
  {
   "id": "taxable_income",
@@ -3127,7 +3778,24 @@
     "title": "IRS • Federal income tax rates and brackets",
     "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Tax is figured on income after deductions. You take whichever is bigger: your itemized deductions or the standard deduction.",
+   "parts": [
+    {
+     "term": "AGI",
+     "meaning": "Adjusted gross income."
+    },
+    {
+     "term": "larger of itemized or standard",
+     "meaning": "The deduction that saves more tax."
+    },
+    {
+     "term": "−",
+     "meaning": "What's left is taxable income."
+    }
+   ]
+  }
  },
  {
   "id": "after_tax_return",
@@ -3171,7 +3839,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Taxes take a share of each year's return, so you keep the rest.",
+   "parts": [
+    {
+     "term": "Return",
+     "meaning": "The pre-tax return."
+    },
+    {
+     "term": "× (1 − tax rate)",
+     "meaning": "The share you keep after tax."
+    }
+   ]
+  }
  },
  {
   "id": "tey",
@@ -3215,7 +3896,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Tax-equivalent yield answers: what would a taxable bond need to pay to match a tax-free one after tax?",
+   "parts": [
+    {
+     "term": "Tax-free yield",
+     "meaning": "What the municipal bond pays."
+    },
+    {
+     "term": "÷ (1 − tax rate)",
+     "meaning": "Grosses it up to a taxable equivalent; the higher your bracket, the more a tax-free yield is worth."
+    }
+   ]
+  }
  },
  {
   "id": "ltcg_tax",
@@ -3294,7 +3988,24 @@
     "title": "IRS • Topic 409, Capital gains and losses",
     "url": "https://www.irs.gov/taxtopics/tc409"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Long-term gains have their own 0%, 15% and 20% brackets, but they sit on top of ordinary income. So ordinary income decides how much room is left in the lower gain brackets.",
+   "parts": [
+    {
+     "term": "ordinary income",
+     "meaning": "Fills the brackets first."
+    },
+    {
+     "term": "gains stack on top",
+     "meaning": "Gains are taxed in the slices above ordinary income."
+    },
+    {
+     "term": "0% / 15% / 20% thresholds",
+     "meaning": "Each slice of gain is taxed at the rate for where it lands."
+    }
+   ]
+  }
  },
  {
   "id": "niit",
@@ -3373,7 +4084,24 @@
     "title": "IRS • Net investment income tax",
     "url": "https://www.irs.gov/individuals/net-investment-income-tax"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A 3.8% surtax applies to investment income only when income is above a threshold, and only on the smaller of the two amounts.",
+   "parts": [
+    {
+     "term": "MAGI over the threshold",
+     "meaning": "How far income exceeds the filing-status threshold."
+    },
+    {
+     "term": "lesser of … investment income",
+     "meaning": "The tax applies to whichever is smaller."
+    },
+    {
+     "term": "3.8% ×",
+     "meaning": "The surtax rate."
+    }
+   ]
+  }
  },
  {
   "id": "roth_vs_trad",
@@ -3458,7 +4186,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Both accounts grow the same; the difference is when tax is paid. Traditional defers it to withdrawal, Roth pays it now. If the rates are the same, the results are identical.",
+   "parts": [
+    {
+     "term": "C × growth",
+     "meaning": "The contribution grown over time."
+    },
+    {
+     "term": "× (1 − future rate)",
+     "meaning": "Traditional: tax taken at withdrawal."
+    },
+    {
+     "term": "× (1 − today's rate)",
+     "meaning": "Roth: tax paid up front, then tax-free growth."
+    }
+   ]
+  }
  },
  {
   "id": "roth_conversion",
@@ -3553,7 +4298,20 @@
     "title": "IRS • Federal income tax rates and brackets",
     "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The tax cost of converting is the extra tax caused by adding the conversion to this year's income.",
+   "parts": [
+    {
+     "term": "Tax(income + conversion)",
+     "meaning": "Tax with the conversion added."
+    },
+    {
+     "term": "− tax(income)",
+     "meaning": "Minus tax without it: the conversion's own cost."
+    }
+   ]
+  }
  },
  {
   "id": "tlh",
@@ -3627,7 +4385,24 @@
     "title": "IRS • Topic 409, Capital gains and losses",
     "url": "https://www.irs.gov/taxtopics/tc409"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Capital losses first offset capital gains, then up to $3,000 of ordinary income per year; anything left carries forward to future years.",
+   "parts": [
+    {
+     "term": "Losses offset gains",
+     "meaning": "Net capital gain is reduced first."
+    },
+    {
+     "term": "up to $3,000 of ordinary income",
+     "meaning": "The yearly limit against wages and other income."
+    },
+    {
+     "term": "carries forward",
+     "meaning": "Unused losses are kept for later years."
+    }
+   ]
+  }
  },
  {
   "id": "tax_deferral",
@@ -3703,7 +4478,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Paying tax every year shrinks the return that compounds; deferring lets the full return compound and taxes it once at the end.",
+   "parts": [
+    {
+     "term": "(1 + r(1−t))^n",
+     "meaning": "Taxable: each year's return is reduced by tax before it compounds."
+    },
+    {
+     "term": "growth taxed once at the end",
+     "meaning": "Deferred: full compounding, then tax on the gain at withdrawal."
+    }
+   ]
+  }
  },
  {
   "id": "weighted_return",
@@ -3757,7 +4545,24 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A portfolio's return is the weighted average of its holdings' returns: each holding contributes in proportion to its share.",
+   "parts": [
+    {
+     "term": "weight × return",
+     "meaning": "Each holding's contribution to the total return."
+    },
+    {
+     "term": "Σ",
+     "meaning": "Added across holdings."
+    },
+    {
+     "term": "÷ Σ weight",
+     "meaning": "Normalizes, so weights don't have to add to exactly 100%."
+    }
+   ]
+  }
  },
  {
   "id": "two_asset",
@@ -3842,7 +4647,28 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The portfolio-variance formula for two assets: individual risks plus a term for how they move together. Lower correlation means more diversification benefit.",
+   "parts": [
+    {
+     "term": "w²σA²",
+     "meaning": "Asset A's risk, scaled by its weight squared."
+    },
+    {
+     "term": "(1−w)²σB²",
+     "meaning": "Asset B's risk, scaled by its weight squared."
+    },
+    {
+     "term": "2w(1−w)ρσAσB",
+     "meaning": "The co-movement term; it shrinks or turns negative as correlation ρ falls."
+    },
+    {
+     "term": "√",
+     "meaning": "Back from variance to volatility."
+    }
+   ]
+  }
  },
  {
   "id": "sharpe",
@@ -3893,7 +4719,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The Sharpe ratio asks how much extra return you got for each unit of risk taken, measured against a risk-free alternative.",
+   "parts": [
+    {
+     "term": "Return − risk-free",
+     "meaning": "The excess return over a safe investment such as T-bills."
+    },
+    {
+     "term": "÷ volatility",
+     "meaning": "Per unit of total ups and downs; higher is better compensation for risk."
+    }
+   ]
+  }
  },
  {
   "id": "sortino",
@@ -3944,7 +4783,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Like Sharpe, but it only counts bad volatility (returns below your target), since upside surprises aren't a risk most people mind.",
+   "parts": [
+    {
+     "term": "Return − target",
+     "meaning": "Return above your minimum acceptable return."
+    },
+    {
+     "term": "÷ downside deviation",
+     "meaning": "Per unit of shortfall risk only."
+    }
+   ]
+  }
  },
  {
   "id": "capm",
@@ -3995,7 +4847,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "CAPM says investors are paid only for market risk they can't diversify away. Beta measures how much of that risk an investment carries.",
+   "parts": [
+    {
+     "term": "Risk-free",
+     "meaning": "What a riskless investment pays."
+    },
+    {
+     "term": "market − risk-free",
+     "meaning": "The market's extra return for bearing risk (the equity risk premium)."
+    },
+    {
+     "term": "× beta",
+     "meaning": "Scaled by how sensitive the investment is to the market (1 = moves with the market)."
+    }
+   ]
+  }
  },
  {
   "id": "rebalance",
@@ -4070,7 +4939,20 @@
    }
   ],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Rebalancing moves each holding back to its target share. The trade is the difference between where it should be and where it is.",
+   "parts": [
+    {
+     "term": "Target value",
+     "meaning": "Total portfolio × target weight."
+    },
+    {
+     "term": "− current value",
+     "meaning": "What's held now; positive means buy, negative means sell."
+    }
+   ]
+  }
  },
  {
   "id": "drawdown",
@@ -4122,7 +5004,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Losses and gains aren't symmetric: after a fall you're working from a smaller base, so you need a bigger percentage gain to get back.",
+   "parts": [
+    {
+     "term": "1 − loss",
+     "meaning": "What's left after the loss (a 50% loss leaves 0.5)."
+    },
+    {
+     "term": "1 ÷ (…)",
+     "meaning": "The multiple needed to return to the start (0.5 → ×2)."
+    },
+    {
+     "term": "− 1",
+     "meaning": "As a gain: a 50% loss needs a 100% gain to recover."
+    }
+   ]
+  }
  },
  {
   "id": "hpr",
@@ -4189,7 +5088,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Holding-period return counts everything you got back (price change plus income) relative to what you put in.",
+   "parts": [
+    {
+     "term": "End − begin",
+     "meaning": "The change in value."
+    },
+    {
+     "term": "+ income",
+     "meaning": "Dividends or interest received."
+    },
+    {
+     "term": "÷ begin",
+     "meaning": "As a share of the starting value."
+    }
+   ]
+  }
  },
  {
   "id": "irr",
@@ -4230,7 +5146,24 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "IRR is the single rate that makes all deposits and withdrawals, at their actual times, balance out exactly. It accounts for the timing and size of each cash flow.",
+   "parts": [
+    {
+     "term": "cash flows",
+     "meaning": "Money in (negative) and out (positive), year by year."
+    },
+    {
+     "term": "net present value",
+     "meaning": "Each cash flow discounted back by the rate, added up."
+    },
+    {
+     "term": "= 0",
+     "meaning": "The IRR is the rate where that sum is exactly zero; found by searching, since there's no closed form."
+    }
+   ]
+  }
  },
  {
   "id": "dca",
@@ -4294,7 +5227,20 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Buying a fixed dollar amount each time buys more shares when prices are low and fewer when high, so your average cost per share is lower than the average price.",
+   "parts": [
+    {
+     "term": "Total invested",
+     "meaning": "All the money put in."
+    },
+    {
+     "term": "÷ total shares",
+     "meaning": "Your average cost per share."
+    }
+   ]
+  }
  },
  {
   "id": "fee_drag",
@@ -4383,7 +5329,24 @@
     "title": "SEC • How fees and expenses affect your portfolio",
     "url": "https://www.sec.gov/investor/alerts/ib_investmentfees.pdf"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A fee is a return you don't get, every year, and it compounds just like returns do. Comparing growth with and without it shows the true cost over time.",
+   "parts": [
+    {
+     "term": "Amount × (1 + r)^n",
+     "meaning": "What the money would grow to with no fee."
+    },
+    {
+     "term": "(1 + r − fee)^n",
+     "meaning": "Growth with the fee taken off each year's return."
+    },
+    {
+     "term": "−",
+     "meaning": "The difference is the total cost of the fee, including lost growth on money paid out as fees."
+    }
+   ]
+  }
  },
  {
   "id": "fee_compare",
@@ -4473,7 +5436,20 @@
     "title": "SEC • How fees and expenses affect your portfolio",
     "url": "https://www.sec.gov/investor/alerts/ib_investmentfees.pdf"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Two otherwise identical investments with different fees: each grows at the return minus its fee, so the gap shows what the cheaper option is worth.",
+   "parts": [
+    {
+     "term": "growth",
+     "meaning": "The same return assumption for both."
+    },
+    {
+     "term": "net of each fee",
+     "meaning": "Each fee taken off every year's return."
+    }
+   ]
+  }
  },
  {
   "id": "aum_vs_flat",
@@ -4549,7 +5525,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "An asset-based fee grows as the portfolio grows; a flat fee doesn't. Comparing them shows where one becomes cheaper than the other.",
+   "parts": [
+    {
+     "term": "Assets × AUM rate",
+     "meaning": "The yearly fee as a percentage of assets."
+    },
+    {
+     "term": "vs. flat fee",
+     "meaning": "A fixed dollar amount regardless of size."
+    }
+   ]
+  }
  },
  {
   "id": "tiered_fee",
@@ -4648,7 +5637,24 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Tiered fees work like tax brackets: each slice of assets is charged its own tier's rate, so a higher tier only applies to the dollars inside it.",
+   "parts": [
+    {
+     "term": "slice of assets",
+     "meaning": "The part of the portfolio inside each tier."
+    },
+    {
+     "term": "× tier's rate",
+     "meaning": "Charged at that tier's rate."
+    },
+    {
+     "term": "sum",
+     "meaning": "Added up for the total fee; dividing by assets gives the blended rate."
+    }
+   ]
+  }
  },
  {
   "id": "front_load",
@@ -4713,7 +5719,20 @@
     "title": "SEC • How fees and expenses affect your portfolio",
     "url": "https://www.sec.gov/investor/alerts/ib_investmentfees.pdf"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A front-end load is taken off the top before anything is invested, so less money goes to work from day one.",
+   "parts": [
+    {
+     "term": "Amount",
+     "meaning": "What you pay in."
+    },
+    {
+     "term": "× (1 − load)",
+     "meaning": "What's actually invested after the sales charge."
+    }
+   ]
+  }
  },
  {
   "id": "bond_price",
@@ -4839,7 +5858,28 @@
     "title": "U.S. Treasury • Daily par yield curve rates",
     "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A bond's price is what its future payments are worth today at the market's yield: each coupon and the face value are discounted back.",
+   "parts": [
+    {
+     "term": "i = yield ÷ payments per year",
+     "meaning": "The yield per coupon period."
+    },
+    {
+     "term": "Coupon × (1 − (1+i)^−n) ÷ i",
+     "meaning": "Today's value of all remaining coupon payments."
+    },
+    {
+     "term": "face × (1+i)^−n",
+     "meaning": "Today's value of the face amount repaid at maturity."
+    },
+    {
+     "term": "+",
+     "meaning": "Together, the bond's fair price; when yields rise, both parts fall."
+    }
+   ]
+  }
  },
  {
   "id": "bond_ytm",
@@ -4945,7 +5985,20 @@
     "title": "Investor.gov • Bonds",
     "url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products/bonds"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Yield to maturity is the single rate that makes the bond's future payments worth exactly today's price. It's found by searching, like an IRR.",
+   "parts": [
+    {
+     "term": "cash flows",
+     "meaning": "Coupons and the face value at maturity."
+    },
+    {
+     "term": "worth exactly the price",
+     "meaning": "The yield is the discount rate that makes their present value equal what you pay."
+    }
+   ]
+  }
  },
  {
   "id": "bond_duration",
@@ -5090,7 +6143,24 @@
     "title": "Investor.gov • Bonds",
     "url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products/bonds"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Duration measures how sensitive a bond's price is to interest rates. Convexity corrects for the curve in that relationship, which matters for big rate moves.",
+   "parts": [
+    {
+     "term": "ΔP/P",
+     "meaning": "The percentage change in price."
+    },
+    {
+     "term": "−modified duration × Δy",
+     "meaning": "The main effect: price falls about duration % for each 1% rise in yield."
+    },
+    {
+     "term": "½ × convexity × Δy²",
+     "meaning": "A smaller correction that always helps the holder; it grows with the size of the move."
+    }
+   ]
+  }
  },
  {
   "id": "tbill",
@@ -5179,7 +6249,24 @@
     "title": "TreasuryDirect • Treasury bills",
     "url": "https://www.treasurydirect.gov/marketable-securities/treasury-bills/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "T-bills pay no coupon; you buy at a discount and get face value at maturity. Banks quote the discount on a 360-day year; the bond-equivalent yield restates it as a return on the price over 365 days.",
+   "parts": [
+    {
+     "term": "Discount ÷ face",
+     "meaning": "The discount as a share of face value."
+    },
+    {
+     "term": "× 360 ÷ days",
+     "meaning": "Annualized on the 360-day banking convention."
+    },
+    {
+     "term": "discount ÷ price × 365 ÷ days",
+     "meaning": "Bond-equivalent yield: return on what you actually pay, on a 365-day year, comparable with other bonds."
+    }
+   ]
+  }
  },
  {
   "id": "stock_valuation",
@@ -5253,7 +6340,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Three ratios that compare price to what the company earns and pays out.",
+   "parts": [
+    {
+     "term": "Dividend ÷ price",
+     "meaning": "Dividend yield: cash paid per dollar invested."
+    },
+    {
+     "term": "price ÷ EPS",
+     "meaning": "P/E: dollars paid per dollar of yearly earnings."
+    },
+    {
+     "term": "dividend ÷ EPS",
+     "meaning": "Payout ratio: share of earnings paid out as dividends."
+    }
+   ]
+  }
  },
  {
   "id": "position_pl",
@@ -5351,7 +6455,24 @@
    }
   ],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Profit is the price move on each share times shares held. Total return also counts dividends received.",
+   "parts": [
+    {
+     "term": "price − cost",
+     "meaning": "Gain or loss per share."
+    },
+    {
+     "term": "shares ×",
+     "meaning": "Across the whole position."
+    },
+    {
+     "term": "+ dividends",
+     "meaning": "Cash paid while holding, for total return."
+    }
+   ]
+  }
  },
  {
   "id": "dividend_income",
@@ -5434,7 +6555,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Dividend income in each year is the starting yield on your investment, grown by the dividend growth rate year after year.",
+   "parts": [
+    {
+     "term": "amount × yield",
+     "meaning": "First year's dividend income."
+    },
+    {
+     "term": "(1 + growth)^(k−1)",
+     "meaning": "Grown for each year after the first."
+    }
+   ]
+  }
  },
  {
   "id": "ddm",
@@ -5524,7 +6658,24 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The dividend discount model values a stock as all its future dividends discounted back. If dividends grow at a steady rate forever, that endless sum collapses to one division.",
+   "parts": [
+    {
+     "term": "next dividend",
+     "meaning": "The dividend expected over the next year."
+    },
+    {
+     "term": "required return − growth",
+     "meaning": "How fast you discount, minus how fast dividends grow; it must be positive."
+    },
+    {
+     "term": "÷",
+     "meaning": "The value today of the whole growing stream."
+    }
+   ]
+  }
  },
  {
   "id": "position_size",
@@ -5608,7 +6759,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Turns a target share of the portfolio into a number of shares you can actually buy.",
+   "parts": [
+    {
+     "term": "portfolio × weight",
+     "meaning": "Dollars you want in the position."
+    },
+    {
+     "term": "÷ price",
+     "meaning": "How many shares that buys."
+    },
+    {
+     "term": "floor",
+     "meaning": "Rounded down to whole shares; the remainder stays in cash."
+    }
+   ]
+  }
  },
  {
   "id": "descriptive",
@@ -5718,7 +6886,28 @@
     "title": "OpenStax • Introductory Statistics",
     "url": "https://openstax.org/details/books/introductory-statistics-2e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The mean is the balance point of the data; the standard deviation is the typical distance from it. Dividing by n − 1 corrects for using the sample's own mean.",
+   "parts": [
+    {
+     "term": "Σx ÷ n",
+     "meaning": "The mean: total divided by count."
+    },
+    {
+     "term": "(x − x̄)²",
+     "meaning": "Each value's squared distance from the mean."
+    },
+    {
+     "term": "÷ (n − 1)",
+     "meaning": "Averages those, with n − 1 (Bessel's correction) for an unbiased sample variance."
+    },
+    {
+     "term": "√",
+     "meaning": "Square root brings it back to the data's units: the standard deviation."
+    }
+   ]
+  }
  },
  {
   "id": "normal_prob",
@@ -5796,7 +6985,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Any normal distribution can be converted to the standard one by measuring distance from the mean in standard deviations. Then one table (the CDF) gives probabilities.",
+   "parts": [
+    {
+     "term": "x − μ",
+     "meaning": "Distance from the mean."
+    },
+    {
+     "term": "÷ σ",
+     "meaning": "In standard deviations: the z-score."
+    },
+    {
+     "term": "standard normal CDF",
+     "meaning": "The probability of a value below z."
+    }
+   ]
+  }
  },
  {
   "id": "normal_between",
@@ -5867,7 +7073,20 @@
    }
   ],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The probability of landing between two values is the area under the curve between them: everything below b minus everything below a.",
+   "parts": [
+    {
+     "term": "Φ((b − μ)/σ)",
+     "meaning": "Probability below the upper value."
+    },
+    {
+     "term": "− Φ((a − μ)/σ)",
+     "meaning": "Minus the probability below the lower value."
+    }
+   ]
+  }
  },
  {
   "id": "inverse_normal",
@@ -5941,7 +7160,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The critical value is the cutoff that leaves the chosen error α split between the two tails.",
+   "parts": [
+    {
+     "term": "1 − α/2",
+     "meaning": "The probability below the upper cutoff (α/2 in each tail)."
+    },
+    {
+     "term": "Φ⁻¹(…)",
+     "meaning": "The z value with that probability below it."
+    },
+    {
+     "term": "t⁻¹(…, df)",
+     "meaning": "The same for the t distribution, which has fatter tails for small samples."
+    }
+   ]
+  }
  },
  {
   "id": "pvalue",
@@ -6013,7 +7249,20 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The p-value is how likely a result at least this extreme would be if the null hypothesis were true. Small p-values make the null harder to believe.",
+   "parts": [
+    {
+     "term": "|t|",
+     "meaning": "How far the test statistic is from zero, in either direction."
+    },
+    {
+     "term": "P(|T| ≥ …)",
+     "meaning": "The chance of something at least that far out, from the t or normal distribution."
+    }
+   ]
+  }
  },
  {
   "id": "ci_mean_data",
@@ -6092,7 +7341,24 @@
     "title": "OpenStax • Introductory Statistics",
     "url": "https://openstax.org/details/books/introductory-statistics-2e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A confidence interval is the estimate plus or minus a margin. The margin is the critical value times the standard error, which shrinks as the sample grows.",
+   "parts": [
+    {
+     "term": "x̄",
+     "meaning": "The sample mean, the center of the interval."
+    },
+    {
+     "term": "s ÷ √n",
+     "meaning": "Standard error: how much the mean varies from sample to sample."
+    },
+    {
+     "term": "t* ×",
+     "meaning": "Widened by the critical value for the confidence level."
+    }
+   ]
+  }
  },
  {
   "id": "ci_mean_summary",
@@ -6181,7 +7447,24 @@
     "title": "OpenStax • Introductory Statistics",
     "url": "https://openstax.org/details/books/introductory-statistics-2e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The same interval as from raw data, built from the mean, standard deviation and sample size directly.",
+   "parts": [
+    {
+     "term": "x̄",
+     "meaning": "The sample mean."
+    },
+    {
+     "term": "s ÷ √n",
+     "meaning": "Standard error of the mean."
+    },
+    {
+     "term": "± t* ×",
+     "meaning": "The margin of error at the chosen confidence level."
+    }
+   ]
+  }
  },
  {
   "id": "ci_proportion",
@@ -6271,7 +7554,24 @@
     "title": "OpenStax • Introductory Statistics",
     "url": "https://openstax.org/details/books/introductory-statistics-2e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "For a proportion, the standard error comes from the binomial spread p(1 − p).",
+   "parts": [
+    {
+     "term": "p̂",
+     "meaning": "The sample proportion."
+    },
+    {
+     "term": "√(p̂(1 − p̂) ÷ n)",
+     "meaning": "Standard error of a proportion."
+    },
+    {
+     "term": "± z* ×",
+     "meaning": "The margin at the chosen confidence level."
+    }
+   ]
+  }
  },
  {
   "id": "sample_size",
@@ -6354,7 +7654,24 @@
     "title": "OpenStax • Introductory Statistics",
     "url": "https://openstax.org/details/books/introductory-statistics-2e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Turns the confidence-interval formula around: given the margin of error you want, solve for n. Halving the margin needs four times the sample.",
+   "parts": [
+    {
+     "term": "z* σ ÷ E",
+     "meaning": "Critical value times spread, relative to the margin wanted."
+    },
+    {
+     "term": "(…)²",
+     "meaning": "Squared, because precision improves with √n."
+    },
+    {
+     "term": "p(1 − p)",
+     "meaning": "For proportions, the spread; 0.5 gives the most conservative size."
+    }
+   ]
+  }
  },
  {
   "id": "t_test_one",
@@ -6423,7 +7740,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Measures how many standard errors the sample mean is from the hypothesized value.",
+   "parts": [
+    {
+     "term": "x̄ − μ₀",
+     "meaning": "Difference between sample mean and the hypothesized mean."
+    },
+    {
+     "term": "÷ (s ÷ √n)",
+     "meaning": "In standard errors: the t statistic."
+    },
+    {
+     "term": "df = n − 1",
+     "meaning": "Degrees of freedom for the t distribution."
+    }
+   ]
+  }
  },
  {
   "id": "t_test_two",
@@ -6506,7 +7840,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Compares two group means relative to how uncertain each is. Welch's version doesn't assume the groups have equal variances.",
+   "parts": [
+    {
+     "term": "x̄₁ − x̄₂",
+     "meaning": "The difference in means."
+    },
+    {
+     "term": "√(s₁²/n₁ + s₂²/n₂)",
+     "meaning": "Standard error of that difference."
+    },
+    {
+     "term": "Welch–Satterthwaite df",
+     "meaning": "An adjusted degrees of freedom for unequal variances."
+    }
+   ]
+  }
  },
  {
   "id": "correlation",
@@ -6589,7 +7940,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Correlation is covariance rescaled to run from −1 to 1, so it measures the strength of a straight-line relationship regardless of units.",
+   "parts": [
+    {
+     "term": "cov(x, y)",
+     "meaning": "How x and y move together."
+    },
+    {
+     "term": "÷ (sₓ s_y)",
+     "meaning": "Divided by each one's spread to remove units."
+    },
+    {
+     "term": "t = r √((n − 2) ÷ (1 − r²))",
+     "meaning": "Test statistic for whether the true correlation is zero."
+    }
+   ]
+  }
  },
  {
   "id": "ols",
@@ -6696,7 +8064,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Least squares picks the line that makes the squared vertical misses as small as possible. The slope is how much y moves with x, scaled by how much x varies.",
+   "parts": [
+    {
+     "term": "β₁ = cov(x, y) ÷ var(x)",
+     "meaning": "The slope: change in y per one-unit change in x."
+    },
+    {
+     "term": "β₀ = ȳ − β₁x̄",
+     "meaning": "The intercept, set so the line passes through the means."
+    },
+    {
+     "term": "SE(β₁)",
+     "meaning": "Uncertainty in the slope; smaller with less scatter and more spread-out x."
+    }
+   ]
+  }
  },
  {
   "id": "ols_predict",
@@ -6787,7 +8172,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A prediction uses the fitted line; its interval adds the line's own uncertainty to the scatter of individual points, and widens farther from the average x.",
+   "parts": [
+    {
+     "term": "ŷ = β₀ + β₁x₀",
+     "meaning": "The point prediction at x₀."
+    },
+    {
+     "term": "t* sₑ",
+     "meaning": "Critical value times residual standard error."
+    },
+    {
+     "term": "√(1 + 1/n + (x₀ − x̄)² ÷ Σ(x − x̄)²)",
+     "meaning": "1 for a new observation's scatter, plus the line's uncertainty, which grows away from x̄."
+    }
+   ]
+  }
  },
  {
   "id": "f_test",
@@ -6869,7 +8271,24 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The F test asks whether the model explains significantly more than nothing at all. Adjusted R² penalizes adding predictors that don't help.",
+   "parts": [
+    {
+     "term": "R²/k",
+     "meaning": "Explained variation per predictor."
+    },
+    {
+     "term": "(1 − R²)/(n − k − 1)",
+     "meaning": "Unexplained variation per remaining degree of freedom."
+    },
+    {
+     "term": "adj. R²",
+     "meaning": "R² adjusted for the number of predictors."
+    }
+   ]
+  }
  },
  {
   "id": "durbin_watson",
@@ -6923,7 +8342,20 @@
     "title": "NIST/SEMATECH • e-Handbook of Statistical Methods",
     "url": "https://www.itl.nist.gov/div898/handbook/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Checks whether regression errors are correlated with the previous period's error, common in time-series data. Around 2 means no autocorrelation.",
+   "parts": [
+    {
+     "term": "(eₜ − eₜ₋₁)²",
+     "meaning": "Squared change in the residual from one period to the next."
+    },
+    {
+     "term": "÷ Σeₜ²",
+     "meaning": "Relative to the residuals' total size; near 0 means positive autocorrelation, near 4 negative."
+    }
+   ]
+  }
  },
  {
   "id": "log_coef",
@@ -6988,7 +8420,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "When a variable is in logs, its coefficient reads as a percentage effect. The exact conversions avoid the small-change approximation.",
+   "parts": [
+    {
+     "term": "log-level: e^(βΔx) − 1",
+     "meaning": "Percent change in y for a Δx change in x."
+    },
+    {
+     "term": "level-log: β ln(1 + Δ%)",
+     "meaning": "Change in y for a percentage change in x."
+    },
+    {
+     "term": "log-log: β",
+     "meaning": "An elasticity: percent change in y per 1% change in x."
+    }
+   ]
+  }
  },
  {
   "id": "binomial",
@@ -7087,7 +8536,24 @@
     "title": "OpenStax • Introductory Statistics",
     "url": "https://openstax.org/details/books/introductory-statistics-2e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Counts the ways to get exactly k successes in n tries, times the chance of any one such arrangement.",
+   "parts": [
+    {
+     "term": "C(n, k)",
+     "meaning": "Number of ways to choose which k tries succeed."
+    },
+    {
+     "term": "pᵏ",
+     "meaning": "Chance those k succeed."
+    },
+    {
+     "term": "(1 − p)ⁿ⁻ᵏ",
+     "meaning": "Chance the rest fail."
+    }
+   ]
+  }
  },
  {
   "id": "elasticity",
@@ -7178,7 +8644,24 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Elasticity is how strongly quantity responds to price, in percentages. The midpoint method gives the same answer whichever direction the change is measured.",
+   "parts": [
+    {
+     "term": "%ΔQ",
+     "meaning": "Change in quantity relative to the average quantity."
+    },
+    {
+     "term": "%ΔP",
+     "meaning": "Change in price relative to the average price."
+    },
+    {
+     "term": "÷",
+     "meaning": "Above 1 (in absolute value) is elastic, below 1 inelastic."
+    }
+   ]
+  }
  },
  {
   "id": "market_equilibrium",
@@ -7327,7 +8810,28 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The market clears where buyers want to buy as much as sellers want to sell. A tax drives a wedge between the price paid and received; surplus areas are triangles on the graph.",
+   "parts": [
+    {
+     "term": "a − bQ",
+     "meaning": "Demand: the price buyers will pay for quantity Q."
+    },
+    {
+     "term": "c + dQ (+ t)",
+     "meaning": "Supply: the price sellers need, plus any per-unit tax."
+    },
+    {
+     "term": "set equal",
+     "meaning": "Solve for the quantity where they meet, then the price."
+    },
+    {
+     "term": "triangle areas",
+     "meaning": "Consumer and producer surplus, tax revenue and deadweight loss."
+    }
+   ]
+  }
  },
  {
   "id": "cpi_inflation",
@@ -7399,7 +8903,20 @@
     "title": "BLS • Consumer Price Index",
     "url": "https://www.bls.gov/cpi/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "The CPI tracks the price of a fixed basket. The ratio of two CPI readings is how much prices rose, and dividing by it converts dollars between years.",
+   "parts": [
+    {
+     "term": "CPI₁ ÷ CPI₀ − 1",
+     "meaning": "Inflation between the two dates."
+    },
+    {
+     "term": "nominal × CPI_base ÷ CPI_then",
+     "meaning": "Restates a past amount in base-year dollars."
+    }
+   ]
+  }
  },
  {
   "id": "gdp_deflator",
@@ -7487,7 +9004,20 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Nominal GDP uses current prices and real GDP uses base-year prices, so their ratio is a broad price index.",
+   "parts": [
+    {
+     "term": "nominal ÷ real",
+     "meaning": "How much higher today's prices are than base-year prices."
+    },
+    {
+     "term": "× 100",
+     "meaning": "Expressed as an index with the base year at 100."
+    }
+   ]
+  }
  },
  {
   "id": "rule70",
@@ -7551,7 +9081,20 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Like the Rule of 72: dividing 70 by a growth rate approximates the years to double, the convention economists use for GDP and population.",
+   "parts": [
+    {
+     "term": "70 ÷ growth %",
+     "meaning": "Approximate doubling time."
+    },
+    {
+     "term": "ln 2 ÷ ln(1 + g)",
+     "meaning": "The exact doubling time."
+    }
+   ]
+  }
  },
  {
   "id": "multiplier",
@@ -7639,7 +9182,24 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Each dollar of spending becomes someone's income, part of which is spent again, and so on. The multiplier adds up that chain; taxes and saving shrink each round.",
+   "parts": [
+    {
+     "term": "MPC(1 − t)",
+     "meaning": "Share of each extra dollar of income that is spent after tax."
+    },
+    {
+     "term": "1 ÷ (1 − …)",
+     "meaning": "Total spending from one initial dollar."
+    },
+    {
+     "term": "−MPC ÷ (…)",
+     "meaning": "A tax cut starts one step later (it's spent at the MPC), so its multiplier is smaller."
+    }
+   ]
+  }
  },
  {
   "id": "money",
@@ -7735,7 +9295,20 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Banks lend out money that isn't held as reserves, which is redeposited and lent again. The quantity equation links money to prices.",
+   "parts": [
+    {
+     "term": "1 ÷ reserve ratio",
+     "meaning": "Maximum money created per dollar of reserves."
+    },
+    {
+     "term": "%ΔM + %ΔV − %ΔY",
+     "meaning": "From MV = PY: inflation ≈ money growth plus velocity change minus real growth."
+    }
+   ]
+  }
  },
  {
   "id": "taylor_rule",
@@ -7824,7 +9397,24 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A guide for setting interest rates: start at the neutral real rate plus inflation, then lean against inflation above target and output above potential.",
+   "parts": [
+    {
+     "term": "r* + π",
+     "meaning": "The neutral nominal rate."
+    },
+    {
+     "term": "0.5(π − π*)",
+     "meaning": "Raise rates when inflation is above target."
+    },
+    {
+     "term": "0.5(output gap)",
+     "meaning": "Raise rates when the economy runs above potential."
+    }
+   ]
+  }
  },
  {
   "id": "labor_market",
@@ -7911,7 +9501,20 @@
     "title": "BLS • Labor force statistics (CPS)",
     "url": "https://www.bls.gov/cps/"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Labor-market rates are shares of different groups: the unemployed among those in the labor force, and the labor force among the adult population.",
+   "parts": [
+    {
+     "term": "U ÷ (U + E)",
+     "meaning": "Unemployment rate: unemployed as a share of the labor force."
+    },
+    {
+     "term": "(U + E) ÷ population",
+     "meaning": "Participation rate: share of adults working or looking."
+    }
+   ]
+  }
  },
  {
   "id": "okun",
@@ -7985,7 +9588,20 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Okun's law: when unemployment is above its natural rate, output falls short of potential by roughly a fixed multiple.",
+   "parts": [
+    {
+     "term": "u − u*",
+     "meaning": "Unemployment above (or below) its natural rate."
+    },
+    {
+     "term": "−k ×",
+     "meaning": "Each point of excess unemployment costs about k% of potential output."
+    }
+   ]
+  }
  },
  {
   "id": "monopoly",
@@ -8095,7 +9711,24 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "A monopolist produces where one more unit adds as much revenue as it costs (MR = MC). That's less output and a higher price than competition, which causes a deadweight loss.",
+   "parts": [
+    {
+     "term": "MR = a − 2bQ",
+     "meaning": "Marginal revenue falls twice as fast as demand price, because selling more lowers the price on all units."
+    },
+    {
+     "term": "= MC",
+     "meaning": "Profit-maximizing quantity."
+    },
+    {
+     "term": "(a − MC)² ÷ 8b",
+     "meaning": "Deadweight loss: the triangle of trades that would benefit both sides but don't happen."
+    }
+   ]
+  }
  },
  {
   "id": "costs",
@@ -8198,7 +9831,24 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Cost per unit, measured different ways: marginal cost is the cost of the next unit; average costs spread totals over all units.",
+   "parts": [
+    {
+     "term": "ΔTC ÷ ΔQ",
+     "meaning": "Marginal cost."
+    },
+    {
+     "term": "TC ÷ Q",
+     "meaning": "Average total cost."
+    },
+    {
+     "term": "VC ÷ Q, FC ÷ Q",
+     "meaning": "Average variable and average fixed cost."
+    }
+   ]
+  }
  },
  {
   "id": "hhi",
@@ -8253,7 +9903,24 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Concentration index: squaring market shares weights big firms much more heavily, so a market dominated by a few scores high.",
+   "parts": [
+    {
+     "term": "share in %",
+     "meaning": "Each firm's market share as a whole-number percentage."
+    },
+    {
+     "term": "²",
+     "meaning": "Squared to emphasize large firms."
+    },
+    {
+     "term": "Σ",
+     "meaning": "Added up: up to 10,000 for a monopoly."
+    }
+   ]
+  }
  },
  {
   "id": "cobb_douglas",
@@ -8374,7 +10041,24 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Output comes from capital and labor with set shares. Growth accounting peels off what capital and labor explain; what's left is productivity growth.",
+   "parts": [
+    {
+     "term": "A Kᵅ L¹⁻ᵅ",
+     "meaning": "Output from productivity A, capital K and labor L."
+    },
+    {
+     "term": "α g_K + (1 − α) g_L",
+     "meaning": "Growth explained by more capital and labor."
+    },
+    {
+     "term": "g_Y − …",
+     "meaning": "The remainder: total factor productivity growth."
+    }
+   ]
+  }
  },
  {
   "id": "comparative_advantage",
@@ -8462,7 +10146,20 @@
     "title": "OpenStax • Principles of Economics",
     "url": "https://openstax.org/details/books/principles-economics-3e"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Trade pays off by comparing opportunity costs, not absolute ability: whoever gives up less to make something should make it.",
+   "parts": [
+    {
+     "term": "Y given up",
+     "meaning": "Output of the other good sacrificed."
+    },
+    {
+     "term": "÷ X gained",
+     "meaning": "Per unit of this good: the opportunity cost."
+    }
+   ]
+  }
  },
  {
   "id": "net_worth",
@@ -8569,7 +10266,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": true,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Net worth is what you'd have if you sold everything and paid off every debt.",
+   "parts": [
+    {
+     "term": "Assets",
+     "meaning": "Everything owned, at current value."
+    },
+    {
+     "term": "− liabilities",
+     "meaning": "Everything owed."
+    }
+   ]
+  }
  },
  {
   "id": "savings_rate",
@@ -8612,7 +10322,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The share of income you keep, a core measure of financial progress.",
+   "parts": [
+    {
+     "term": "Savings",
+     "meaning": "Money saved or invested in the year."
+    },
+    {
+     "term": "÷ gross income",
+     "meaning": "As a share of income before tax."
+    }
+   ]
+  }
  },
  {
   "id": "emergency_fund",
@@ -8679,7 +10402,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "A cash cushion sized in months of essential expenses.",
+   "parts": [
+    {
+     "term": "Monthly expenses",
+     "meaning": "Essential spending each month."
+    },
+    {
+     "term": "× months",
+     "meaning": "How many months to cover."
+    }
+   ]
+  }
  },
  {
   "id": "college",
@@ -8770,7 +10506,20 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "College costs rise each year, so each year's cost is today's cost grown by college inflation, and the fund must cover all of them.",
+   "parts": [
+    {
+     "term": "Cost grows with inflation",
+     "meaning": "Each year's cost, inflated to when it's paid."
+    },
+    {
+     "term": "funded by the first day",
+     "meaning": "The total needed when college starts, and the saving required to get there."
+    }
+   ]
+  }
  },
  {
   "id": "life_insurance",
@@ -8861,7 +10610,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Coverage should replace what your family would lose and cover what they'd owe, minus what they already have.",
+   "parts": [
+    {
+     "term": "PV(income)",
+     "meaning": "Today's value of the income to replace."
+    },
+    {
+     "term": "+ debts + goals",
+     "meaning": "Mortgage, other debts and goals such as college."
+    },
+    {
+     "term": "− existing coverage − assets",
+     "meaning": "What's already in place."
+    }
+   ]
+  }
  },
  {
   "id": "estate_exposure",
@@ -8956,7 +10722,20 @@
     "title": "IRS • Gift tax FAQs",
     "url": "https://www.irs.gov/businesses/small-businesses-self-employed/frequently-asked-questions-on-gift-taxes"
    }
-  ]
+  ],
+  "explain": {
+   "why": "Federal estate tax applies only above the remaining exemption, at the top rate.",
+   "parts": [
+    {
+     "term": "estate − remaining exemption",
+     "meaning": "The taxable amount above the exemption."
+    },
+    {
+     "term": "× top rate",
+     "meaning": "Estimated federal estate tax."
+    }
+   ]
+  }
  },
  {
   "id": "debt_vs_invest",
@@ -9033,7 +10812,24 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "Paying down debt earns a guaranteed return equal to its after-tax interest rate. Compare that with the after-tax return you'd expect from investing.",
+   "parts": [
+    {
+     "term": "After-tax return",
+     "meaning": "What investing is expected to earn after tax."
+    },
+    {
+     "term": "− after-tax debt cost",
+     "meaning": "What the debt costs after any tax deduction."
+    },
+    {
+     "term": "result",
+     "meaning": "Positive favors investing; negative favors paying down the debt."
+    }
+   ]
+  }
  },
  {
   "id": "loan_payment",
@@ -9092,6 +10888,23 @@
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
-  "sources": []
+  "sources": [],
+  "explain": {
+   "why": "The level payment that repays the loan exactly over its term: early payments are mostly interest, later ones mostly principal.",
+   "parts": [
+    {
+     "term": "i",
+     "meaning": "The monthly interest rate (annual rate ÷ 12)."
+    },
+    {
+     "term": "Principal × i",
+     "meaning": "One month's interest on the full loan."
+    },
+    {
+     "term": "÷ (1 − (1+i)^−n)",
+     "meaning": "Spreads repayment evenly across n monthly payments."
+    }
+   ]
+  }
  }
 ]

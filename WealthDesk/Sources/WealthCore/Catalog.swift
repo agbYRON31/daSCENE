@@ -69,6 +69,16 @@ public struct TableSpec: Codable, Hashable {
     public let chartColumns: [Int]
 }
 
+/// Why a formula works, and what each part of it means.
+public struct FormulaExplanation: Codable, Hashable {
+    public struct Part: Codable, Hashable {
+        public let term: String
+        public let meaning: String
+    }
+    public let why: String
+    public let parts: [Part]
+}
+
 public struct Calculator: Codable, Hashable, Identifiable {
     public let id: String
     public let name: String
@@ -87,6 +97,8 @@ public struct Calculator: Codable, Hashable, Identifiable {
     public let sources: [Source]
     public let projection: String?
     public let table: TableSpec?
+    /// Plain-language breakdown of the formula (tools/formula_notes.py).
+    public let explain: FormulaExplanation?
 
     public var exampleInputs: [String: String] {
         Dictionary(uniqueKeysWithValues: fields.map { ($0.id, $0.example) })

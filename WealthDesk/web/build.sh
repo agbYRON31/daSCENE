@@ -38,7 +38,9 @@ if [[ $full == 1 ]]; then
   # site without RoRo data rather than failing the whole build.
   cache=dist/roro_cache
   mkdir -p "$cache"
-  if .build/release/roro fetch "$cache" && .build/release/roro build "$cache" "$out/data/roro.json"; then
+  # A model that couldn't be scored (for example the download got nothing) counts as unavailable.
+  scored() { node -e 'process.exit(require(require("path").resolve(process.argv[1])).horizons ? 0 : 1)' "$1" 2>/dev/null; }
+  if .build/release/roro fetch "$cache" && .build/release/roro build "$cache" "$out/data/roro.json" && scored "$out/data/roro.json"; then
     .build/release/roro meta "$out/data/roro_meta.json"
     node -e '
       const fs = require("fs");
@@ -50,6 +52,7 @@ if [[ $full == 1 ]]; then
     # Client Mode's market summary must read today's model correctly.
     node web/client-market-check.mjs Tests/roro_expected.json Tests/roro_expected_2022-06-16.json "$out/data/roro.json"
   else
+    rm -f "$out/data/roro.json"
     echo "RoRo data unavailable this run; publishing without it." >&2
   fi
   .build/release/roro markets "$out/data/markets.json" SPY VTI BND AGG QQQ IWM EFA TLT GLD ^GSPC ^VIX \

@@ -61,6 +61,10 @@ extension ReportSection {
             s.tableRows = table.rows.map { row in row.enumerated().map { Format.value($1, table.spec.columns[$0].format) } }
         }
         s.notes.append(("Method", calc.math))
+        if let e = calc.explain {
+            s.notes.append(("Why this formula", e.why))
+            s.notes.append(("What each part means", e.parts.map { "\($0.term): \($0.meaning)" }.joined(separator: "\n")))
+        }
         s.notes.append(("Assumptions", calc.assumptions))
         s.notes.append(("How to read it", calc.interpretation))
         if calc.usesTaxTable, let t = tax {

@@ -83,6 +83,14 @@ let missing = #"{"chart":{"result":null,"error":{"code":"Not Found","description
 expect((try? MarketParsers.parseQuote(Data(missing.utf8))) == nil, "Quote: unknown symbol throws")
 expect(MarketParsers.quoteURL(symbol: "^GSPC") != nil && MarketParsers.quoteURL(symbol: "a/b") == nil, "Quote URL: symbol validation")
 
+// Every formula has its plain-language breakdown ("What each part means").
+let unexplained = engine.calculators.filter { c in
+    guard let e = c.explain else { return true }
+    return e.why.trimmingCharacters(in: .whitespaces).isEmpty || e.parts.isEmpty
+        || e.parts.contains { $0.term.trimmingCharacters(in: .whitespaces).isEmpty || $0.meaning.trimmingCharacters(in: .whitespaces).isEmpty }
+}
+expect(unexplained.isEmpty, "formula breakdowns missing for: \(unexplained.map(\.id))")
+
 // Scientific calculator
 func calc(_ line: String, vars: [String: Double] = [:], ans: Double? = nil, deg: Bool = false) -> Double? {
     try? Scientific.evaluate(line, variables: vars, ans: ans, degrees: deg, tax: engine.tax).value

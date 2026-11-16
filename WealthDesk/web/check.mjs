@@ -53,6 +53,10 @@ let threw = false;
 try { Finance.irr([-100, 50, -20, 90]); } catch { threw = true; }
 expect(threw, "IRR rejects multiple sign changes");
 expect(Scientific.evaluate("x = 2*3", {}, null, false, engine.tax).value === 6, "scratchpad assignment");
+// Every formula has its plain-language breakdown ("What each part means").
+const unexplained = engine.calculators.filter((c) => !c.explain?.why?.trim() || !c.explain.parts?.length || c.explain.parts.some((p) => !p.term?.trim() || !p.meaning?.trim()));
+expect(unexplained.length === 0, `formula breakdowns missing for: ${unexplained.map((c) => c.id)}`);
+
 // Keyboard-style lines on the Calculator page (same expectations as wdcheck in the Mac app).
 const line = (t, vars = {}, ans = null) => { try { return Scientific.evaluate(t, vars, ans, false, engine.tax).value; } catch { return null; } };
 const msg = (t, vars = {}) => { try { Scientific.evaluate(t, vars, null, false, engine.tax); return ""; } catch (e) { return e.message; } };
