@@ -957,12 +957,14 @@ struct TaxesTool: View {
                     ClientInputs(key: "client.taxdrag", calcID: "tax_deferral", fields: ClientSpec.taxDrag)
                 }
             default:
-                InputGroup(title: "Federal income tax estimate", note: "Federal tax on ordinary taxable income only. No state tax, credits or other taxes.") {
+                InputGroup(title: "Income tax estimate", note: "Federal and state tax on ordinary taxable income. Local taxes, credits and other taxes aren't included.") {
                     ClientInputs(key: "client.incometax", calcID: "income_tax", fields: ClientSpec.incomeTax)
-                    if let f = state.calculator("income_tax")?.fields.first(where: { $0.id == "status" }), let options = f.options {
-                        Picker("Filing status", selection: Binding(get: { state.clientRaw("client.incometax", "status").isEmpty ? f.example : state.clientRaw("client.incometax", "status") },
-                                                                   set: { state.setClient("client.incometax", "status", $0) })) {
-                            ForEach(options, id: \.value) { Text($0.label).tag(Format.plain($0.value)) }
+                    ForEach([("status", "Filing status"), ("st", "State you file in")], id: \.0) { id, label in
+                        if let f = state.calculator("income_tax")?.fields.first(where: { $0.id == id }), let options = f.options {
+                            Picker(label, selection: Binding(get: { state.clientRaw("client.incometax", id).isEmpty ? f.example : state.clientRaw("client.incometax", id) },
+                                                             set: { state.setClient("client.incometax", id, $0) })) {
+                                ForEach(options, id: \.value) { Text($0.label).tag(Format.plain($0.value)) }
+                            }
                         }
                     }
                 }
@@ -1020,9 +1022,33 @@ struct TaxesTool: View {
 
     @ViewBuilder private func incomeTax(_ c: ClientCalc?) -> some View {
         TaxYearBanner()
-        if let c, c.ok, case .number(let income)? = try? Engine.parse(c.inputs["ti"] ?? "", field: c.calc.fields[0]) {
+        if let c, c.ok, case .number(let income)? = try? Engine.parse(c.inputs["ti"] ?? "", field: c.calc.fields[0]),
+           let st = try? state.engine?.tax.state(Double(c.inputs["st"] ?? "0") ?? 0) {
+            let noTax = st.none == true || st.brackets == nil
+            Headline(text: "Estimated income tax: \(Format.currency(c.v(7))), which is \(Format.percent(c.v(8))) of this income.",
+                     caption: noTax ? "\(st.name) has no tax on wages, so this is all federal. The next dollar would be taxed at \(Format.percent(c.v(6)))."
+                        : "\(Format.currency(c.v(0))) federal plus \(Format.currency(c.v(4))) \(st.name). The next dollar would be taxed at \(Format.percent(c.v(6))): \(Format.percent(c.v(1))) federal plus \(Format.percent(c.v(5))) state.")
+            StatGrid {
+                StatTile(label: "Federal income tax", value: Format.currency(c.v(0)))
+                StatTile(label: "\(st.name) income tax", value: Format.currency(c.v(4)), caption: "Estimate; local taxes not included")
+                StatTile(label: "Average rate, federal + state", value: Format.percent(c.v(8)))
+                StatTile(label: "Rate on the next dollar, federal + state", value: Format.percent(c.v(6)),
+                         caption: "\(Format.percent(c.v(1))) federal + \(Format.percent(c.v(5))) state")
+            }
+            ChartCard(title: "Where the income goes", note: st.notes.isEmpty ? nil : st.notes.joined(separator: " ")) {
+                Chart([Bar(name: "Kept after income tax", value: income - c.v(7)), Bar(name: "Federal income tax", value: c.v(0)),
+                       Bar(name: "State income tax", value: c.v(4))]) { b in
+                    BarMark(x: .value("Dollars", b.value), y: .value("", "Income"))
+                        .foregroundStyle(by: .value("Part", b.name))
+                }
+                .chartForegroundStyleScale(["Kept after income tax": Color.wealthAccent, "Federal income tax": Color.orange, "State income tax": Color.blue.opacity(0.75)])
+                .chartXAxis { AxisMarks { v in AxisGridLine(); AxisValueLabel { if let d = v.as(Double.self) { Text(Money.compact(d)) } } } }
+                .frame(height: 110)
+            }
+            HowItWorks(calcs: [c])
+        } else if let c, c.ok, case .number(let income)? = try? Engine.parse(c.inputs["ti"] ?? "", field: c.calc.fields[0]) {
             Headline(text: "Estimated federal income tax: \(Format.currency(c.v(0))), which is \(Format.percent(c.v(2))) of this income.",
-                     caption: "The next dollar earned would be taxed at \(Format.percent(c.v(1))). That higher rate applies only to income above the bracket line, not to all of it.")
+                     caption: "The next dollar earned would be taxed at \(Format.percent(c.v(1))). That higher rate applies only to income above the bracket line, not to all of it. Choose a state to add state income tax.")
             StatGrid {
                 StatTile(label: "Federal income tax", value: Format.currency(c.v(0)))
                 StatTile(label: "Average rate on this income", value: Format.percent(c.v(2)))

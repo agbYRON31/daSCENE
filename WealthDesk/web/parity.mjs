@@ -8,13 +8,14 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { Engine, TaxData, Scientific, exampleInputs } from "./engine.js";
+import { Engine, TaxData, Scientific, exampleInputs, withStates } from "./engine.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const resources = join(root, "Resources");
 const catalog = JSON.parse(readFileSync(join(resources, "catalog.json"), "utf8"));
-const taxData = new TaxData(JSON.parse(readFileSync(join(resources, "taxdata.json"), "utf8")));
+const taxData = new TaxData(withStates(JSON.parse(readFileSync(join(resources, "taxdata.json"), "utf8")),
+  JSON.parse(readFileSync(join(resources, "statetax.json"), "utf8"))));
 const PER = Number(process.argv[2] || 60);
 
 // Deterministic PRNG so failures are reproducible.

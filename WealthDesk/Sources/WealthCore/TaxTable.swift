@@ -29,6 +29,8 @@ public struct TaxTable: Codable {
     public let estateExemption: Double
     public let estateTopRate: Double
     public let uniformLifetime: [String: Double]
+    /// State income tax tables (tools/state_tax_data.py); see StateTax.swift.
+    public let states: StateTaxes?
 
     /// Combined tax at the start of each bracket, for checking against the IRS "plus" amounts.
     public func baseAmounts(_ status: Double) throws -> [Double] {
@@ -111,10 +113,33 @@ public struct TaxData: Codable {
     public let referenceYear: Int
     public let tables: [TaxTable]
 
+    /// Loads taxdata.json and attaches the state tables from statetax.json in the same folder, if present.
     public static func load(from url: URL) throws -> TaxData {
-        let d = try JSONDecoder().decode(TaxData.self, from: Data(contentsOf: url))
+        var data = try Data(contentsOf: url)
+        let stateURL = url.deletingLastPathComponent().appendingPathComponent("statetax.json")
+        if let stateData = try? Data(contentsOf: stateURL) {
+            data = try withStates(data, stateData)
+        }
+        let d = try JSONDecoder().decode(TaxData.self, from: data)
         guard !d.tables.isEmpty else { throw EvalError.message("taxdata.json has no tax years.") }
         return d
+    }
+
+    /// Same rule as with_states in tools/build_catalog.py and withStates in web/engine.js.
+    static func withStates(_ taxJSON: Data, _ stateJSON: Data) throws -> Data {
+        guard var root = try JSONSerialization.jsonObject(with: taxJSON) as? [String: Any],
+              let tables = root["tables"] as? [[String: Any]],
+              let states = try JSONSerialization.jsonObject(with: stateJSON) as? [String: Any],
+              let year = states["taxYear"] as? Int else { return taxJSON }
+        root["tables"] = tables.map { t -> [String: Any] in
+            var t = t, st = states
+            if let ty = t["taxYear"] as? Int, ty != year {
+                st["notes"] = ["\(ty) state figures are not yet published; \(year) state tables are used."] + ((states["notes"] as? [String]) ?? [])
+            }
+            t["states"] = st
+            return t
+        }
+        return try JSONSerialization.data(withJSONObject: root)
     }
 
     public var years: [Int] { tables.map(\.taxYear).sorted() }

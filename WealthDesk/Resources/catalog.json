@@ -3591,7 +3591,7 @@
  },
  {
   "id": "income_tax",
-  "name": "Federal income tax",
+  "name": "Federal and state income tax",
   "category": "Tax",
   "fields": [
    {
@@ -3622,6 +3622,225 @@
      {
       "value": 3,
       "label": "Head of household"
+     }
+    ]
+   },
+   {
+    "id": "st",
+    "label": "State you file in",
+    "unit": "choice",
+    "example": "0",
+    "hint": "Adds that state's income tax. Local taxes (city, county) aren't included.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 0,
+      "label": "No state tax (not included)"
+     },
+     {
+      "value": 1,
+      "label": "Alabama"
+     },
+     {
+      "value": 2,
+      "label": "Alaska"
+     },
+     {
+      "value": 3,
+      "label": "Arizona"
+     },
+     {
+      "value": 4,
+      "label": "Arkansas"
+     },
+     {
+      "value": 5,
+      "label": "California"
+     },
+     {
+      "value": 6,
+      "label": "Colorado"
+     },
+     {
+      "value": 7,
+      "label": "Connecticut"
+     },
+     {
+      "value": 8,
+      "label": "Delaware"
+     },
+     {
+      "value": 9,
+      "label": "District of Columbia"
+     },
+     {
+      "value": 10,
+      "label": "Florida"
+     },
+     {
+      "value": 11,
+      "label": "Georgia"
+     },
+     {
+      "value": 12,
+      "label": "Hawaii"
+     },
+     {
+      "value": 13,
+      "label": "Idaho"
+     },
+     {
+      "value": 14,
+      "label": "Illinois"
+     },
+     {
+      "value": 15,
+      "label": "Indiana"
+     },
+     {
+      "value": 16,
+      "label": "Iowa"
+     },
+     {
+      "value": 17,
+      "label": "Kansas"
+     },
+     {
+      "value": 18,
+      "label": "Kentucky"
+     },
+     {
+      "value": 19,
+      "label": "Louisiana"
+     },
+     {
+      "value": 20,
+      "label": "Maine"
+     },
+     {
+      "value": 21,
+      "label": "Maryland"
+     },
+     {
+      "value": 22,
+      "label": "Massachusetts"
+     },
+     {
+      "value": 23,
+      "label": "Michigan"
+     },
+     {
+      "value": 24,
+      "label": "Minnesota"
+     },
+     {
+      "value": 25,
+      "label": "Mississippi"
+     },
+     {
+      "value": 26,
+      "label": "Missouri"
+     },
+     {
+      "value": 27,
+      "label": "Montana"
+     },
+     {
+      "value": 28,
+      "label": "Nebraska"
+     },
+     {
+      "value": 29,
+      "label": "Nevada"
+     },
+     {
+      "value": 30,
+      "label": "New Hampshire"
+     },
+     {
+      "value": 31,
+      "label": "New Jersey"
+     },
+     {
+      "value": 32,
+      "label": "New Mexico"
+     },
+     {
+      "value": 33,
+      "label": "New York"
+     },
+     {
+      "value": 34,
+      "label": "North Carolina"
+     },
+     {
+      "value": 35,
+      "label": "North Dakota"
+     },
+     {
+      "value": 36,
+      "label": "Ohio"
+     },
+     {
+      "value": 37,
+      "label": "Oklahoma"
+     },
+     {
+      "value": 38,
+      "label": "Oregon"
+     },
+     {
+      "value": 39,
+      "label": "Pennsylvania"
+     },
+     {
+      "value": 40,
+      "label": "Rhode Island"
+     },
+     {
+      "value": 41,
+      "label": "South Carolina"
+     },
+     {
+      "value": 42,
+      "label": "South Dakota"
+     },
+     {
+      "value": 43,
+      "label": "Tennessee"
+     },
+     {
+      "value": 44,
+      "label": "Texas"
+     },
+     {
+      "value": 45,
+      "label": "Utah"
+     },
+     {
+      "value": 46,
+      "label": "Vermont"
+     },
+     {
+      "value": 47,
+      "label": "Virginia"
+     },
+     {
+      "value": 48,
+      "label": "Washington"
+     },
+     {
+      "value": 49,
+      "label": "West Virginia"
+     },
+     {
+      "value": 50,
+      "label": "Wisconsin"
+     },
+     {
+      "value": 51,
+      "label": "Wyoming"
      }
     ]
    }
@@ -3658,14 +3877,54 @@
     "format": "currency",
     "excel": null,
     "expected": 153550.0
+   },
+   {
+    "id": "4",
+    "label": "State income tax",
+    "expression": "statetax((ti+stddeduction(status)),status,st)",
+    "format": "currency",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "5",
+    "label": "State marginal rate",
+    "expression": "statemarg((ti+stddeduction(status)),status,st)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "6",
+    "label": "Combined marginal rate (federal + state)",
+    "expression": "margrate(ti,status)+statemarg((ti+stddeduction(status)),status,st)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.24
+   },
+   {
+    "id": "7",
+    "label": "Federal + state tax",
+    "expression": "incometax(ti,status)+statetax((ti+stddeduction(status)),status,st)",
+    "format": "currency",
+    "excel": null,
+    "expected": 45196.0
+   },
+   {
+    "id": "8",
+    "label": "Combined effective rate",
+    "expression": "if(ti>0,(incometax(ti,status)+statetax((ti+stddeduction(status)),status,st))/ti,0)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.180784
    }
   ],
-  "math": "Tax each slice of income at its bracket rate",
-  "summary": "Ordinary federal income tax with marginal and effective rates.",
-  "aliases": "brackets marginal effective tax rate",
+  "math": "Tax each slice of income at its bracket rate; state tax uses the state's own brackets after its deduction and exemptions",
+  "summary": "Federal income tax with marginal and effective rates, plus the income tax for the state you file in.",
+  "aliases": "brackets marginal effective tax rate state income tax combined",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
   "excelNotes": "Bracket math needs a bracket table in Excel; the app uses its dated tax table.",
   "rules": [],
   "common": true,
@@ -3673,10 +3932,14 @@
    {
     "title": "IRS • Federal income tax rates and brackets",
     "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
+   },
+   {
+    "title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)",
+    "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"
    }
   ],
   "explain": {
-   "why": "US income tax is progressive by slices: each bracket's rate applies only to the income inside that bracket, not to all of it. That's why moving into a higher bracket never lowers take-home pay.",
+   "why": "US income tax is progressive by slices: each bracket's rate applies only to the income inside that bracket, not to all of it. That's why moving into a higher bracket never lowers take-home pay. Most states tax income the same way with their own brackets, after their own deduction and exemptions.",
    "parts": [
     {
      "term": "each slice of income",
@@ -3688,7 +3951,15 @@
     },
     {
      "term": "sum",
-     "meaning": "Total tax; divided by income it gives the average rate. The marginal rate is the top bracket reached."
+     "meaning": "Total federal tax; divided by income it gives the effective rate. The marginal rate is the top bracket reached."
+    },
+    {
+     "term": "state's own brackets",
+     "meaning": "State tax starts from AGI (estimated as taxable income plus the federal standard deduction), subtracts the state's deduction and exemptions, then applies the state's brackets and any personal credit."
+    },
+    {
+     "term": "combined marginal rate",
+     "meaning": "Federal plus state rate on the next dollar: the rate to use when a decision adds or removes income."
     }
    ]
   }
@@ -3736,6 +4007,225 @@
       "label": "Head of household"
      }
     ]
+   },
+   {
+    "id": "st",
+    "label": "State you file in",
+    "unit": "choice",
+    "example": "0",
+    "hint": "Adds that state's income tax. Local taxes (city, county) aren't included.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 0,
+      "label": "No state tax (not included)"
+     },
+     {
+      "value": 1,
+      "label": "Alabama"
+     },
+     {
+      "value": 2,
+      "label": "Alaska"
+     },
+     {
+      "value": 3,
+      "label": "Arizona"
+     },
+     {
+      "value": 4,
+      "label": "Arkansas"
+     },
+     {
+      "value": 5,
+      "label": "California"
+     },
+     {
+      "value": 6,
+      "label": "Colorado"
+     },
+     {
+      "value": 7,
+      "label": "Connecticut"
+     },
+     {
+      "value": 8,
+      "label": "Delaware"
+     },
+     {
+      "value": 9,
+      "label": "District of Columbia"
+     },
+     {
+      "value": 10,
+      "label": "Florida"
+     },
+     {
+      "value": 11,
+      "label": "Georgia"
+     },
+     {
+      "value": 12,
+      "label": "Hawaii"
+     },
+     {
+      "value": 13,
+      "label": "Idaho"
+     },
+     {
+      "value": 14,
+      "label": "Illinois"
+     },
+     {
+      "value": 15,
+      "label": "Indiana"
+     },
+     {
+      "value": 16,
+      "label": "Iowa"
+     },
+     {
+      "value": 17,
+      "label": "Kansas"
+     },
+     {
+      "value": 18,
+      "label": "Kentucky"
+     },
+     {
+      "value": 19,
+      "label": "Louisiana"
+     },
+     {
+      "value": 20,
+      "label": "Maine"
+     },
+     {
+      "value": 21,
+      "label": "Maryland"
+     },
+     {
+      "value": 22,
+      "label": "Massachusetts"
+     },
+     {
+      "value": 23,
+      "label": "Michigan"
+     },
+     {
+      "value": 24,
+      "label": "Minnesota"
+     },
+     {
+      "value": 25,
+      "label": "Mississippi"
+     },
+     {
+      "value": 26,
+      "label": "Missouri"
+     },
+     {
+      "value": 27,
+      "label": "Montana"
+     },
+     {
+      "value": 28,
+      "label": "Nebraska"
+     },
+     {
+      "value": 29,
+      "label": "Nevada"
+     },
+     {
+      "value": 30,
+      "label": "New Hampshire"
+     },
+     {
+      "value": 31,
+      "label": "New Jersey"
+     },
+     {
+      "value": 32,
+      "label": "New Mexico"
+     },
+     {
+      "value": 33,
+      "label": "New York"
+     },
+     {
+      "value": 34,
+      "label": "North Carolina"
+     },
+     {
+      "value": 35,
+      "label": "North Dakota"
+     },
+     {
+      "value": 36,
+      "label": "Ohio"
+     },
+     {
+      "value": 37,
+      "label": "Oklahoma"
+     },
+     {
+      "value": 38,
+      "label": "Oregon"
+     },
+     {
+      "value": 39,
+      "label": "Pennsylvania"
+     },
+     {
+      "value": 40,
+      "label": "Rhode Island"
+     },
+     {
+      "value": 41,
+      "label": "South Carolina"
+     },
+     {
+      "value": 42,
+      "label": "South Dakota"
+     },
+     {
+      "value": 43,
+      "label": "Tennessee"
+     },
+     {
+      "value": 44,
+      "label": "Texas"
+     },
+     {
+      "value": 45,
+      "label": "Utah"
+     },
+     {
+      "value": 46,
+      "label": "Vermont"
+     },
+     {
+      "value": 47,
+      "label": "Virginia"
+     },
+     {
+      "value": 48,
+      "label": "Washington"
+     },
+     {
+      "value": 49,
+      "label": "West Virginia"
+     },
+     {
+      "value": 50,
+      "label": "Wisconsin"
+     },
+     {
+      "value": 51,
+      "label": "Wyoming"
+     }
+    ]
    }
   ],
   "outputs": [
@@ -3762,14 +4252,30 @@
     "format": "currency",
     "excel": null,
     "expected": 54268.0
+   },
+   {
+    "id": "3",
+    "label": "State income tax",
+    "expression": "statetax(g,status,st)",
+    "format": "currency",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "4",
+    "label": "Federal + state tax",
+    "expression": "incometax(max(0,g-max(it,stddeduction(status))),status)+statetax(g,status,st)",
+    "format": "currency",
+    "excel": null,
+    "expected": 54268.0
    }
   ],
-  "math": "AGI − larger of itemized or standard deduction",
-  "summary": "Applies the larger of itemized or standard deduction.",
-  "aliases": "standard deduction itemize",
+  "math": "AGI − larger of itemized or standard deduction; state tax from AGI with the state's own deduction",
+  "summary": "Applies the larger of itemized or standard deduction, plus the income tax for the state you file in.",
+  "aliases": "standard deduction itemize state",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI. Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -3777,10 +4283,14 @@
    {
     "title": "IRS • Federal income tax rates and brackets",
     "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
+   },
+   {
+    "title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)",
+    "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"
    }
   ],
   "explain": {
-   "why": "Tax is figured on income after deductions. You take whichever is bigger: your itemized deductions or the standard deduction.",
+   "why": "Tax is figured on income after deductions. Federally you take whichever is bigger: itemized deductions or the standard deduction. States start from the same AGI but subtract their own deduction and exemptions.",
    "parts": [
     {
      "term": "AGI",
@@ -3788,11 +4298,15 @@
     },
     {
      "term": "larger of itemized or standard",
-     "meaning": "The deduction that saves more tax."
+     "meaning": "The federal deduction that saves more tax."
     },
     {
      "term": "−",
-     "meaning": "What's left is taxable income."
+     "meaning": "What's left is federal taxable income."
+    },
+    {
+     "term": "state tax from AGI",
+     "meaning": "The state's own deduction and exemptions come off AGI, then its brackets apply."
     }
    ]
   }
@@ -3815,7 +4329,7 @@
     "label": "Tax rate on the return",
     "unit": "%",
     "example": "32",
-    "hint": "Enter 7 for 7%, or type 7%.",
+    "hint": "Use federal plus state. The Federal and state income tax calculator shows the combined marginal rate for each state.",
     "min": 0,
     "max": 1
    }
@@ -3872,7 +4386,7 @@
     "label": "Combined marginal tax rate",
     "unit": "%",
     "example": "37",
-    "hint": "Enter 7 for 7%, or type 7%.",
+    "hint": "Use federal plus state. The Federal and state income tax calculator shows the combined marginal rate for each state. A bond from your own state is usually free of state tax too.",
     "min": 0,
     "max": 0.99
    }
@@ -3954,12 +4468,231 @@
       "label": "Head of household"
      }
     ]
+   },
+   {
+    "id": "st",
+    "label": "State you file in",
+    "unit": "choice",
+    "example": "0",
+    "hint": "Adds that state's income tax. Local taxes (city, county) aren't included.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 0,
+      "label": "No state tax (not included)"
+     },
+     {
+      "value": 1,
+      "label": "Alabama"
+     },
+     {
+      "value": 2,
+      "label": "Alaska"
+     },
+     {
+      "value": 3,
+      "label": "Arizona"
+     },
+     {
+      "value": 4,
+      "label": "Arkansas"
+     },
+     {
+      "value": 5,
+      "label": "California"
+     },
+     {
+      "value": 6,
+      "label": "Colorado"
+     },
+     {
+      "value": 7,
+      "label": "Connecticut"
+     },
+     {
+      "value": 8,
+      "label": "Delaware"
+     },
+     {
+      "value": 9,
+      "label": "District of Columbia"
+     },
+     {
+      "value": 10,
+      "label": "Florida"
+     },
+     {
+      "value": 11,
+      "label": "Georgia"
+     },
+     {
+      "value": 12,
+      "label": "Hawaii"
+     },
+     {
+      "value": 13,
+      "label": "Idaho"
+     },
+     {
+      "value": 14,
+      "label": "Illinois"
+     },
+     {
+      "value": 15,
+      "label": "Indiana"
+     },
+     {
+      "value": 16,
+      "label": "Iowa"
+     },
+     {
+      "value": 17,
+      "label": "Kansas"
+     },
+     {
+      "value": 18,
+      "label": "Kentucky"
+     },
+     {
+      "value": 19,
+      "label": "Louisiana"
+     },
+     {
+      "value": 20,
+      "label": "Maine"
+     },
+     {
+      "value": 21,
+      "label": "Maryland"
+     },
+     {
+      "value": 22,
+      "label": "Massachusetts"
+     },
+     {
+      "value": 23,
+      "label": "Michigan"
+     },
+     {
+      "value": 24,
+      "label": "Minnesota"
+     },
+     {
+      "value": 25,
+      "label": "Mississippi"
+     },
+     {
+      "value": 26,
+      "label": "Missouri"
+     },
+     {
+      "value": 27,
+      "label": "Montana"
+     },
+     {
+      "value": 28,
+      "label": "Nebraska"
+     },
+     {
+      "value": 29,
+      "label": "Nevada"
+     },
+     {
+      "value": 30,
+      "label": "New Hampshire"
+     },
+     {
+      "value": 31,
+      "label": "New Jersey"
+     },
+     {
+      "value": 32,
+      "label": "New Mexico"
+     },
+     {
+      "value": 33,
+      "label": "New York"
+     },
+     {
+      "value": 34,
+      "label": "North Carolina"
+     },
+     {
+      "value": 35,
+      "label": "North Dakota"
+     },
+     {
+      "value": 36,
+      "label": "Ohio"
+     },
+     {
+      "value": 37,
+      "label": "Oklahoma"
+     },
+     {
+      "value": 38,
+      "label": "Oregon"
+     },
+     {
+      "value": 39,
+      "label": "Pennsylvania"
+     },
+     {
+      "value": 40,
+      "label": "Rhode Island"
+     },
+     {
+      "value": 41,
+      "label": "South Carolina"
+     },
+     {
+      "value": 42,
+      "label": "South Dakota"
+     },
+     {
+      "value": 43,
+      "label": "Tennessee"
+     },
+     {
+      "value": 44,
+      "label": "Texas"
+     },
+     {
+      "value": 45,
+      "label": "Utah"
+     },
+     {
+      "value": 46,
+      "label": "Vermont"
+     },
+     {
+      "value": 47,
+      "label": "Virginia"
+     },
+     {
+      "value": 48,
+      "label": "Washington"
+     },
+     {
+      "value": 49,
+      "label": "West Virginia"
+     },
+     {
+      "value": 50,
+      "label": "Wisconsin"
+     },
+     {
+      "value": 51,
+      "label": "Wyoming"
+     }
+    ]
    }
   ],
   "outputs": [
    {
     "id": "0",
-    "label": "Capital gains tax",
+    "label": "Federal capital gains tax",
     "expression": "ltcgtax(ord,gain,status)",
     "format": "currency",
     "excel": null,
@@ -3967,19 +4700,35 @@
    },
    {
     "id": "1",
-    "label": "Effective rate on the gain",
+    "label": "Federal effective rate on the gain",
     "expression": "if(gain>0,ltcgtax(ord,gain,status)/gain,0)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.15
+   },
+   {
+    "id": "2",
+    "label": "State tax on the gain",
+    "expression": "stategaintax(ord+stddeduction(status),gain,status,st)",
+    "format": "currency",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "3",
+    "label": "Combined effective rate on the gain",
+    "expression": "if(gain>0,(ltcgtax(ord,gain,status)+stategaintax(ord+stddeduction(status),gain,status,st))/gain,0)",
     "format": "percent",
     "excel": null,
     "expected": 0.15
    }
   ],
-  "math": "Gains stack on ordinary income through the 0% / 15% / 20% thresholds",
-  "summary": "Federal tax on long-term gains and qualified dividends, layered on top of ordinary income.",
-  "aliases": "capital gains qualified dividends 15% 20%",
+  "math": "Federal: gains stack on ordinary income through the 0% / 15% / 20% thresholds; state: the gain's extra state tax under that state's rules",
+  "summary": "Federal tax on long-term gains and qualified dividends, layered on top of ordinary income, plus the state's tax on the gain.",
+  "aliases": "capital gains qualified dividends 15% 20% state",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. NIIT is a separate calculator.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. NIIT is a separate calculator. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes. Most states tax gains as ordinary income; this follows each state's own treatment where it differs (exclusions in Arizona, Arkansas, New Mexico, North Dakota, South Carolina and Wisconsin; Hawaii's 7.25% cap; Montana's lower rates; no tax in Missouri; Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax).",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -3987,10 +4736,14 @@
    {
     "title": "IRS • Topic 409, Capital gains and losses",
     "url": "https://www.irs.gov/taxtopics/tc409"
+   },
+   {
+    "title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)",
+    "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"
    }
   ],
   "explain": {
-   "why": "Long-term gains have their own 0%, 15% and 20% brackets, but they sit on top of ordinary income. So ordinary income decides how much room is left in the lower gain brackets.",
+   "why": "Long-term gains have their own federal 0%, 15% and 20% brackets, but they sit on top of ordinary income, so ordinary income decides how much room is left in the lower brackets. Most states simply tax gains like other income; some exclude part of the gain or use their own rates.",
    "parts": [
     {
      "term": "ordinary income",
@@ -4002,7 +4755,11 @@
     },
     {
      "term": "0% / 15% / 20% thresholds",
-     "meaning": "Each slice of gain is taxed at the rate for where it lands."
+     "meaning": "Each slice of gain is taxed at the federal rate for where it lands."
+    },
+    {
+     "term": "state tax on the gain",
+     "meaning": "The extra state tax from adding the gain to income, after any state exclusion (for example 44% in South Carolina), cap or separate rate."
     }
    ]
   }
@@ -4121,7 +4878,7 @@
     "label": "Tax rate today",
     "unit": "%",
     "example": "32",
-    "hint": "Enter 7 for 7%, or type 7%.",
+    "hint": "Use federal plus state. The Federal and state income tax calculator shows the combined marginal rate for each state.",
     "min": 0,
     "max": 1
    },
@@ -4130,7 +4887,7 @@
     "label": "Tax rate in retirement",
     "unit": "%",
     "example": "24",
-    "hint": "Enter 7 for 7%, or type 7%.",
+    "hint": "Federal plus state where you expect to live in retirement.",
     "min": 0,
     "max": 1
    },
@@ -4248,6 +5005,225 @@
       "label": "Head of household"
      }
     ]
+   },
+   {
+    "id": "st",
+    "label": "State you file in",
+    "unit": "choice",
+    "example": "0",
+    "hint": "Adds that state's income tax. Local taxes (city, county) aren't included.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 0,
+      "label": "No state tax (not included)"
+     },
+     {
+      "value": 1,
+      "label": "Alabama"
+     },
+     {
+      "value": 2,
+      "label": "Alaska"
+     },
+     {
+      "value": 3,
+      "label": "Arizona"
+     },
+     {
+      "value": 4,
+      "label": "Arkansas"
+     },
+     {
+      "value": 5,
+      "label": "California"
+     },
+     {
+      "value": 6,
+      "label": "Colorado"
+     },
+     {
+      "value": 7,
+      "label": "Connecticut"
+     },
+     {
+      "value": 8,
+      "label": "Delaware"
+     },
+     {
+      "value": 9,
+      "label": "District of Columbia"
+     },
+     {
+      "value": 10,
+      "label": "Florida"
+     },
+     {
+      "value": 11,
+      "label": "Georgia"
+     },
+     {
+      "value": 12,
+      "label": "Hawaii"
+     },
+     {
+      "value": 13,
+      "label": "Idaho"
+     },
+     {
+      "value": 14,
+      "label": "Illinois"
+     },
+     {
+      "value": 15,
+      "label": "Indiana"
+     },
+     {
+      "value": 16,
+      "label": "Iowa"
+     },
+     {
+      "value": 17,
+      "label": "Kansas"
+     },
+     {
+      "value": 18,
+      "label": "Kentucky"
+     },
+     {
+      "value": 19,
+      "label": "Louisiana"
+     },
+     {
+      "value": 20,
+      "label": "Maine"
+     },
+     {
+      "value": 21,
+      "label": "Maryland"
+     },
+     {
+      "value": 22,
+      "label": "Massachusetts"
+     },
+     {
+      "value": 23,
+      "label": "Michigan"
+     },
+     {
+      "value": 24,
+      "label": "Minnesota"
+     },
+     {
+      "value": 25,
+      "label": "Mississippi"
+     },
+     {
+      "value": 26,
+      "label": "Missouri"
+     },
+     {
+      "value": 27,
+      "label": "Montana"
+     },
+     {
+      "value": 28,
+      "label": "Nebraska"
+     },
+     {
+      "value": 29,
+      "label": "Nevada"
+     },
+     {
+      "value": 30,
+      "label": "New Hampshire"
+     },
+     {
+      "value": 31,
+      "label": "New Jersey"
+     },
+     {
+      "value": 32,
+      "label": "New Mexico"
+     },
+     {
+      "value": 33,
+      "label": "New York"
+     },
+     {
+      "value": 34,
+      "label": "North Carolina"
+     },
+     {
+      "value": 35,
+      "label": "North Dakota"
+     },
+     {
+      "value": 36,
+      "label": "Ohio"
+     },
+     {
+      "value": 37,
+      "label": "Oklahoma"
+     },
+     {
+      "value": 38,
+      "label": "Oregon"
+     },
+     {
+      "value": 39,
+      "label": "Pennsylvania"
+     },
+     {
+      "value": 40,
+      "label": "Rhode Island"
+     },
+     {
+      "value": 41,
+      "label": "South Carolina"
+     },
+     {
+      "value": 42,
+      "label": "South Dakota"
+     },
+     {
+      "value": 43,
+      "label": "Tennessee"
+     },
+     {
+      "value": 44,
+      "label": "Texas"
+     },
+     {
+      "value": 45,
+      "label": "Utah"
+     },
+     {
+      "value": 46,
+      "label": "Vermont"
+     },
+     {
+      "value": 47,
+      "label": "Virginia"
+     },
+     {
+      "value": 48,
+      "label": "Washington"
+     },
+     {
+      "value": 49,
+      "label": "West Virginia"
+     },
+     {
+      "value": 50,
+      "label": "Wisconsin"
+     },
+     {
+      "value": 51,
+      "label": "Wyoming"
+     }
+    ]
    }
   ],
   "outputs": [
@@ -4261,7 +5237,7 @@
    },
    {
     "id": "1",
-    "label": "Average rate on the conversion",
+    "label": "Average federal rate on the conversion",
     "expression": "if(x>0,(incometax(ti+x,status)-incometax(ti,status))/x,0)",
     "format": "percent",
     "excel": null,
@@ -4277,19 +5253,35 @@
    },
    {
     "id": "3",
-    "label": "Marginal rate after conversion",
+    "label": "Marginal federal rate after conversion",
     "expression": "margrate(ti+x,status)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.22
+   },
+   {
+    "id": "4",
+    "label": "Extra state tax from conversion",
+    "expression": "statetax((ti+stddeduction(status))+x,status,st)-statetax((ti+stddeduction(status)),status,st)",
+    "format": "currency",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "5",
+    "label": "Combined average rate on the conversion",
+    "expression": "if(x>0,(incometax(ti+x,status)-incometax(ti,status)+statetax((ti+stddeduction(status))+x,status,st)-statetax((ti+stddeduction(status)),status,st))/x,0)",
     "format": "percent",
     "excel": null,
     "expected": 0.22
    }
   ],
-  "math": "Tax(income + conversion) − tax(income)",
-  "summary": "Incremental tax from converting pre-tax money to Roth.",
-  "aliases": "fill the bracket conversion",
+  "math": "Tax(income + conversion) − tax(income), federal and state",
+  "summary": "Incremental federal and state tax from converting pre-tax money to Roth.",
+  "aliases": "fill the bracket conversion state",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -4297,10 +5289,14 @@
    {
     "title": "IRS • Federal income tax rates and brackets",
     "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
+   },
+   {
+    "title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)",
+    "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"
    }
   ],
   "explain": {
-   "why": "The tax cost of converting is the extra tax caused by adding the conversion to this year's income.",
+   "why": "The tax cost of converting is the extra tax caused by adding the conversion to this year's income, federal and state.",
    "parts": [
     {
      "term": "Tax(income + conversion)",
@@ -4309,6 +5305,10 @@
     {
      "term": "− tax(income)",
      "meaning": "Minus tax without it: the conversion's own cost."
+    },
+    {
+     "term": "federal and state",
+     "meaning": "The same difference worked out with the state's brackets, added to the federal amount."
     }
    ]
   }
@@ -4339,7 +5339,7 @@
     "label": "Capital gains tax rate",
     "unit": "%",
     "example": "18.8",
-    "hint": "Enter 7 for 7%, or type 7%.",
+    "hint": "Federal plus state; the capital gains calculator shows both.",
     "min": 0,
     "max": 1
    },
@@ -4348,7 +5348,7 @@
     "label": "Ordinary income tax rate",
     "unit": "%",
     "example": "32",
-    "hint": "Enter 7 for 7%, or type 7%.",
+    "hint": "Use federal plus state. The Federal and state income tax calculator shows the combined marginal rate for each state.",
     "min": 0,
     "max": 1
    }
@@ -4430,7 +5430,7 @@
     "label": "Tax rate",
     "unit": "%",
     "example": "24",
-    "hint": "Enter 7 for 7%, or type 7%.",
+    "hint": "Use federal plus state. The Federal and state income tax calculator shows the combined marginal rate for each state.",
     "min": 0,
     "max": 1
    },

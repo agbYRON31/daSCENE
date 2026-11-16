@@ -38,6 +38,7 @@ struct CalculatorView: View {
                 if let table = evaluation?.table, evaluation?.isComplete == true {
                     ProjectionCard(calc: calc, table: table)
                 }
+                StateTaxNote(calc: calc, inputs: inputs)
                 DetailsCard(calc: calc)
             }
             .padding(24)
@@ -578,6 +579,27 @@ struct FormulaBreakdown: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } label: {
                 Text("What each part means").font((compact ? Font.caption : .callout).weight(.medium))
+            }
+        }
+    }
+}
+
+/// For a calculator with a state chosen: where that state's figures come from and what the estimate leaves out.
+struct StateTaxNote: View {
+    @EnvironmentObject var state: AppState
+    let calc: Calculator
+    let inputs: [String: String]
+
+    var body: some View {
+        if calc.fields.contains(where: { $0.id == "st" }), let table = state.engine?.tax, let all = table.states,
+           let st = try? table.state(Double(inputs["st"] ?? "0") ?? 0) {
+            Card(title: "\(st.name) tax data") {
+                Text("Source: \(st.verified). Tax year \(all.taxYear), checked \(all.verifiedOn).").font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(st.notes, id: \.self) { n in
+                    Label(n, systemImage: "info.circle").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Text(all.notes.joined(separator: " ")).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
     }

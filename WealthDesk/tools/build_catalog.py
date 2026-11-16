@@ -19,6 +19,25 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 TAXDATA = json.load(open(os.path.join(ROOT, "Resources", "taxdata.json")))
 # Expected values are computed with the reference year; the self-test selects the same year.
+# State income tax tables (tools/state_tax_data.py) are written to Resources/statetax.json; each
+# engine attaches them to every tax-year table when it loads taxdata.json (see with_states).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import state_tax_data as SD
+STATETAX = {"taxYear": SD.TAX_YEAR, "verifiedOn": SD.VERIFIED_ON, "sources": SD.SOURCES, "notes": SD.NOTES, "list": SD.STATES}
+with open(os.path.join(ROOT, "Resources", "statetax.json"), "w") as _fh:
+    json.dump(STATETAX, _fh, indent=1, ensure_ascii=False)
+    _fh.write("\n")
+
+
+def with_states(table, states):
+    """The tax-year table with the state tables attached (a note is added when the years differ)."""
+    st = dict(states)
+    if table["taxYear"] != states["taxYear"]:
+        st["notes"] = [f"{table['taxYear']} state figures are not yet published; {states['taxYear']} state tables are used."] + list(states["notes"])
+    return {**table, "states": st}
+
+
+TAXDATA["tables"] = [with_states(t, STATETAX) for t in TAXDATA["tables"]]
 TAX = next(t for t in TAXDATA["tables"] if t["taxYear"] == TAXDATA["referenceYear"])
 
 # ---------------------------------------------------------------------------
@@ -136,6 +155,104 @@ def bracketroom(ti, status):
 
 def stddeduction(status):
     return TAX["standardDeduction"][str(int(status))]
+
+
+# ── State income tax (see tools/state_tax_data.py for the model and sources) ─────────
+def _state(st):
+    st = int(st)
+    if st == 0:
+        return None
+    for s_ in TAX["states"]["list"]:
+        if s_["value"] == st:
+            return s_
+    raise ValueError("Unknown state.")
+
+
+def _skey(s_, status, table):
+    status = int(status)
+    if status == 2:
+        return "married"
+    if status == 3 and "hoh" in table:
+        return "hoh"
+    return "single"
+
+
+def _bracket_tax(b, x):
+    tax = 0.0
+    for i, (floor, rate) in enumerate(b):
+        top = b[i + 1][0] if i + 1 < len(b) else float("inf")
+        if x > floor:
+            tax += (min(x, top) - floor) * rate
+    return tax
+
+
+def _state_taxable(s_, agi, status):
+    ded = s_["deduction"][_skey(s_, status, s_["deduction"])]
+    po = s_.get("deductionPhaseout")
+    if po:
+        a, b = po[_skey(s_, status, po)]
+        cut = ded * min(1.0, max(0.0, (agi - a) / (b - a)))
+        step = s_.get("phaseoutRound", 0)
+        ded -= math.floor(cut / step) * step if step else cut
+    return max(0.0, agi - ded - s_["exemption"][_skey(s_, status, s_["exemption"])])
+
+
+def statetax(agi, status, st):
+    """State income tax on ordinary income, from adjusted gross income."""
+    s_ = _state(st)
+    if s_ is None or s_.get("none"):
+        return 0.0
+    b = s_["brackets"][_skey(s_, status, s_["brackets"])]
+    tax = _bracket_tax(b, _state_taxable(s_, agi, status)) - s_["credit"][_skey(s_, status, s_["credit"])]
+    return max(0.0, tax)
+
+
+def statemarg(agi, status, st):
+    """Statutory state rate on the next dollar of income."""
+    s_ = _state(st)
+    if s_ is None or s_.get("none"):
+        return 0.0
+    b = s_["brackets"][_skey(s_, status, s_["brackets"])]
+    x = _state_taxable(s_, agi, status)
+    rate = b[0][1]
+    for floor, r in b:
+        if x >= floor:
+            rate = r
+    return rate
+
+
+def stategaintax(agi, gain, status, st):
+    """State tax on a long-term gain added to income whose AGI (without the gain) is `agi`."""
+    s_ = _state(st)
+    if s_ is None or gain <= 0:
+        return 0.0
+    g = s_.get("gains", {})
+    if "separate" in g:   # Washington: its own capital gains tax, nothing on wages
+        sep = g["separate"]
+        return _bracket_tax(sep["brackets"], max(0.0, gain - sep["deduction"]))
+    if g.get("none") or s_.get("none"):
+        return 0.0
+    taxed = gain
+    if "exemptAbove" in g:
+        taxed = min(taxed, g["exemptAbove"])
+    if "exclude" in g:
+        taxed *= 1 - g["exclude"]
+    if "excludeFlat" in g:
+        taxed = max(0.0, taxed - g["excludeFlat"])
+    if "rates" in g:   # Montana: separate rates, split at the top-bracket threshold of total taxable income
+        th = g["threshold"][_skey(s_, status, g["threshold"])]
+        base = _state_taxable(s_, agi, status)
+        low = max(0.0, min(taxed, th - base))
+        tax = low * g["rates"][0] + (taxed - low) * g["rates"][1]
+    else:
+        tax = statetax(agi + taxed, status, st) - statetax(agi, status, st)
+    if "maxRate" in g:
+        tax = min(tax, gain * g["maxRate"])
+    if "surtax" in g and agi + gain > g["agiOver"]:
+        tax += gain * g["surtax"]
+    if "niiSurtax" in g:
+        tax += max(0.0, gain - g["niiOver"]) * g["niiSurtax"]
+    return tax
 
 
 def ltcgtax(ordinary, gain, status):
@@ -380,6 +497,7 @@ def iff(c, a, b):
 FUNCS = {
     "fv": fv, "pv": pv, "rate": rate, "pmt": pmt, "nper": nper, "npv": npv, "irr": irr,
     "incometax": incometax, "margrate": margrate, "bracketroom": bracketroom,
+    "statetax": statetax, "statemarg": statemarg, "stategaintax": stategaintax,
     "stddeduction": stddeduction, "ltcgtax": ltcgtax, "niitthreshold": niitthreshold,
     "rmdfactor": rmdfactor, "limit401k": limit401k, "limitira": limitira,
     "giftexclusion": lambda: TAX["giftAnnualExclusion"],
@@ -687,6 +805,7 @@ SRC = {
     "fees": {"title": "SEC • How fees and expenses affect your portfolio", "url": "https://www.sec.gov/investor/alerts/ib_investmentfees.pdf"},
     "brackets": {"title": "IRS • Federal income tax rates and brackets", "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"},
     "capgains": {"title": "IRS • Topic 409, Capital gains and losses", "url": "https://www.irs.gov/taxtopics/tc409"},
+    "states": {"title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)", "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"},
     "niit": {"title": "IRS • Net investment income tax", "url": "https://www.irs.gov/individuals/net-investment-income-tax"},
     "rmd": {"title": "IRS • Publication 590-B (distributions from IRAs)", "url": "https://www.irs.gov/publications/p590b"},
     "401k": {"title": "IRS • 401(k) contribution limits", "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-401k-and-profit-sharing-plan-contribution-limits"},
@@ -723,6 +842,13 @@ def F(id, label, unit, example, hint=None, min=0, max=None, integer=False, optio
 
 
 STATUS = lambda: F("status", "Filing status", "choice", "2")
+STATE = lambda: F("st", "State you file in", "choice", "0", options=SD.OPTIONS,
+                  hint="Adds that state's income tax. Local taxes (city, county) aren't included.")
+AGI = "(ti+stddeduction(status))"   # AGI estimated from federal taxable income
+STATE_NOTE = (" State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal"
+              " credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes,"
+              " dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.")
+RATE_HINT = "Use federal plus state. The Federal and state income tax calculator shows the combined marginal rate for each state."
 
 
 def O(id, label, expr, fmt, excel=None):
@@ -1145,44 +1271,60 @@ calc("monte_carlo", "Monte Carlo withdrawal test", RET,
      excelNotes="Simulation results aren't a cell formula. Use Copy table for the percentile paths.")
 
 # --- Tax ---------------------------------------------------------------------
-calc("income_tax", "Federal income tax", TX,
-     [F("ti", "Taxable ordinary income", "$", "250000"), STATUS()],
+calc("income_tax", "Federal and state income tax", TX,
+     [F("ti", "Taxable ordinary income", "$", "250000"), STATUS(), STATE()],
      [O("0", "Federal tax", "incometax(ti,status)", "currency"),
       O("1", "Marginal rate", "margrate(ti,status)", "percent"),
       O("2", "Effective rate", "if(ti>0,incometax(ti,status)/ti,0)", "percent"),
-      O("3", "Room left in this bracket", "bracketroom(ti,status)", "currency")],
-     "Tax each slice of income at its bracket rate", "Ordinary federal income tax with marginal and effective rates.",
-     "brackets marginal effective tax rate", interpretation=TAX_INTERP, sources=["brackets"], common=True,
+      O("3", "Room left in this bracket", "bracketroom(ti,status)", "currency"),
+      O("4", "State income tax", f"statetax({AGI},status,st)", "currency"),
+      O("5", "State marginal rate", f"statemarg({AGI},status,st)", "percent"),
+      O("6", "Combined marginal rate (federal + state)", f"margrate(ti,status)+statemarg({AGI},status,st)", "percent"),
+      O("7", "Federal + state tax", f"incometax(ti,status)+statetax({AGI},status,st)", "currency"),
+      O("8", "Combined effective rate", f"if(ti>0,(incometax(ti,status)+statetax({AGI},status,st))/ti,0)", "percent")],
+     "Tax each slice of income at its bracket rate; state tax uses the state's own brackets after its deduction and exemptions",
+     "Federal income tax with marginal and effective rates, plus the income tax for the state you file in.",
+     "brackets marginal effective tax rate state income tax combined", interpretation=TAX_INTERP + STATE_NOTE,
+     sources=["brackets", "states"], common=True,
      excelNotes="Bracket math needs a bracket table in Excel; the app uses its dated tax table.")
 
 calc("taxable_income", "Taxable income from gross income", TX,
-     [F("g", "Adjusted gross income", "$", "320000"), F("it", "Itemized deductions", "$", "28000"), STATUS()],
+     [F("g", "Adjusted gross income", "$", "320000"), F("it", "Itemized deductions", "$", "28000"), STATUS(), STATE()],
      [O("0", "Deduction used", "max(it,stddeduction(status))", "currency"),
       O("1", "Taxable income", "max(0,g-max(it,stddeduction(status)))", "currency"),
-      O("2", "Federal tax on it", "incometax(max(0,g-max(it,stddeduction(status))),status)", "currency")],
-     "AGI − larger of itemized or standard deduction", "Applies the larger of itemized or standard deduction.",
-     "standard deduction itemize", interpretation=TAX_INTERP, sources=["brackets"])
+      O("2", "Federal tax on it", "incometax(max(0,g-max(it,stddeduction(status))),status)", "currency"),
+      O("3", "State income tax", "statetax(g,status,st)", "currency"),
+      O("4", "Federal + state tax", "incometax(max(0,g-max(it,stddeduction(status))),status)+statetax(g,status,st)", "currency")],
+     "AGI − larger of itemized or standard deduction; state tax from AGI with the state's own deduction",
+     "Applies the larger of itemized or standard deduction, plus the income tax for the state you file in.",
+     "standard deduction itemize state", interpretation=TAX_INTERP + STATE_NOTE.replace(" (estimated as taxable income plus the federal standard deduction)", ""),
+     sources=["brackets", "states"])
 
 calc("after_tax_return", "After-tax return", TX,
-     [F("r", "Pre-tax return", "%", "6", min=-0.99), F("t", "Tax rate on the return", "%", "32", max=1)],
+     [F("r", "Pre-tax return", "%", "6", min=-0.99), F("t", "Tax rate on the return", "%", "32", max=1, hint=RATE_HINT)],
      [O("0", "After-tax return", "r*(1-t)", "percent", "={r}*(1-{t})")],
      "Return × (1 − tax rate)", "Return kept after tax, if the whole return is taxed each year.",
      "net of tax yield")
 
 calc("tey", "Tax-equivalent yield", TX,
-     [F("y", "Tax-free yield (municipal bond)", "%", "3.5"), F("t", "Combined marginal tax rate", "%", "37", max=0.99)],
+     [F("y", "Tax-free yield (municipal bond)", "%", "3.5"), F("t", "Combined marginal tax rate", "%", "37", max=0.99, hint=RATE_HINT + " A bond from your own state is usually free of state tax too.")],
      [O("0", "Taxable yield needed to match", "y/(1-t)", "percent", "={y}/(1-{t})")],
      "Tax-free yield ÷ (1 − tax rate)", "Taxable yield that leaves you with the same income as a tax-free bond.",
      "muni municipal bond tax free", acronym="TEY")
 
 calc("ltcg_tax", "Long-term capital gains tax", TX,
-     [F("ord", "Taxable ordinary income", "$", "180000"), F("gain", "Long-term gain / qualified dividends", "$", "100000"), STATUS()],
-     [O("0", "Capital gains tax", "ltcgtax(ord,gain,status)", "currency"),
-      O("1", "Effective rate on the gain", "if(gain>0,ltcgtax(ord,gain,status)/gain,0)", "percent")],
-     "Gains stack on ordinary income through the 0% / 15% / 20% thresholds",
-     "Federal tax on long-term gains and qualified dividends, layered on top of ordinary income.",
-     "capital gains qualified dividends 15% 20%", interpretation=TAX_INTERP + " NIIT is a separate calculator.",
-     sources=["capgains"])
+     [F("ord", "Taxable ordinary income", "$", "180000"), F("gain", "Long-term gain / qualified dividends", "$", "100000"), STATUS(), STATE()],
+     [O("0", "Federal capital gains tax", "ltcgtax(ord,gain,status)", "currency"),
+      O("1", "Federal effective rate on the gain", "if(gain>0,ltcgtax(ord,gain,status)/gain,0)", "percent"),
+      O("2", "State tax on the gain", "stategaintax(ord+stddeduction(status),gain,status,st)", "currency"),
+      O("3", "Combined effective rate on the gain", "if(gain>0,(ltcgtax(ord,gain,status)+stategaintax(ord+stddeduction(status),gain,status,st))/gain,0)", "percent")],
+     "Federal: gains stack on ordinary income through the 0% / 15% / 20% thresholds; state: the gain's extra state tax under that state's rules",
+     "Federal tax on long-term gains and qualified dividends, layered on top of ordinary income, plus the state's tax on the gain.",
+     "capital gains qualified dividends 15% 20% state", interpretation=TAX_INTERP + " NIIT is a separate calculator." + STATE_NOTE
+     + " Most states tax gains as ordinary income; this follows each state's own treatment where it differs (exclusions in Arizona, Arkansas,"
+       " New Mexico, North Dakota, South Carolina and Wisconsin; Hawaii's 7.25% cap; Montana's lower rates; no tax in Missouri;"
+       " Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax).",
+     sources=["capgains", "states"])
 
 calc("niit", "Net investment income tax", TX,
      [F("magi", "Modified AGI", "$", "320000"), F("nii", "Net investment income", "$", "90000"), STATUS()],
@@ -1193,8 +1335,8 @@ calc("niit", "Net investment income tax", TX,
      "3.8% surtax medicare investment", acronym="NIIT", interpretation=TAX_INTERP, sources=["niit"])
 
 calc("roth_vs_trad", "Roth vs. traditional contribution", TX,
-     [F("c", "Pre-tax dollars available", "$", "10000"), F("tn", "Tax rate today", "%", "32", max=1),
-      F("tr", "Tax rate in retirement", "%", "24", max=1), F("r", "Annual return", "%", "7", min=-0.99),
+     [F("c", "Pre-tax dollars available", "$", "10000"), F("tn", "Tax rate today", "%", "32", max=1, hint=RATE_HINT),
+      F("tr", "Tax rate in retirement", "%", "24", max=1, hint="Federal plus state where you expect to live in retirement."), F("r", "Annual return", "%", "7", min=-0.99),
       F("n", "Years invested", "years", "25")],
      [O("0", "Traditional, after tax at withdrawal", "c*(1+r)^n*(1-tr)", "currency", "={c}*(1+{r})^{n}*(1-{tr})"),
       O("1", "Roth, after paying tax today", "c*(1-tn)*(1+r)^n", "currency", "={c}*(1-{tn})*(1+{r})^{n}"),
@@ -1205,17 +1347,19 @@ calc("roth_vs_trad", "Roth vs. traditional contribution", TX,
      "roth conversion traditional pretax", assumptions="Same return in both accounts; the whole traditional balance is taxed at one rate on withdrawal. Ignores RMDs, state tax and the value of investing the tax savings.")
 
 calc("roth_conversion", "Roth conversion: tax and bracket room", TX,
-     [F("ti", "Taxable income before conversion", "$", "150000"), F("x", "Amount to convert", "$", "50000"), STATUS()],
+     [F("ti", "Taxable income before conversion", "$", "150000"), F("x", "Amount to convert", "$", "50000"), STATUS(), STATE()],
      [O("0", "Extra federal tax from conversion", "incometax(ti+x,status)-incometax(ti,status)", "currency"),
-      O("1", "Average rate on the conversion", "if(x>0,(incometax(ti+x,status)-incometax(ti,status))/x,0)", "percent"),
+      O("1", "Average federal rate on the conversion", "if(x>0,(incometax(ti+x,status)-incometax(ti,status))/x,0)", "percent"),
       O("2", "Room left in current bracket", "bracketroom(ti,status)", "currency"),
-      O("3", "Marginal rate after conversion", "margrate(ti+x,status)", "percent")],
-     "Tax(income + conversion) − tax(income)", "Incremental tax from converting pre-tax money to Roth.",
-     "fill the bracket conversion", interpretation=TAX_INTERP, sources=["brackets"])
+      O("3", "Marginal federal rate after conversion", "margrate(ti+x,status)", "percent"),
+      O("4", "Extra state tax from conversion", f"statetax({AGI}+x,status,st)-statetax({AGI},status,st)", "currency"),
+      O("5", "Combined average rate on the conversion", f"if(x>0,(incometax(ti+x,status)-incometax(ti,status)+statetax({AGI}+x,status,st)-statetax({AGI},status,st))/x,0)", "percent")],
+     "Tax(income + conversion) − tax(income), federal and state", "Incremental federal and state tax from converting pre-tax money to Roth.",
+     "fill the bracket conversion state", interpretation=TAX_INTERP + STATE_NOTE, sources=["brackets", "states"])
 
 calc("tlh", "Tax-loss harvesting value", TX,
      [F("loss", "Losses harvested", "$", "40000"), F("gains", "Capital gains this year", "$", "25000"),
-      F("cg", "Capital gains tax rate", "%", "18.8", max=1), F("ord", "Ordinary income tax rate", "%", "32", max=1)],
+      F("cg", "Capital gains tax rate", "%", "18.8", max=1, hint="Federal plus state; the capital gains calculator shows both."), F("ord", "Ordinary income tax rate", "%", "32", max=1, hint=RATE_HINT)],
      [O("0", "Tax saved this year", "min(loss,gains)*cg+min(3000,max(0,loss-gains))*ord", "currency",
         "=MIN({loss},{gains})*{cg}+MIN(3000,MAX(0,{loss}-{gains}))*{ord}"),
       O("1", "Loss carried forward", "max(0,loss-gains-3000)", "currency", "=MAX(0,{loss}-{gains}-3000)")],
@@ -1226,7 +1370,7 @@ calc("tlh", "Tax-loss harvesting value", TX,
 
 calc("tax_deferral", "Tax-deferred vs. taxable growth", TX,
      [F("a", "Amount invested", "$", "100000"), F("r", "Annual return", "%", "7", min=-0.99),
-      F("t", "Tax rate", "%", "24", max=1), F("n", "Years", "years", "20")],
+      F("t", "Tax rate", "%", "24", max=1, hint=RATE_HINT), F("n", "Years", "years", "20")],
      [O("0", "Taxable account (taxed yearly)", "a*(1+r*(1-t))^n", "currency", "={a}*(1+{r}*(1-{t}))^{n}"),
       O("1", "Deferred, gain taxed at the end", "a*(1+r)^n-(a*(1+r)^n-a)*t", "currency", "={a}*(1+{r})^{n}-({a}*(1+{r})^{n}-{a})*{t}"),
       O("2", "Benefit of deferral", "a*(1+r)^n-(a*(1+r)^n-a)*t-a*(1+r*(1-t))^n", "currency",

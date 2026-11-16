@@ -286,6 +286,9 @@ private struct Evaluator {
         // tax table
         case "incometax": try need(2); return .number(try tax.incomeTax(try n(0), try n(1)))
         case "margrate": try need(2); return .number(try tax.marginalRate(try n(0), try n(1)))
+        case "statetax": try need(3); return .number(try tax.stateTax(try n(0), try n(1), try n(2)))
+        case "statemarg": try need(3); return .number(try tax.stateMarginal(try n(0), try n(1), try n(2)))
+        case "stategaintax": try need(4); return .number(try tax.stateGainTax(try n(0), try n(1), try n(2), try n(3)))
         case "bracketroom": try need(2); return .number(try tax.bracketRoom(try n(0), try n(1)))
         case "stddeduction": try need(1); return .number(try tax.standardDeduction(try n(0)))
         case "ltcgtax": try need(3); return .number(try tax.ltcgTax(try n(0), try n(1), try n(2)))

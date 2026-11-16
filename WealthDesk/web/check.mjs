@@ -4,12 +4,13 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { Engine, TaxData, Expression, Finance, Scientific, exampleInputs } from "./engine.js";
+import { Engine, TaxData, Expression, Finance, Scientific, exampleInputs, withStates } from "./engine.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const resources = join(here, "..", "Resources");
 const catalog = JSON.parse(readFileSync(join(resources, "catalog.json"), "utf8"));
-const taxData = new TaxData(JSON.parse(readFileSync(join(resources, "taxdata.json"), "utf8")));
+const taxData = new TaxData(withStates(JSON.parse(readFileSync(join(resources, "taxdata.json"), "utf8")),
+  JSON.parse(readFileSync(join(resources, "statetax.json"), "utf8"))));
 const engine = new Engine(catalog, taxData, taxData.referenceYear);
 
 let passed = 0;
@@ -53,6 +54,18 @@ let threw = false;
 try { Finance.irr([-100, 50, -20, 90]); } catch { threw = true; }
 expect(threw, "IRR rejects multiple sign changes");
 expect(Scientific.evaluate("x = 2*3", {}, null, false, engine.tax).value === 6, "scratchpad assignment");
+// State income tax against each state's own published example or formula.
+const sv = (code) => engine.tax.states.list.find((x) => x.code === code).value;
+const stTax = (agi, status, code) => engine.tax.stateTax(agi, status, sv(code));
+expect(engine.tax.states.list.length === 51, "51 state tables (50 states and DC) are loaded");
+expect(Math.abs(stTax(136412, 2, "CA") - (3974.82 + 0.08 * (125000 - 115084) - 306)) < 0.005, "California: FTB 2025 Schedule Y example less exemption credits");
+expect(Math.abs(stTax(70000, 1, "WV") - (1950.50 + 0.0458 * 8000)) < 0.005, "West Virginia: §11-21-4j schedule");
+expect(Math.abs(stTax(60000, 1, "SC") - (0.0521 * 50450 - 966)) < 0.01, "South Carolina: Act 110 formula with the SCIAD phase-out");
+expect(Math.abs(stTax(102470, 1, "AR") - (0.037 * 100000 - 79.90 - 29)) < 0.10, "Arkansas: DFA 2026 formula");
+expect(Math.abs(engine.tax.stateGainTax(200000, 1500000, 1, sv("WA")) - 91978) < 0.005, "Washington: capital gains tax");
+expect(["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WY"].every((c) => stTax(500000, 2, c) === 0), "no-income-tax states");
+expect(engine.tax.stateTax(500000, 2, 0) === 0, "no state selected adds nothing");
+
 // Every formula has its plain-language breakdown ("What each part means").
 const unexplained = engine.calculators.filter((c) => !c.explain?.why?.trim() || !c.explain.parts?.length || c.explain.parts.some((p) => !p.term?.trim() || !p.meaning?.trim()));
 expect(unexplained.length === 0, `formula breakdowns missing for: ${unexplained.map((c) => c.id)}`);
