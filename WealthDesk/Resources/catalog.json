@@ -3955,7 +3955,7 @@
     },
     {
      "term": "state's own brackets",
-     "meaning": "State tax starts from AGI (estimated as taxable income plus the federal standard deduction), subtracts the state's deduction and exemptions, then applies the state's brackets and any personal credit."
+     "meaning": "State tax starts from AGI (estimated as taxable income plus the federal standard deduction), subtracts the state's deduction and exemptions, then applies the state's brackets and any personal credit. New York and Connecticut also take back the benefit of their lower brackets at higher incomes, so their rate on the next dollar can sit well above the bracket rate while that phases in."
     },
     {
      "term": "combined marginal rate",

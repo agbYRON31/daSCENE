@@ -197,6 +197,57 @@ def sched_tax(brackets, x):
     return base + rate * (x - floor)
 
 
+import ct_tables_2025 as CT_TABLES   # Connecticut's printed Tables C, D and E, row by row
+from decimal import Decimal, ROUND_HALF_UP
+
+_KEY = {1: "single", 2: "married", 3: "hoh"}
+# Connecticut Table A, as printed: full exemption up to the start, then $1,000 less in each $1,000 band.
+CT_EXEMPTION = {"single": (15000, 30000), "married": (24000, 48000), "hoh": (19000, 38000)}
+# New York worksheets 1, 7 and 12: income up to this taxable amount is taxed at one flat rate once phased in.
+NY_FIRST_END = {"single": 215400, "married": 161550, "hoh": 269300}
+
+
+def _row(rows, agi):
+    """The printed row whose AGI range (more than, less than or equal to) contains `agi`."""
+    for i, (lo, hi, amt) in enumerate(rows):
+        if lo < agi <= hi:
+            return i, amt
+    return 0, rows[0][2]
+
+
+def ct_exemption(agi, key):
+    full, start = CT_EXEMPTION[key]
+    band = 0 if agi <= start else math.ceil(Fraction(agi - start) / 1000)
+    return max(0, full - 1000 * band)
+
+
+def _whole(x):
+    return float(Decimal(repr(x)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def ny_tax(b, agi, x, key):
+    """New York IT-201 tax computation worksheets, line by line, on the printed schedule rows."""
+    sched = sched_tax(b, x)
+    if agi <= 107650:
+        return sched
+    if agi > 25_000_000:
+        return x * b[-1][1]
+    end = NY_FIRST_END[key]
+    def part(excess):   # lines 6-8: excess over $50,000, rounded to four places
+        f = Fraction(min(max(excess, 0), 50000)) / 50000
+        return float((Decimal(f.numerator) / Decimal(f.denominator)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
+    if x <= end:   # worksheets 1, 7, 12: the rate of the bracket that ends at `end`
+        flat = next(b[i][1] for i in range(len(b) - 1) if b[i + 1][0] == end)
+        return sched + (x * flat - sched) * part(agi - 107650)
+    rows = schedule(b)
+    k = max(i for i, r in enumerate(rows) if r[0] < x)
+    floor, base, rate = rows[k]
+    prev_rate = rows[k - 1][2]
+    recapture_base = _whole(floor * prev_rate - base)          # line 4
+    incremental = _whole(floor * rate - base) - recapture_base  # line 5
+    return sched + recapture_base + incremental * part(agi - floor)
+
+
 def st_taxable(s_, agi, status):
     ded = _pick(s_["deduction"], status)
     if "deductionPhaseout" in s_:
@@ -205,14 +256,34 @@ def st_taxable(s_, agi, status):
         reduction = float(ded * frac)
         step = s_.get("phaseoutRound", 0)
         ded = ded - (math.floor(reduction / step) * step if step else reduction)
-    return max(0.0, agi - ded - _pick(s_["exemption"], status))
+    ex = ct_exemption(agi, _KEY[int(status)]) if s_["code"] == "CT" else _pick(s_["exemption"], status)
+    return max(0.0, agi - ded - ex)
 
 
 def st_tax(agi, status, st):
     s_ = STATE_BY_VALUE.get(int(st))
     if s_ is None or s_.get("none"):
         return 0.0
-    return max(0.0, sched_tax(_pick(s_["brackets"], status), st_taxable(s_, agi, status)) - _pick(s_["credit"], status))
+    b, x, key = _pick(s_["brackets"], status), st_taxable(s_, agi, status), _KEY[int(status)]
+    if s_["code"] == "NY":
+        tax = ny_tax(b, agi, x, key)
+    elif s_["code"] == "CT":   # Tables B + C + D, less Table E's share
+        tax = sched_tax(b, x) + _row(CT_TABLES.CT_C[key], agi)[1] + _row(CT_TABLES.CT_D[key], agi)[1]
+        tax *= 1 - _row(CT_TABLES.CT_E[key], agi)[1]
+    else:
+        tax = sched_tax(b, x)
+    return max(0.0, tax - _pick(s_["credit"], status))
+
+
+def _ct_row_slope(rows, agi):
+    """A printed step spread evenly over the regular-width row that leads up to it."""
+    i, amt = _row(rows, agi)
+    lo, hi, _ = rows[i]
+    widths = {r[1] - r[0] for r in rows[1:] if r[1] != math.inf}
+    width = min(widths)
+    if i + 1 < len(rows) and hi - lo == width and i > 0:
+        return (rows[i + 1][2] - amt) / width
+    return 0.0
 
 
 def st_marg(agi, status, st):
@@ -221,7 +292,29 @@ def st_marg(agi, status, st):
         return 0.0
     x = st_taxable(s_, agi, status)
     rows = [r for r in _pick(s_["brackets"], status) if r[0] <= x] or _pick(s_["brackets"], status)[:1]
-    return rows[-1][1]
+    rate = rows[-1][1]
+    key = _KEY[int(status)]
+    if s_["code"] == "NY" and agi > 107650:   # derivative of the worksheet lines (AGI and taxable income move together)
+        b = _pick(s_["brackets"], status)
+        if agi > 25_000_000:
+            return b[-1][1]
+        end = NY_FIRST_END[key]
+        if x <= end:   # d/dx [sched + (x·flat − sched)·f], f = (AGI − 107,650)/50,000 until it reaches 1
+            flat = next(b[i][1] for i in range(len(b) - 1) if b[i + 1][0] == end)
+            f = min(Fraction(agi - 107650) / 50000, 1)
+            slope = rate * (1 - f) + flat * f
+            return float(slope + (Fraction(x * flat - sched_tax(b, x)) / 50000 if f < 1 else 0))
+        rows = schedule(b)
+        floor, base, r = rows[max(i for i, row in enumerate(rows) if row[0] < x)]
+        inc = _whole(floor * r - base) - _whole(floor * rows[max(i for i, row in enumerate(rows) if row[0] < x) - 1][2] - base)
+        return rate + (inc / 50000 if agi - floor < 50000 else 0.0)
+    if s_["code"] == "CT":
+        full, start = CT_EXEMPTION[key]
+        if x > 0 and start < agi and ct_exemption(agi, key) > 0:
+            rate *= 2   # each $1,000 of AGI also removes $1,000 of exemption
+        rate += _ct_row_slope(CT_TABLES.CT_C[key], agi) + _ct_row_slope(CT_TABLES.CT_D[key], agi)
+        rate *= 1 - _row(CT_TABLES.CT_E[key], agi)[1]
+    return rate
 
 
 def st_gain(agi, gain, status, st):
@@ -250,6 +343,10 @@ def st_gain(agi, gain, status, st):
 
 
 V_ = lambda code: float(STATE_BY_CODE[code]["value"])
+# Incomes that land in New York's and Connecticut's phase-ins, flat rows and caps.
+RECAPTURE_INCOMES = (18000.0, 31000.0, 45000.0, 62000.0, 95000.0, 112000.0, 120000.0, 140000.0, 175000.0, 205000.0, 230000.0,
+                     262000.0, 300000.0, 350000.0, 420000.0, 515000.0, 700000.0, 1_100_000.0, 1_650_000.0, 2_200_000.0,
+                     5_020_000.0, 26_000_000.0)
 STATE_CASES = ["CA", "NY", "NJ", "MA", "IL", "PA", "TX", "FL", "WA", "SC", "AR", "WV", "GA", "UT", "MT", "HI", "MD", "MN", "CT", "OR", "DC"]
 
 
@@ -418,7 +515,8 @@ def _(v):
 # Tax (independent source: the IRS's printed tables)
 @ind("income_tax", "IRS Rev. Proc. 2025-32 printed table (base + rate × excess); state tax from each state's schedule in the same form", cases=[
     dict(ti=t, status=s) for s in (1, 2, 3) for t in (1.0, 12400.0, 24800.0, 67450.0, 100800.0, 105700.0, 250000.0, 640600.0, 768700.0, 5000000.0)]
-    + [dict(ti=t, status=s, st=V_(c)) for c in STATE_CASES for s in (1, 2, 3) for t in (40000.0, 150000.0, 600000.0, 2500000.0)])
+    + [dict(ti=t, status=s, st=V_(c)) for c in STATE_CASES for s in (1, 2, 3) for t in (40000.0, 150000.0, 600000.0, 2500000.0)]
+    + [dict(ti=t, status=s, st=V_(c)) for c in ("NY", "CT") for s in (1, 2, 3) for t in RECAPTURE_INCOMES])
 def _(v):
     fed = irs_tax(v.ti, v.status)
     agi = v.ti + STD_2026[int(v.status)]
@@ -427,7 +525,8 @@ def _(v):
             stx, st_marg(agi, v.status, v.st), irs_marginal(v.ti, v.status) + st_marg(agi, v.status, v.st), fed + stx,
             (fed + stx) / v.ti if v.ti > 0 else 0.0]
 @ind("taxable_income", "IRS standard deduction amounts and printed tax table; state schedule from AGI", cases=[dict(status=1), dict(status=3), dict(it=60000.0), dict(g=10000.0)]
-     + [dict(g=g, status=s, st=V_(c)) for c in STATE_CASES for s in (1, 2) for g in (55000.0, 320000.0)])
+     + [dict(g=g, status=s, st=V_(c)) for c in STATE_CASES for s in (1, 2) for g in (55000.0, 320000.0)]
+     + [dict(g=g, status=s, st=V_(c)) for c in ("NY", "CT") for s in (1, 2, 3) for g in RECAPTURE_INCOMES])
 def _(v):
     ded = max(v.it, STD_2026[int(v.status)])
     ti = max(0.0, v.g - ded)
@@ -752,6 +851,41 @@ def custom_checks():
           abs(wa - (0.07 * 1_000_000 + 0.099 * (1_500_000 - 278000 - 1_000_000))) < 0.005, f"{wa:.2f}")
     for code in ("AK", "FL", "NV", "NH", "SD", "TN", "TX", "WY", "WA"):
         check(f"{code}: no tax on wages", T(500000, 2, V_(code)) == 0.0)
+    # New York: the app's recapture amounts, run on 2025 rates, must equal every amount printed in IT-201-I (2025).
+    ny25 = {"married": [[0, .04], [17150, .045], [23600, .0525], [27900, .055], [161550, .06], [323200, .0685], [2155350, .0965], [5e6, .103], [25e6, .109]],
+            "single": [[0, .04], [8500, .045], [11700, .0525], [13900, .055], [80650, .06], [215400, .0685], [1077550, .0965], [5e6, .103], [25e6, .109]],
+            "hoh": [[0, .04], [12800, .045], [17650, .0525], [20900, .055], [107650, .06], [269300, .0685], [1616450, .0965], [5e6, .103], [25e6, .109]]}
+    printed = {"married": [(333, 807), (1140, 2747), (3887, 60350), (64237, 32500)],      # worksheets 2-5
+               "single": [(568, 1831), (2399, 30172), (32571, 32500)],                    # worksheets 8-10
+               "hoh": [(787, 2289), (3076, 45261), (48337, 32500)]}                       # worksheets 13-15
+    first = STATE_BY_CODE["NY"]["recapture"]["first"]
+    for key, want in printed.items():
+        got = [bc._recapture_parts(ny25[key], j) for j in range(first[key] + 1, first[key] + 1 + len(want))]
+        check(f"New York: recapture base and incremental benefit amounts on 2025 rates equal IT-201-I (2025) worksheets ({key})",
+              [tuple(map(int, g)) for g in got] == want, f"{got}")
+    ny = dict(STATE_BY_CODE["NY"]); ny["credit"] = {"single": 0, "married": 0}
+    for key, status, agi, ti, want, label in (
+            ("married", 2, 300000, 283950, 8553 + .06 * (283950 - 161550) + 333 + 807, "worksheet 2, $8,553 + 6% over $161,550 + $333 + $807"),
+            ("single", 1, 130000, 122000, 4271 + .06 * 41350 + (122000 * .06 - 4271 - .06 * 41350) * .447, "worksheet 7, phase-in fraction .4470"),
+            ("hoh", 3, 1700000, 1688800, 107651 + .0965 * (1688800 - 1616450) + 3076 + 45261, "worksheet 14, fully phased in"),
+            ("single", 1, 30000000, 29992000, .109 * 29992000, "worksheet 11, 10.9% of all taxable income")):
+        s25 = dict(ny); s25["brackets"] = {"single": ny25["single"], "married": ny25["married"], "hoh": ny25["hoh"]}
+        s25["deduction"] = {"single": agi - ti, "married": agi - ti, "hoh": agi - ti}
+        got = bc._state_before_credit(s25, agi, status)
+        check(f"New York: IT-201-I (2025) {label} (AGI ${agi:,}, taxable ${ti:,}; printed schedule rounds to dollars)", abs(got - want) < 1.0, f"{got:.2f} vs {want:.2f}")
+    # Connecticut: Form CT-1040 TCS (Rev. 12/25) Table B examples and whole-schedule examples worked from the printed tables.
+    ctb = STATE_BY_CODE["CT"]["brackets"]
+    for key, ti, want in (("single", 13000, 335), ("single", 525000, 32998), ("hoh", 20000, 500), ("hoh", 825000, 51748),
+                          ("married", 22500, 513), ("married", 1100000, 69490)):
+        got = bc._bracket_tax(ctb[key], ti)
+        check(f"Connecticut: Table B example, {key} taxable ${ti:,} = ${want:,}", abs(got - want) <= 0.5, f"{got:.2f}")
+    for status, agi, want, label in (
+            (1, 266100, 14000 + .069 * 16100 + 250 + 1510, "single AGI $266,100: Table B + C $250 + D $1,510"),
+            (1, 40000, (200 + .045 * 25000) * (1 - .10), "single AGI $40,000: exemption $5,000 (Table A), credit .10 (Table E)"),
+            (2, 425000, 21500 + .065 * 25000 + 500 + 1040, "joint AGI $425,000: Table B + C $500 + D $1,040"),
+            (3, 600000, 22400 + .069 * 200000 + 400 + 4600, "head of household AGI $600,000: Table B + C $400 + D $4,600")):
+        got = T(agi, status, V_("CT"))
+        check(f"Connecticut: {label}", abs(got - want) < 0.005, f"{got:.2f} vs {want:.2f}")
     check("Missouri: long-term capital gains not taxed", bc.stategaintax(100000, 50000, 1, V_("MO")) == 0.0)
     check("No state selected adds nothing", T(500000, 2, 0) == 0.0 and bc.stategaintax(1, 500000, 2, 0) == 0.0)
 

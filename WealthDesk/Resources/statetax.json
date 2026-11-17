@@ -9,13 +9,22 @@
   {
    "title": "Tax Foundation • State Capital Gains Tax Rates, 2026",
    "url": "https://taxfoundation.org/data/all/state/state-capital-gains-tax-rates/"
+  },
+  {
+   "title": "New York State • IT-201-I (2025) tax rate schedules and tax computation worksheets",
+   "url": "https://www.tax.ny.gov/pdf/2025/inc/it201i_2025.pdf"
+  },
+  {
+   "title": "Connecticut DRS • Form CT-1040 TCS (Rev. 12/25), Tables A-E",
+   "url": "https://portal.ct.gov/-/media/drs/forms/2025/income/ct-1040-tcs_1225.pdf"
   }
  ],
  "notes": [
   "State tax is an estimate: brackets, standard deduction, personal exemptions and personal credits for the filing status.",
   "Starts from adjusted gross income. In calculators that take federal taxable income, AGI is estimated as taxable income plus the federal standard deduction.",
-  "Not included: local income taxes (for example New York City, Maryland counties, and Ohio, Pennsylvania and Michigan cities), dependents, high-income recapture and most phase-outs, and state-specific adjustments such as Social Security or pension exclusions.",
-  "Head of household uses single amounts except where a state publishes its own (California, South Carolina)."
+  "Not included: local income taxes (for example New York City, Maryland counties, and Ohio, Pennsylvania and Michigan cities), dependents, most other phase-outs, and state-specific adjustments such as Social Security or pension exclusions.",
+  "New York's and Connecticut's high-income recapture of their lower brackets is included.",
+  "Head of household uses single amounts except where a state publishes its own (California, Connecticut, New York, South Carolina)."
  ],
  "list": [
   {
@@ -387,9 +396,10 @@
   {
    "code": "CT",
    "name": "Connecticut",
-   "verified": "Tax Foundation 2026 table",
+   "verified": "Official: Connecticut DRS Form CT-1040 TCS (Rev. 12/25), Tables A-E; Connecticut has not changed them for 2026",
    "notes": [
-    "Connecticut phases out its exemption and recaptures the benefit of lower brackets at higher incomes; not modeled, so high earners' Connecticut tax is understated."
+    "Includes Connecticut's exemption phase-out, 2% rate phase-out add-back, recapture of lower brackets and personal tax credit (Tables A, C, D and E).",
+    "Connecticut adds tax in $5,000 steps of income; the next-dollar rate shown spreads each step evenly across its $5,000."
    ],
    "brackets": {
     "single": [
@@ -451,6 +461,36 @@
       1000000,
       0.0699
      ]
+    ],
+    "hoh": [
+     [
+      0,
+      0.02
+     ],
+     [
+      16000,
+      0.045
+     ],
+     [
+      80000,
+      0.055
+     ],
+     [
+      160000,
+      0.06
+     ],
+     [
+      320000,
+      0.065
+     ],
+     [
+      400000,
+      0.069
+     ],
+     [
+      800000,
+      0.0699
+     ]
     ]
    },
    "deduction": {
@@ -459,11 +499,453 @@
    },
    "exemption": {
     "single": 15000,
-    "married": 24000
+    "married": 24000,
+    "hoh": 19000
    },
    "credit": {
     "single": 0,
     "married": 0
+   },
+   "exemptionPhaseout": {
+    "single": [
+     30000,
+     1000,
+     1000
+    ],
+    "married": [
+     48000,
+     1000,
+     1000
+    ],
+    "hoh": [
+     38000,
+     1000,
+     1000
+    ]
+   },
+   "addBack": {
+    "single": [
+     [
+      56500,
+      5000,
+      25,
+      250
+     ],
+     [
+      105000,
+      5000,
+      25,
+      250
+     ],
+     [
+      200000,
+      5000,
+      90,
+      2700
+     ],
+     [
+      500000,
+      5000,
+      50,
+      450
+     ]
+    ],
+    "married": [
+     [
+      100500,
+      5000,
+      50,
+      500
+     ],
+     [
+      210000,
+      10000,
+      50,
+      500
+     ],
+     [
+      400000,
+      10000,
+      180,
+      5400
+     ],
+     [
+      1000000,
+      10000,
+      100,
+      900
+     ]
+    ],
+    "hoh": [
+     [
+      78500,
+      4000,
+      40,
+      400
+     ],
+     [
+      168000,
+      8000,
+      40,
+      400
+     ],
+     [
+      320000,
+      8000,
+      140,
+      4200
+     ],
+     [
+      800000,
+      8000,
+      80,
+      720
+     ]
+    ]
+   },
+   "creditRate": {
+    "single": [
+     [
+      0,
+      0.75
+     ],
+     [
+      18800,
+      0.7
+     ],
+     [
+      19300,
+      0.65
+     ],
+     [
+      19800,
+      0.6
+     ],
+     [
+      20300,
+      0.55
+     ],
+     [
+      20800,
+      0.5
+     ],
+     [
+      21300,
+      0.45
+     ],
+     [
+      21800,
+      0.4
+     ],
+     [
+      22300,
+      0.35
+     ],
+     [
+      25000,
+      0.3
+     ],
+     [
+      25500,
+      0.25
+     ],
+     [
+      26000,
+      0.2
+     ],
+     [
+      26500,
+      0.15
+     ],
+     [
+      31300,
+      0.14
+     ],
+     [
+      31800,
+      0.13
+     ],
+     [
+      32300,
+      0.12
+     ],
+     [
+      32800,
+      0.11
+     ],
+     [
+      33300,
+      0.1
+     ],
+     [
+      60000,
+      0.09
+     ],
+     [
+      60500,
+      0.08
+     ],
+     [
+      61000,
+      0.07
+     ],
+     [
+      61500,
+      0.06
+     ],
+     [
+      62000,
+      0.05
+     ],
+     [
+      62500,
+      0.04
+     ],
+     [
+      63000,
+      0.03
+     ],
+     [
+      63500,
+      0.02
+     ],
+     [
+      64000,
+      0.01
+     ],
+     [
+      64500,
+      0.0
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.75
+     ],
+     [
+      30000,
+      0.7
+     ],
+     [
+      30500,
+      0.65
+     ],
+     [
+      31000,
+      0.6
+     ],
+     [
+      31500,
+      0.55
+     ],
+     [
+      32000,
+      0.5
+     ],
+     [
+      32500,
+      0.45
+     ],
+     [
+      33000,
+      0.4
+     ],
+     [
+      33500,
+      0.35
+     ],
+     [
+      40000,
+      0.3
+     ],
+     [
+      40500,
+      0.25
+     ],
+     [
+      41000,
+      0.2
+     ],
+     [
+      41500,
+      0.15
+     ],
+     [
+      50000,
+      0.14
+     ],
+     [
+      50500,
+      0.13
+     ],
+     [
+      51000,
+      0.12
+     ],
+     [
+      51500,
+      0.11
+     ],
+     [
+      52000,
+      0.1
+     ],
+     [
+      96000,
+      0.09
+     ],
+     [
+      96500,
+      0.08
+     ],
+     [
+      97000,
+      0.07
+     ],
+     [
+      97500,
+      0.06
+     ],
+     [
+      98000,
+      0.05
+     ],
+     [
+      98500,
+      0.04
+     ],
+     [
+      99000,
+      0.03
+     ],
+     [
+      99500,
+      0.02
+     ],
+     [
+      100000,
+      0.01
+     ],
+     [
+      100500,
+      0.0
+     ]
+    ],
+    "hoh": [
+     [
+      0,
+      0.75
+     ],
+     [
+      24000,
+      0.7
+     ],
+     [
+      24500,
+      0.65
+     ],
+     [
+      25000,
+      0.6
+     ],
+     [
+      25500,
+      0.55
+     ],
+     [
+      26000,
+      0.5
+     ],
+     [
+      26500,
+      0.45
+     ],
+     [
+      27000,
+      0.4
+     ],
+     [
+      27500,
+      0.35
+     ],
+     [
+      34000,
+      0.3
+     ],
+     [
+      34500,
+      0.25
+     ],
+     [
+      35000,
+      0.2
+     ],
+     [
+      35500,
+      0.15
+     ],
+     [
+      44000,
+      0.14
+     ],
+     [
+      44500,
+      0.13
+     ],
+     [
+      45000,
+      0.12
+     ],
+     [
+      45500,
+      0.11
+     ],
+     [
+      46000,
+      0.1
+     ],
+     [
+      74000,
+      0.09
+     ],
+     [
+      74500,
+      0.08
+     ],
+     [
+      75000,
+      0.07
+     ],
+     [
+      75500,
+      0.06
+     ],
+     [
+      76000,
+      0.05
+     ],
+     [
+      76500,
+      0.04
+     ],
+     [
+      77000,
+      0.03
+     ],
+     [
+      77500,
+      0.02
+     ],
+     [
+      78000,
+      0.01
+     ],
+     [
+      78500,
+      0.0
+     ]
+    ]
    },
    "value": 7
   },
@@ -1755,9 +2237,9 @@
   {
    "code": "NY",
    "name": "New York",
-   "verified": "Tax Foundation 2026 table",
+   "verified": "Official: NY IT-201-I (2025) tax computation worksheets 1-16, with the 2026 rates; recapture amounts derived the same way",
    "notes": [
-    "New York recaptures the benefit of lower brackets for incomes over about $107,650; not modeled, so high earners' New York tax is understated.",
+    "Includes New York's recapture of the lower brackets for incomes over $107,650 (the IT-201 tax computation worksheets), worked out with 2026 rates.",
     "New York City and Yonkers income taxes are not included."
    ],
    "brackets": {
@@ -1836,11 +2318,50 @@
       25000000,
       0.109
      ]
+    ],
+    "hoh": [
+     [
+      0,
+      0.039
+     ],
+     [
+      12800,
+      0.044
+     ],
+     [
+      17650,
+      0.0515
+     ],
+     [
+      20900,
+      0.054
+     ],
+     [
+      107650,
+      0.059
+     ],
+     [
+      269300,
+      0.0685
+     ],
+     [
+      1616450,
+      0.0965
+     ],
+     [
+      5000000,
+      0.103
+     ],
+     [
+      25000000,
+      0.109
+     ]
     ]
    },
    "deduction": {
     "single": 8000,
-    "married": 16050
+    "married": 16050,
+    "hoh": 11200
    },
    "exemption": {
     "single": 0,
@@ -1849,6 +2370,16 @@
    "credit": {
     "single": 0,
     "married": 0
+   },
+   "recapture": {
+    "agiStart": 107650,
+    "phaseIn": 50000,
+    "flatAgi": 25000000,
+    "first": {
+     "single": 4,
+     "married": 3,
+     "hoh": 4
+    }
    },
    "value": 33
   },

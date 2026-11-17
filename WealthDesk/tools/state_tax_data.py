@@ -8,8 +8,9 @@ Model (an estimate, stated in the app):
   state taxable income = AGI − standard deduction (phased out where noted) − personal exemptions
   tax = brackets(taxable income) − personal credits, never below zero
 Single and joint amounts as published; head of household uses single amounts unless a state's own
-head-of-household figures are given. Not modeled: local income taxes, dependents, benefit
-recapture and most phase-outs (except South Carolina's deduction), state-specific additions and
+head-of-household figures are given. Also modeled: New York's bracket recapture and
+Connecticut's exemption phase-out, add-back, recapture and personal credit. Not modeled: local income
+taxes, dependents, most other phase-outs (South Carolina's deduction phase-out is modeled), state-specific additions and
 subtractions (Social Security, pensions, federal tax deductibility), and credits other than
 personal credits.
 
@@ -24,13 +25,18 @@ SOURCES = [
      "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"},
     {"title": "Tax Foundation • State Capital Gains Tax Rates, 2026",
      "url": "https://taxfoundation.org/data/all/state/state-capital-gains-tax-rates/"},
+    {"title": "New York State • IT-201-I (2025) tax rate schedules and tax computation worksheets",
+     "url": "https://www.tax.ny.gov/pdf/2025/inc/it201i_2025.pdf"},
+    {"title": "Connecticut DRS • Form CT-1040 TCS (Rev. 12/25), Tables A-E",
+     "url": "https://portal.ct.gov/-/media/drs/forms/2025/income/ct-1040-tcs_1225.pdf"},
 ]
 
 NOTES = [
     "State tax is an estimate: brackets, standard deduction, personal exemptions and personal credits for the filing status.",
     "Starts from adjusted gross income. In calculators that take federal taxable income, AGI is estimated as taxable income plus the federal standard deduction.",
-    "Not included: local income taxes (for example New York City, Maryland counties, and Ohio, Pennsylvania and Michigan cities), dependents, high-income recapture and most phase-outs, and state-specific adjustments such as Social Security or pension exclusions.",
-    "Head of household uses single amounts except where a state publishes its own (California, South Carolina).",
+    "Not included: local income taxes (for example New York City, Maryland counties, and Ohio, Pennsylvania and Michigan cities), dependents, most other phase-outs, and state-specific adjustments such as Social Security or pension exclusions.",
+    "New York's and Connecticut's high-income recapture of their lower brackets is included.",
+    "Head of household uses single amounts except where a state publishes its own (California, Connecticut, New York, South Carolina).",
 ]
 
 
@@ -39,7 +45,8 @@ def flat(rate, start=0):
 
 
 def S(code, name, single=None, married=None, *, hoh=None, deduction=(0, 0), exemption=(0, 0), credit=(0, 0),
-      hoh_deduction=None, phaseout=None, phaseout_round=0, gains=None, verified="Tax Foundation 2026 table", notes=()):
+      hoh_deduction=None, phaseout=None, phaseout_round=0, gains=None, verified="Tax Foundation 2026 table", notes=(),
+      hoh_exemption=None, extra=None):
     st = {"code": code, "name": name, "verified": verified, "notes": list(notes)}
     if single is None:
         st["none"] = True
@@ -51,11 +58,15 @@ def S(code, name, single=None, married=None, *, hoh=None, deduction=(0, 0), exem
         if hoh_deduction is not None:
             st["deduction"]["hoh"] = hoh_deduction
         st["exemption"] = {"single": exemption[0], "married": exemption[1]}
+        if hoh_exemption is not None:
+            st["exemption"]["hoh"] = hoh_exemption
         st["credit"] = {"single": credit[0], "married": credit[1]}
         if phaseout:
             st["deductionPhaseout"] = phaseout
             if phaseout_round:
                 st["phaseoutRound"] = phaseout_round
+    if extra:
+        st.update(extra)
     if gains:
         st["gains"] = gains
     return st
@@ -91,8 +102,36 @@ STATES = [
     S("CT", "Connecticut",
       [[0, .02], [10000, .045], [50000, .055], [100000, .06], [200000, .065], [250000, .069], [500000, .0699]],
       [[0, .02], [20000, .045], [100000, .055], [200000, .06], [400000, .065], [500000, .069], [1_000_000, .0699]],
-      exemption=(15000, 24000),
-      notes=["Connecticut phases out its exemption and recaptures the benefit of lower brackets at higher incomes; not modeled, so high earners' Connecticut tax is understated."]),
+      hoh=[[0, .02], [16000, .045], [80000, .055], [160000, .06], [320000, .065], [400000, .069], [800000, .0699]],
+      exemption=(15000, 24000), hoh_exemption=19000,
+      extra={
+          # Table A: exemption falls $1,000 for each $1,000 (or part) of AGI over the start.
+          "exemptionPhaseout": {"single": [30000, 1000, 1000], "married": [48000, 1000, 1000], "hoh": [38000, 1000, 1000]},
+          # Tables C (2% rate phase-out add-back) and D (recapture), summed: [AGI over, step width, amount per step, cap].
+          "addBack": {
+              "single": [[56500, 5000, 25, 250], [105000, 5000, 25, 250], [200000, 5000, 90, 2700], [500000, 5000, 50, 450]],
+              "married": [[100500, 5000, 50, 500], [210000, 10000, 50, 500], [400000, 10000, 180, 5400], [1_000_000, 10000, 100, 900]],
+              "hoh": [[78500, 4000, 40, 400], [168000, 8000, 40, 400], [320000, 8000, 140, 4200], [800000, 8000, 80, 720]],
+          },
+          # Table E: personal tax credit as a share of tax, by AGI ("more than" each amount).
+          "creditRate": {
+              "single": [[0, .75], [18800, .70], [19300, .65], [19800, .60], [20300, .55], [20800, .50], [21300, .45], [21800, .40],
+                         [22300, .35], [25000, .30], [25500, .25], [26000, .20], [26500, .15], [31300, .14], [31800, .13], [32300, .12],
+                         [32800, .11], [33300, .10], [60000, .09], [60500, .08], [61000, .07], [61500, .06], [62000, .05], [62500, .04],
+                         [63000, .03], [63500, .02], [64000, .01], [64500, 0.0]],
+              "married": [[0, .75], [30000, .70], [30500, .65], [31000, .60], [31500, .55], [32000, .50], [32500, .45], [33000, .40],
+                          [33500, .35], [40000, .30], [40500, .25], [41000, .20], [41500, .15], [50000, .14], [50500, .13], [51000, .12],
+                          [51500, .11], [52000, .10], [96000, .09], [96500, .08], [97000, .07], [97500, .06], [98000, .05], [98500, .04],
+                          [99000, .03], [99500, .02], [100000, .01], [100500, 0.0]],
+              "hoh": [[0, .75], [24000, .70], [24500, .65], [25000, .60], [25500, .55], [26000, .50], [26500, .45], [27000, .40],
+                      [27500, .35], [34000, .30], [34500, .25], [35000, .20], [35500, .15], [44000, .14], [44500, .13], [45000, .12],
+                      [45500, .11], [46000, .10], [74000, .09], [74500, .08], [75000, .07], [75500, .06], [76000, .05], [76500, .04],
+                      [77000, .03], [77500, .02], [78000, .01], [78500, 0.0]],
+          },
+      },
+      verified="Official: Connecticut DRS Form CT-1040 TCS (Rev. 12/25), Tables A-E; Connecticut has not changed them for 2026",
+      notes=["Includes Connecticut's exemption phase-out, 2% rate phase-out add-back, recapture of lower brackets and personal tax credit (Tables A, C, D and E).",
+             "Connecticut adds tax in $5,000 steps of income; the next-dollar rate shown spreads each step evenly across its $5,000."]),
     S("DE", "Delaware",
       [[0, 0.0], [2000, .022], [5000, .039], [10000, .048], [20000, .052], [25000, .0555], [60000, .066]],
       deduction=(3250, 6500), credit=(110, 220)),
@@ -151,8 +190,18 @@ STATES = [
        [5_000_000, .103], [25_000_000, .109]],
       [[0, .039], [17150, .044], [23600, .0515], [27900, .054], [161550, .059], [323200, .0685], [2155350, .0965],
        [5_000_000, .103], [25_000_000, .109]],
-      deduction=(8000, 16050),
-      notes=["New York recaptures the benefit of lower brackets for incomes over about $107,650; not modeled, so high earners' New York tax is understated.",
+      hoh=[[0, .039], [12800, .044], [17650, .0515], [20900, .054], [107650, .059], [269300, .0685], [1616450, .0965],
+           [5_000_000, .103], [25_000_000, .109]],
+      deduction=(8000, 16050), hoh_deduction=11200,
+      extra={
+          # Tax Law §601(d-1), IT-201 tax computation worksheets: above $107,650 of AGI the benefit of the
+          # lower brackets is taken back over $50,000 of AGI. `first` is the bracket whose rate applies flat
+          # to all income once fully phased in; each bracket above it phases in its own incremental benefit.
+          "recapture": {"agiStart": 107650, "phaseIn": 50000, "flatAgi": 25_000_000,
+                        "first": {"single": 4, "married": 3, "hoh": 4}},
+      },
+      verified="Official: NY IT-201-I (2025) tax computation worksheets 1-16, with the 2026 rates; recapture amounts derived the same way",
+      notes=["Includes New York's recapture of the lower brackets for incomes over $107,650 (the IT-201 tax computation worksheets), worked out with 2026 rates.",
              "New York City and Yonkers income taxes are not included."]),
     S("NC", "North Carolina", flat(.0399), deduction=(12750, 25500)),
     S("ND", "North Dakota", [[0, 0.0], [48475, .0195], [244825, .025]], [[0, 0.0], [80975, .0195], [298075, .025]],

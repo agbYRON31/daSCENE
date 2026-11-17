@@ -517,6 +517,16 @@ export class TaxTable {
     }
     return tax;
   }
+  static steps(n, start, width) { return n > start ? Math.ceil((n - start) / width - 1e-9) : 0; }
+  static roundHalfUp(x, places = 0) { const m = 10 ** places; return Math.floor(x * m + 0.5 + 1e-7) / m; }
+  static bracketIndex(b, x) { let j = 0; for (let i = 0; i < b.length; i++) if (x > b[i][0]) j = i; return j; }
+  /** New York worksheet amounts for bracket j: recapture base and incremental benefit. */
+  static recaptureParts(b, j) {
+    const bk = b[j][0];
+    const base = TaxTable.roundHalfUp(bk * b[j - 1][1] - TaxTable.bracketTax(b, bk));
+    const total = TaxTable.roundHalfUp(bk * b[j][1] - TaxTable.bracketTax(b, bk));
+    return [base, total - base];
+  }
   static stateTaxable(s, agi, status) {
     const K = TaxTable.skey;
     let ded = s.deduction[K(status, s.deduction)];
@@ -525,20 +535,78 @@ export class TaxTable {
       const cut = ded * Math.min(1, Math.max(0, (agi - a) / (b - a)));
       ded -= s.phaseoutRound ? Math.floor(cut / s.phaseoutRound) * s.phaseoutRound : cut;
     }
-    return Math.max(0, agi - ded - s.exemption[K(status, s.exemption)]);
+    let ex = s.exemption[K(status, s.exemption)];
+    if (s.exemptionPhaseout) {
+      const [start, width, step] = s.exemptionPhaseout[K(status, s.exemptionPhaseout)];
+      ex = Math.max(0, ex - step * TaxTable.steps(agi, start, width));
+    }
+    return Math.max(0, agi - ded - ex);
+  }
+  static creditShare(s, agi, status) {
+    if (!s.creditRate) return 0;
+    let dec = 0;
+    for (const [over, d] of s.creditRate[TaxTable.skey(status, s.creditRate)]) if (agi > over || over === 0) dec = d;
+    return dec;
+  }
+  /** Tax from the brackets, with New York's recapture and Connecticut's add-backs and credit. */
+  static stateBeforeCredit(s, agi, status) {
+    const K = TaxTable.skey, b = s.brackets[K(status, s.brackets)], x = TaxTable.stateTaxable(s, agi, status);
+    let tax = TaxTable.bracketTax(b, x);
+    const rc = s.recapture;
+    if (rc) {
+      if (agi > rc.flatAgi) tax = x * b[b.length - 1][1];
+      else if (agi > rc.agiStart) {
+        const f = rc.first[K(status, rc.first)], j = TaxTable.bracketIndex(b, x), ph = rc.phaseIn;
+        if (j <= f) {
+          const frac = TaxTable.roundHalfUp(Math.min(agi - rc.agiStart, ph) / ph, 4);
+          tax += (x * b[f][1] - tax) * frac;
+        } else {
+          const [base, inc] = TaxTable.recaptureParts(b, j);
+          const frac = TaxTable.roundHalfUp(Math.min(Math.max(0, agi - b[j][0]), ph) / ph, 4);
+          tax += base + inc * frac;
+        }
+      }
+    }
+    if (s.addBack) for (const [start, width, step, cap] of s.addBack[K(status, s.addBack)]) tax += Math.min(cap, step * TaxTable.steps(agi, start, width));
+    if (s.creditRate) tax *= 1 - TaxTable.creditShare(s, agi, status);
+    return tax;
   }
   stateTax(agi, status, st) {
     const s = this.state(st);
     if (!s || s.none) return 0;
-    const K = TaxTable.skey;
-    return Math.max(0, TaxTable.bracketTax(s.brackets[K(status, s.brackets)], TaxTable.stateTaxable(s, agi, status)) - s.credit[K(status, s.credit)]);
+    return Math.max(0, TaxTable.stateBeforeCredit(s, agi, status) - s.credit[TaxTable.skey(status, s.credit)]);
   }
+  /** Rate on the next dollar, including recapture and phase-ins (Connecticut's steps spread evenly). */
   stateMarginal(agi, status, st) {
     const s = this.state(st);
     if (!s || s.none) return 0;
-    const b = s.brackets[TaxTable.skey(status, s.brackets)], x = TaxTable.stateTaxable(s, agi, status);
+    const K = TaxTable.skey, b = s.brackets[K(status, s.brackets)], x = TaxTable.stateTaxable(s, agi, status);
     let rate = b[0][1];
     for (const row of b) if (x >= row[0]) rate = row[1];
+    const rc = s.recapture;
+    if (rc) {
+      const ph = rc.phaseIn;
+      if (agi > rc.flatAgi) return b[b.length - 1][1];
+      if (agi > rc.agiStart) {
+        const f = rc.first[K(status, rc.first)], j = TaxTable.bracketIndex(b, x);
+        if (j <= f) {
+          const frac = Math.min(agi - rc.agiStart, ph) / ph;
+          rate = rate * (1 - frac) + b[f][1] * frac;
+          if (agi - rc.agiStart < ph) rate += (x * b[f][1] - TaxTable.bracketTax(b, x)) / ph;
+        } else if (agi - b[j][0] < ph) {
+          rate += TaxTable.recaptureParts(b, j)[1] / ph;
+        }
+      }
+      return rate;
+    }
+    if (s.exemptionPhaseout) {
+      const [start, width, step] = s.exemptionPhaseout[K(status, s.exemptionPhaseout)];
+      if (x > 0 && agi > start && step * TaxTable.steps(agi, start, width) < s.exemption[K(status, s.exemption)]) rate *= 1 + step / width;
+    }
+    if (s.addBack) for (const [start, width, step, cap] of s.addBack[K(status, s.addBack)]) {
+      if (agi > start && step * TaxTable.steps(agi, start, width) < cap) rate += step / width;
+    }
+    if (s.creditRate) rate *= 1 - TaxTable.creditShare(s, agi, status);
     return rate;
   }
   stateGainTax(agi, gain, status, st) {

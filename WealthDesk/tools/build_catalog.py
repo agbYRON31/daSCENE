@@ -186,6 +186,11 @@ def _bracket_tax(b, x):
     return tax
 
 
+def _steps(n_, start, width):
+    """Number of steps of `width` (or part of one) that `n_` is over `start`."""
+    return math.ceil((n_ - start) / width - 1e-9) if n_ > start else 0
+
+
 def _state_taxable(s_, agi, status):
     ded = s_["deduction"][_skey(s_, status, s_["deduction"])]
     po = s_.get("deductionPhaseout")
@@ -194,7 +199,65 @@ def _state_taxable(s_, agi, status):
         cut = ded * min(1.0, max(0.0, (agi - a) / (b - a)))
         step = s_.get("phaseoutRound", 0)
         ded -= math.floor(cut / step) * step if step else cut
-    return max(0.0, agi - ded - s_["exemption"][_skey(s_, status, s_["exemption"])])
+    ex = s_["exemption"][_skey(s_, status, s_["exemption"])]
+    ep = s_.get("exemptionPhaseout")
+    if ep:   # Connecticut Table A: $1,000 less for each $1,000 (or part) of AGI over the start
+        start, width, step = ep[_skey(s_, status, ep)]
+        ex = max(0.0, ex - step * _steps(agi, start, width))
+    return max(0.0, agi - ded - ex)
+
+
+def _round_half_up(x, places=0):
+    m = 10 ** places
+    return math.floor(x * m + 0.5 + 1e-7) / m
+
+
+def _bracket_index(b, x):
+    j = 0
+    for i, (floor, _) in enumerate(b):
+        if x > floor:
+            j = i
+    return j
+
+
+def _recapture_parts(b, j):
+    """New York worksheet amounts for bracket j: recapture base and incremental benefit."""
+    bk = b[j][0]
+    base = _round_half_up(bk * b[j - 1][1] - _bracket_tax(b, bk))
+    total = _round_half_up(bk * b[j][1] - _bracket_tax(b, bk))
+    return base, total - base
+
+
+def _state_before_credit(s_, agi, status):
+    """Tax from the brackets, with New York's recapture and Connecticut's add-backs."""
+    b = s_["brackets"][_skey(s_, status, s_["brackets"])]
+    x = _state_taxable(s_, agi, status)
+    tax = _bracket_tax(b, x)
+    rc = s_.get("recapture")
+    if rc:   # New York tax computation worksheets
+        if agi > rc["flatAgi"]:
+            tax = x * b[-1][1]
+        elif agi > rc["agiStart"]:
+            f, j, ph = rc["first"][_skey(s_, status, rc["first"])], _bracket_index(b, x), rc["phaseIn"]
+            if j <= f:
+                frac = _round_half_up(min(agi - rc["agiStart"], ph) / ph, 4)
+                tax += (x * b[f][1] - tax) * frac
+            else:
+                base, inc = _recapture_parts(b, j)
+                frac = _round_half_up(min(max(0.0, agi - b[j][0]), ph) / ph, 4)
+                tax += base + inc * frac
+    ab = s_.get("addBack")
+    if ab:   # Connecticut Tables C and D
+        for start, width, step, cap in ab[_skey(s_, status, ab)]:
+            tax += min(cap, step * _steps(agi, start, width))
+    cr = s_.get("creditRate")
+    if cr:   # Connecticut Table E
+        dec = 0.0
+        for over, d in cr[_skey(s_, status, cr)]:
+            if agi > over or over == 0:
+                dec = d
+        tax *= 1 - dec
+    return tax
 
 
 def statetax(agi, status, st):
@@ -202,13 +265,13 @@ def statetax(agi, status, st):
     s_ = _state(st)
     if s_ is None or s_.get("none"):
         return 0.0
-    b = s_["brackets"][_skey(s_, status, s_["brackets"])]
-    tax = _bracket_tax(b, _state_taxable(s_, agi, status)) - s_["credit"][_skey(s_, status, s_["credit"])]
+    tax = _state_before_credit(s_, agi, status) - s_["credit"][_skey(s_, status, s_["credit"])]
     return max(0.0, tax)
 
 
 def statemarg(agi, status, st):
-    """Statutory state rate on the next dollar of income."""
+    """State rate on the next dollar of income, including recapture and phase-ins
+    (Connecticut's $5,000 steps spread evenly across each step)."""
     s_ = _state(st)
     if s_ is None or s_.get("none"):
         return 0.0
@@ -218,6 +281,39 @@ def statemarg(agi, status, st):
     for floor, r in b:
         if x >= floor:
             rate = r
+    rc = s_.get("recapture")
+    if rc:
+        ph = rc["phaseIn"]
+        if agi > rc["flatAgi"]:
+            return b[-1][1]
+        if agi > rc["agiStart"]:
+            f, j = rc["first"][_skey(s_, status, rc["first"])], _bracket_index(b, x)
+            if j <= f:
+                frac = min(agi - rc["agiStart"], ph) / ph
+                rate = rate * (1 - frac) + b[f][1] * frac
+                if agi - rc["agiStart"] < ph:
+                    rate += (x * b[f][1] - _bracket_tax(b, x)) / ph
+            elif agi - b[j][0] < ph:
+                rate += _recapture_parts(b, j)[1] / ph
+        return rate
+    ep = s_.get("exemptionPhaseout")
+    if ep:
+        start, width, step = ep[_skey(s_, status, ep)]
+        ex = s_["exemption"][_skey(s_, status, s_["exemption"])]
+        if x > 0 and agi > start and step * _steps(agi, start, width) < ex:
+            rate *= 1 + step / width
+    ab = s_.get("addBack")
+    if ab:
+        for start, width, step, cap in ab[_skey(s_, status, ab)]:
+            if agi > start and step * _steps(agi, start, width) < cap:
+                rate += step / width
+    cr = s_.get("creditRate")
+    if cr:
+        dec = 0.0
+        for over, d in cr[_skey(s_, status, cr)]:
+            if agi > over or over == 0:
+                dec = d
+        rate *= 1 - dec
     return rate
 
 

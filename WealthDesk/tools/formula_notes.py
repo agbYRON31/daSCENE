@@ -333,7 +333,7 @@ note("income_tax",
      ("each slice of income", "The part of taxable income that falls inside one bracket."),
      ("× its bracket rate", "Taxed at that bracket's rate."),
      ("sum", "Total federal tax; divided by income it gives the effective rate. The marginal rate is the top bracket reached."),
-     ("state's own brackets", "State tax starts from AGI (estimated as taxable income plus the federal standard deduction), subtracts the state's deduction and exemptions, then applies the state's brackets and any personal credit."),
+     ("state's own brackets", "State tax starts from AGI (estimated as taxable income plus the federal standard deduction), subtracts the state's deduction and exemptions, then applies the state's brackets and any personal credit. New York and Connecticut also take back the benefit of their lower brackets at higher incomes, so their rate on the next dollar can sit well above the bracket rate while that phases in."),
      ("combined marginal rate", "Federal plus state rate on the next dollar: the rate to use when a decision adds or removes income."))
 
 note("taxable_income",
