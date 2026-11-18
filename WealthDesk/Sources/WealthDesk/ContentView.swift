@@ -151,10 +151,11 @@ struct AdvisorView: View {
                 case .calculator?: CalculatorPadView()
                 case .markets?: MarketsView()
                 case .stock?: StockView()
-                case .roro?: RoRoView()
+                case .calculators?: CalculatorsView()
                 case .scenarios?: ScenariosView()
                 case .history?: HistoryView()
-                case .home?, nil: AdvisorHomeView()
+                case .roro?: RoRoView()
+                case .home?, nil: MarketBriefView()
                 }
             }
             .toolbar {
@@ -257,11 +258,15 @@ struct SidebarView: View {
                     ForEach(results) { row($0) }
                 }
             } else {
+                // Four destinations; the full calculator library is on the Calculators page and in search.
                 Section {
-                    Label("Home", systemImage: "house").tag(SidebarItem.home)
-                    Label("RoRo Composite", systemImage: "gauge.medium").tag(SidebarItem.roro)
-                    Label("Markets", systemImage: "chart.xyaxis.line").tag(SidebarItem.markets)
+                    Label("Market Brief", systemImage: "gauge.medium").tag(SidebarItem.home)
                     Label("Stock research", systemImage: "magnifyingglass").tag(SidebarItem.stock)
+                    Label("Calculators", systemImage: "square.grid.2x2").tag(SidebarItem.calculators)
+                    Button { state.showClient(nil) } label: { Label("Client Mode", systemImage: "person.2") }.buttonStyle(.plain)
+                }
+                Section("Tools") {
+                    Label("Treasury yields & quotes", systemImage: "chart.xyaxis.line").tag(SidebarItem.markets)
                     Label("Calculator", systemImage: "plusminus.circle").tag(SidebarItem.calculator)
                     Label("Session scenarios", systemImage: "tray.full")
                         .badge(state.session.scenarios.count)
@@ -272,13 +277,8 @@ struct SidebarView: View {
                 if !favorites.isEmpty {
                     Section("Favorites") { ForEach(favorites) { row($0) } }
                 }
-                Section("Common") {
-                    ForEach(state.calculators.filter(\.common)) { row($0) }
-                }
-                ForEach(state.categories, id: \.self) { cat in
-                    Section(cat) {
-                        ForEach(state.calculators.filter { $0.category == cat }) { row($0) }
-                    }
+                if case .calc(let id)? = state.selection, !state.prefs.favorites.contains(id), let c = state.calculator(id) {
+                    Section("Open") { row(c) }
                 }
             }
         }

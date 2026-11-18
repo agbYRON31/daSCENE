@@ -483,3 +483,17 @@ table.stk-fin td:first-child { position: sticky; left: 0; background: var(--cont
   .stk-kv { grid-template-columns: 1fr 1fr; }
   .stk-tiles { grid-template-columns: 1fr 1fr; }
 }
+
+/* Advisor: four destinations, Market Brief, Calculators */
+.sb-row.big { font-weight: 500; }
+.brief { gap: 14px; }
+.brief-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.brief .sptile .v { font-size: 22px; }
+details.tucked > summary { cursor: pointer; list-style: none; }
+details.tucked > summary h2 { display: inline; }
+details.tucked > summary::before { content: "▸ "; color: var(--secondary); }
+details.tucked[open] > summary::before { content: "▾ "; }
+details.more > summary { cursor: pointer; }
+details.more > summary::marker { color: var(--secondary); }
+/* Stock research tabs */
+.stk-tabs { max-width: 520px; }

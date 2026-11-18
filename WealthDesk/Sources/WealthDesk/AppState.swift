@@ -87,6 +87,7 @@ enum SidebarItem: Hashable {
     case calculator
     case markets
     case stock
+    case calculators
     case roro
     case scenarios
     case history
