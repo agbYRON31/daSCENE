@@ -24,6 +24,7 @@ struct WealthDeskApp: App {
     @StateObject private var state = AppState()
     @StateObject private var market = MarketStore()
     @StateObject private var roro = RoRoStore()
+    @StateObject private var stock = StockStore()
 
     var body: some Scene {
         Window("Wealth Desk", id: "main") {
@@ -31,6 +32,7 @@ struct WealthDeskApp: App {
                 .environmentObject(state)
                 .environmentObject(market)
                 .environmentObject(roro)
+                .environmentObject(stock)
                 .frame(minWidth: 600, minHeight: 440)
                 .tint(.wealthAccent)
         }

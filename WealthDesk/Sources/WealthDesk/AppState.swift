@@ -86,6 +86,8 @@ enum SidebarItem: Hashable {
     case calc(String)
     case calculator
     case markets
+    case stock
+    case calculators
     case roro
     case scenarios
     case history
@@ -263,6 +265,7 @@ final class AppState: ObservableObject {
     /// Forgets everything typed this session.
     func clearSession() {
         session = Session()
+        NotificationCenter.default.post(name: .wealthDeskSessionCleared, object: nil)
         flash("Session cleared. Nothing typed this session remains.")
     }
 

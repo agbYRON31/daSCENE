@@ -8,6 +8,7 @@ import {
 } from "./engine.js";
 import { scenarioFileText, readScenarioFile } from "./scenario.js";
 import { clientMarketSummary, marketTone } from "./client_market.js";
+import { analyze } from "./stock.js";
 
 // ---------------------------------------------------------------------------
 // Preferences (this browser only) and session (memory only)
@@ -21,11 +22,11 @@ const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(Pr
 
 const freshSession = () => ({
   working: {}, client: {}, scenarios: [], history: [], tape: [], variables: {},
-  compare: false, taxTab: 0, roroTab: 0, roroBucket: "ALL",
+  compare: false, taxTab: 0, roroTab: 0, roroBucket: "ALL", stock: null,
 });
 let S = freshSession();
 let engine = null;
-const data = { roro: undefined, meta: null, markets: undefined };
+const data = { roro: undefined, meta: null, markets: undefined, tickers: undefined };
 let searchText = "";
 
 const app = document.getElementById("app");
@@ -271,14 +272,21 @@ function toggleSidebar() {
   shell.split.classList.toggle("collapsed", !Prefs.sidebar);
 }
 
+// Advisor Mode has four destinations; the rest are tools. The full calculator library lives on the
+// Calculators page (and in the sidebar search), not in the sidebar itself.
 const SIDE = [
-  ["home", "Home", "house"], ["roro", "RoRo Composite", "gauge"], ["markets", "Markets", "chart"],
-  ["calculator", "Calculator", "plusminus"], ["scenarios", "Session scenarios", "tray"], ["history", "Session history", "clock"],
+  ["home", "Market Brief", "gauge", "#/advisor"], ["stock", "Stock research", "search", "#/advisor/stock"],
+  ["calculators", "Calculators", "table", "#/advisor/calculators"], ["client", "Client Mode", "people", "#/client"],
+];
+const SIDE_TOOLS = [
+  ["markets", "Treasury yields & quotes", "chart"], ["calculator", "Calculator", "plusminus"],
+  ["scenarios", "Session scenarios", "tray"], ["history", "Session history", "clock"],
 ];
 function sidebar(selected) {
   const list = h("div", { class: "sb-list", role: "list" });
   const row = (c) => h("a", { class: "sb-row" + (selected === c.id ? " sel" : ""), href: `#/advisor/${c.id}`, title: c.summary },
     h("span", { class: "grow", text: c.name }), c.acronym ? h("span", { class: "acr", text: c.acronym }) : null);
+  const isCalc = !!engine.calculator(selected);
   const paint = () => {
     const q = searchText.trim();
     if (q) {
@@ -288,12 +296,14 @@ function sidebar(selected) {
     }
     const favs = Prefs.favorites.map((id) => engine.calculator(id)).filter(Boolean);
     fill(list,
-      SIDE.map(([id, label, ic]) => h("a", { class: "sb-row" + (selected === id ? " sel" : ""), href: `#/advisor/${id === "home" ? "" : id}` },
+      SIDE.map(([id, label, ic, href]) => h("a", { class: "sb-row big" + (selected === id || (id === "calculators" && isCalc) || (id === "home" && selected === "roro") ? " sel" : ""), href },
+        icon(ic), h("span", { class: "grow", text: label }))),
+      h("div", { class: "sb-sec", text: "Tools" }),
+      SIDE_TOOLS.map(([id, label, ic]) => h("a", { class: "sb-row" + (selected === id ? " sel" : ""), href: `#/advisor/${id}` },
         icon(ic), h("span", { class: "grow", text: label }),
         id === "scenarios" && S.scenarios.length ? h("span", { class: "badge", text: S.scenarios.length }) : null)),
       favs.length ? [h("div", { class: "sb-sec", text: "Favorites" }), favs.map(row)] : null,
-      h("div", { class: "sb-sec", text: "Common" }), engine.calculators.filter((c) => c.common).map(row),
-      categories(engine.calculators).map((cat) => [h("div", { class: "sb-sec", text: cat }), engine.calculators.filter((c) => c.category === cat).map(row)]));
+      isCalc && !favs.some((c) => c.id === selected) ? [h("div", { class: "sb-sec", text: "Open" }), row(engine.calculator(selected))] : null);
   };
   const input = h("input", { type: "search", placeholder: "Search calculators", value: searchText, "aria-label": "Search calculators",
     oninput: () => { searchText = input.value; paint(); } });
@@ -371,7 +381,7 @@ function startPage() {
       h("div", {},
         h("div", { class: "eyebrow", text: "WEALTH DESK" }),
         h("h1", { text: "See how financial decisions play out" }),
-        h("p", { class: "lede", text: "Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent." })),
+        h("p", { class: "lede", text: "Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent (Stock research sends only the ticker symbol you look up)." })),
       h("div", { class: "modecards" },
         h("a", { class: "modecard", href: "#/client" }, icon("people"), h("h2", { text: "Client Mode" }),
           h("p", { text: "Six plain-language tools with sliders and charts: growth, retirement, risk, decisions, taxes and inflation, and market conditions." }),
@@ -388,22 +398,93 @@ function startPage() {
 // ---------------------------------------------------------------------------
 // Advisor: home
 
+// The calculators an advisor reaches for most in a meeting; shown first on the Calculators page.
+const FREQUENT = ["retirement_timeline", "retirement_mc", "portfolio_stress", "fee_drag", "rmd", "income_tax", "roth_conversion", "ltcg_tax"];
+// Shown last and folded away on the Calculators page (still searchable).
+const TUCKED = ["Everyday math"];
+
 function advisorHome() {
-  const tile = (href, ic, title, text) => h("a", { class: "tile", href }, icon(ic), h("div", {}, h("strong", { text: title }), h("span", { text })));
+  if (data.roro === undefined) loadRoRo().then(() => { if (location.hash === "#/advisor" || location.hash === "#/advisor/") route(); });
+  const m = data.roro;
+  const go = (href, ic, title, text) => h("a", { class: "tile", href }, icon(ic), h("div", {}, h("strong", { text: title }), h("span", { text })));
+  let brief;
+  if (m === undefined) brief = card(null, null, h("div", { class: "secondary", text: "Loading the latest market reading…" }));
+  else if (!m?.horizons?.length) brief = card("Market Brief", null, h("p", { class: "secondary", text: "The RoRo reading isn't available right now. It is published each weekday after the US close." }),
+    h("a", { class: "callout", href: "#/advisor/markets", text: "Treasury yields & quotes" }));
+  else {
+    const p = m.posture || {}, st = roroStatus(m), band = p.band || "—";
+    const names = { Tactical: "Tactical · days to weeks", Intermediate: "Intermediate · 1–3 months", Strategic: "Strategic · 3–12 months" };
+    brief = h("section", { class: "card brief" },
+      h("div", { class: "brief-top" },
+        h("div", {},
+          h("div", { class: "caption secondary", text: "RoRo Composite · overall reading" }),
+          h("div", { style: "display:flex;align-items:baseline;gap:12px;flex-wrap:wrap" },
+            h("span", { class: "bigband c-" + bandTone(band), text: band }),
+            h("span", { class: "bignum", text: signed(p.value) }),
+            p.delta !== undefined ? h("span", { class: "caption secondary", text: `${signed(p.delta)} since ${p.prev_date || "the last run"}` }) : null)),
+        h("div", { style: "text-align:right" },
+          h("span", { class: "statuspill " + st.cls, style: "background:color-mix(in srgb, currentColor 16%, transparent)", text: st.label.toUpperCase() }),
+          h("div", { class: "caption secondary", style: "margin-top:6px", text: `As of ${m.asof}` }))),
+      scoreBar(p.value, true),
+      h("div", { class: "row3" }, m.horizons.map((z) => h("div", { class: "sptile" },
+        h("div", { class: "callout secondary", text: names[z.label] || z.label }),
+        h("div", { style: "display:flex;align-items:baseline;justify-content:space-between" },
+          h("span", { class: "v c-" + tone(z.value), text: signed(z.value) }), h("span", { class: "caption secondary", text: marketWordFor(z.value) })),
+        scoreBar(z.value)))),
+      h("div", { style: "display:flex;gap:16px;flex-wrap:wrap;align-items:center" },
+        h("a", { class: "btn", href: "#/advisor/roro", text: "Factors, history and methodology" }),
+        h("a", { class: "callout", href: "#/client/market", text: "Show the client version" }),
+        h("a", { class: "callout", href: "#/advisor/markets", text: "Treasury yields & quotes" })),
+      h("p", { class: "note", text: "Scale −100 (risk-off) to +100 (risk-on); Offense above +20, Defense below −20. A hand-calibrated model of current conditions, not a forecast of returns." }));
+  }
   return {
-    title: "Wealth Desk", subtitle: "Advisor Mode",
+    title: "Market Brief", subtitle: "Advisor Mode",
+    actions: () => [tbtn("refresh", "Reload", async () => { await loadRoRo(true); route(); toast("Reloaded the latest published reading."); }, { help: "Reload the latest published RoRo reading" })],
     body: h("div", { class: "page wide" },
-      h("div", {}, h("h1", { class: "large", text: "Advisor workspace" }),
-        h("p", { class: "secondary", style: "margin:6px 0 0", text: "Pick a tool. Every calculator opens blank; type your own numbers and results update as you go. Formulas, assumptions and sources are under “Details & Excel” on each one." })),
+      h("div", {}, h("h1", { class: "large", text: "Market Brief" }),
+        h("p", { class: "secondary", style: "margin:6px 0 0", text: "Where markets stand today, then the tools for the conversation." })),
+      brief,
       h("div", { class: "tiles" },
-        tile("#/advisor/roro", "gauge", "RoRo Composite", "Market risk conditions across 37 factors"),
-        tile("#/advisor/markets", "chart", "Markets", "Treasury yield curve and a quote watchlist"),
-        tile("#/advisor/calculator", "plusminus", "Calculator", "Basic and scientific, with a history tape"),
-        tile("#/client", "people", "Client Mode", "Six simple, visual tools for a conversation")),
-      categories(engine.calculators).map((cat) => h("div", { class: "cat" }, h("h2", { text: cat }),
-        h("div", { class: "catgrid" }, engine.calculators.filter((c) => c.category === cat).map((c) =>
-          h("a", { href: `#/advisor/${c.id}`, title: c.summary }, h("span", { class: "grow", text: c.name }), icon("chevron")))))),
+        go("#/advisor/stock", "search", "Stock research", "Look up one company: price, risk, fundamentals, filings"),
+        go("#/advisor/calculators", "table", "Calculators", `${engine.calculators.length} calculators, most-used first`),
+        go("#/client", "people", "Client Mode", "Plain-language tools to show a client")),
       h("p", { class: "caption tertiary", text: "Educational calculations. Not investment, tax or legal advice. Independent application; not affiliated with or endorsed by Morgan Stanley." })),
+  };
+}
+const marketWordFor = (v) => (v === null || v === undefined || Number.isNaN(v) ? "" : v >= 20 ? "Offense" : v <= -20 ? "Defense" : "Neutral");
+
+function calculatorsPage() {
+  const link = (c) => h("a", { href: `#/advisor/${c.id}`, title: c.summary }, h("span", { class: "grow", text: c.name }),
+    PRESENT[c.id] ? h("span", { class: "tertiary", title: "Has a Client Mode view", style: "display:inline-flex" }, icon("people")) : null, icon("chevron"));
+  const results = h("div");
+  const paint = (q) => {
+    if (q.trim()) {
+      const hits = search(q.trim(), engine.calculators);
+      fill(results, h("div", { class: "cat" }, h("h2", { text: `${hits.length} match${hits.length === 1 ? "" : "es"}` }),
+        hits.length ? h("div", { class: "catgrid" }, hits.map(link)) : h("p", { class: "secondary", text: "No calculator matches that. Try a shorter word." })));
+      return;
+    }
+    const frequent = FREQUENT.map((id) => engine.calculator(id)).filter(Boolean);
+    const favs = Prefs.favorites.map((id) => engine.calculator(id)).filter(Boolean);
+    const cats = categories(engine.calculators);
+    fill(results,
+      h("div", { class: "cat" }, h("h2", { text: "Frequently used" }), h("div", { class: "catgrid" }, frequent.map(link))),
+      favs.length ? h("div", { class: "cat" }, h("h2", { text: "Favorites" }), h("div", { class: "catgrid" }, favs.map(link))) : null,
+      cats.filter((c) => !TUCKED.includes(c)).map((cat) => h("div", { class: "cat" }, h("h2", { text: cat }),
+        h("div", { class: "catgrid" }, engine.calculators.filter((c) => c.category === cat).map(link)))),
+      cats.filter((c) => TUCKED.includes(c)).map((cat) => h("details", { class: "cat tucked" }, h("summary", {}, h("h2", { text: `${cat} (${engine.calculators.filter((c) => c.category === cat).length})` })),
+        h("div", { class: "catgrid" }, engine.calculators.filter((c) => c.category === cat).map(link)))));
+  };
+  const input = h("input", { type: "search", placeholder: `Search all ${engine.calculators.length} calculators`, "aria-label": "Search calculators", oninput: () => paint(input.value) });
+  paint("");
+  return {
+    title: "Calculators", subtitle: "Advisor Mode",
+    body: h("div", { class: "page wide" },
+      h("div", {}, h("h1", { class: "large", text: "Calculators" }),
+        h("p", { class: "secondary", style: "margin:6px 0 0", text: "Every calculator opens blank; type your own numbers. Formulas, assumptions and sources are on each one. The people icon means it can open the matching Client Mode tool with the same numbers (Present to client)." })),
+      h("label", { class: "stk-field", style: "max-width:520px" }, icon("search"), input),
+      results),
+    mounted: () => input.focus(),
   };
 }
 
@@ -431,6 +512,20 @@ function recordHistory(calc, inputs, ev) {
   if (last && last.calculatorID === calc.id && JSON.stringify(last.inputs) === JSON.stringify(inputs)) return;
   S.history.unshift({ calculatorID: calc.id, inputs: { ...inputs }, summary: `${first.label}: ${Format.value(first.value, first.format)}`, date: new Date() });
   S.history.length = Math.min(S.history.length, 200);
+}
+
+// Advisor calculators whose inputs carry straight into a Client Mode tool (same field names and units).
+const PRESENT = {
+  retirement_timeline: { tool: "retirement", key: "client.retirement" },
+  retirement_mc: { tool: "retirement", key: "client.retirement" },
+  portfolio_stress: { tool: "risk", key: "client.risk" },
+  growth_schedule: { tool: "growth", key: "client.growth" },
+};
+function presentToClient(calc, vals) {
+  const p = PRESENT[calc.id];
+  const typed = Object.fromEntries(Object.entries(vals).filter(([, v]) => String(v ?? "").trim() !== ""));
+  S.client[p.key] = { ...(S.client[p.key] || {}), ...typed };
+  location.hash = `#/client/${p.tool}`;
 }
 
 function calcPage(calc) {
@@ -508,6 +603,7 @@ function calcPage(calc) {
   return {
     title: calc.name, subtitle: calc.category,
     actions: () => [
+      PRESENT[calc.id] ? tbtn("people", "Present to client", () => presentToClient(calc, vals), { help: "Open the Client Mode view with these numbers" }) : null,
       tbtn("wand", "Sample numbers", () => { Object.assign(vals, exampleInputs(calc)); refill(); }, { help: "Fill in illustrative sample numbers (not a client's)" }),
       tbtn("eraser", "Clear", () => { Object.assign(vals, blankInputs(calc)); refill(); }, { help: "Clear all inputs" }),
       tbtn("copy", "Copy results", () => { const t = resultsText(); t ? copy(t) : toast("Nothing to copy yet. Finish the inputs first."); }, { help: "Copy the results as text" }),
@@ -852,6 +948,249 @@ function marketsPage() {
 }
 
 // ---------------------------------------------------------------------------
+// Advisor: Stock research (one ticker). Numbers from stock.js; data through the lookup service.
+
+// GitHub Pages has no server of its own, so it uses the Vercel site's lookup service.
+const STOCK_API = location.hostname.endsWith("github.io") ? "https://da-scene.vercel.app/api/stock" : "api/stock";
+const RANGES = [["1D", null], ["1M", [1, 0]], ["6M", [6, 0]], ["YTD", "ytd"], ["1Y", [0, 1]], ["5Y", [0, 5]], ["10Y", [0, 10]]];
+
+async function loadTickers() {
+  if (data.tickers !== undefined) return;
+  try { data.tickers = await loadJSON(`${STOCK_API}?list=tickers`); } catch { data.tickers = null; }
+}
+function tickerMatches(q) {
+  const t = data.tickers;
+  if (!t || !q) return [];
+  const Q = q.toUpperCase(), out = [];
+  if (t[Q]) out.push(Q);
+  for (const k in t) { if (out.length >= 8) break; if (k !== Q && k.startsWith(Q)) out.push(k); }
+  if (out.length < 8 && Q.length >= 3) for (const k in t) { if (out.length >= 8) break; if (!out.includes(k) && t[k][1].toUpperCase().includes(Q)) out.push(k); }
+  return out;
+}
+async function lookupStock(sym) {
+  sym = sym.trim().toUpperCase().replace(/\./g, "-");
+  if (!sym) return;
+  S.stock = { symbol: sym, loading: true, range: S.stock?.range || "1Y", vsBench: S.stock?.vsBench ?? true };
+  route();
+  await loadTickers();
+  const cik = data.tickers?.[sym]?.[0];
+  try {
+    const r = await fetch(`${STOCK_API}?t=${encodeURIComponent(sym)}${cik ? `&cik=${cik}` : ""}`, { cache: "no-store" });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body.error || `The lookup service answered ${r.status}.`);
+    S.stock = { ...S.stock, loading: false, result: analyze(body), noFacts: !body.facts, factsError: body.factsError, inMap: !!cik };
+  } catch (e) {
+    S.stock = { ...S.stock, loading: false, error: e.message === "Failed to fetch" ? "Couldn't reach the lookup service. Check the connection and try again." : e.message };
+  }
+  if (location.hash === "#/advisor/stock") route();
+}
+
+const pct1 = (v) => (v === null || v === undefined ? "—" : `${v >= 0 ? "+" : "−"}${Math.abs(v * 100).toFixed(1)}%`);
+const pct2 = (v) => (v === null || v === undefined ? "—" : `${(v * 100).toFixed(2)}%`);
+const mult = (v) => (v === null || v === undefined ? "—" : `${v.toFixed(1)}×`);
+const money2 = (v) => (v === null || v === undefined ? "—" : Format.plain(v, 2));
+const big = (v) => (v === null || v === undefined ? "—" : Math.abs(v) >= 1e12 ? `${v < 0 ? "−" : ""}$${(Math.abs(v) / 1e12).toFixed(2)}T` : Format.compact(v));
+const monthYear = (d) => (d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }) : "—");
+const longDate = (d) => (d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : "—");
+
+function stockSearch() {
+  const input = h("input", { type: "search", placeholder: "Ticker symbol, e.g. AAPL", value: S.stock?.symbol || "", "aria-label": "Ticker symbol",
+    autocomplete: "off", spellcheck: "false", style: "text-transform:uppercase" });
+  const list = h("div", { class: "stk-suggest", role: "listbox" });
+  const paint = () => fill(list, tickerMatches(input.value.trim()).map((k) => h("button", { role: "option", onclick: () => { input.value = k; list.replaceChildren(); lookupStock(k); } },
+    h("strong", { text: k }), h("span", { text: data.tickers[k][1] }))));
+  input.addEventListener("input", () => { if (data.tickers === undefined) loadTickers().then(paint); else paint(); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { list.replaceChildren(); lookupStock(input.value); } if (e.key === "Escape") list.replaceChildren(); });
+  return h("div", { class: "stk-search" },
+    h("label", { class: "stk-field" }, icon("search"), input),
+    h("button", { class: "btn primary", text: "Look up", onclick: () => { list.replaceChildren(); lookupStock(input.value); } }),
+    list);
+}
+
+function priceChartCard(r) {
+  const st = S.stock, A = cssVar("--accent"), G = cssVar("--secondary");
+  const seg = h("div", { class: "seg", role: "group", "aria-label": "Chart range" }, RANGES.map(([k]) =>
+    h("button", { class: st.range === k ? "on" : null, text: k, onclick: () => { S.stock.range = k; route(); } })));
+  let body;
+  if (st.range === "1D") {
+    const pts = r.intraday;
+    body = pts.length < 2 ? h("div", { class: "secondary", text: "No trading yet today." }) :
+      chart("line", { labels: pts.map(([t]) => new Date(t * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })),
+        datasets: [{ label: r.symbol, data: pts.map((p) => p[1]), borderColor: A, backgroundColor: A, borderWidth: 2 }] },
+      { legend: false, zero: false, money: false, maxXTicks: 6, label: `${r.symbol} today`, tooltip: (c) => `${r.symbol}: ${money2(c.parsed.y)}`,
+        lines: r.quote.prevClose ? { y: [{ value: r.quote.prevClose, color: rgba("#8e8e93", 0.7) }] } : {} });
+  } else {
+    const days = r.chart.days, last = days[days.length - 1], spec = RANGES.find(([k]) => k === st.range)[1];
+    let from;
+    if (spec === "ytd") from = `${Number(last.slice(0, 4)) - 1}-12-31`;
+    else { const d = new Date(last + "T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() - spec[0] - 12 * spec[1]); from = d.toISOString().slice(0, 10); }
+    let i0 = days.findIndex((d) => d >= from); if (i0 > 0 && days[i0] > from) i0--; if (i0 < 0) i0 = 0;
+    const idx = days.slice(i0).map((_, j) => i0 + j);
+    const step = Math.max(1, Math.floor(idx.length / 600));
+    const pick = idx.filter((_, j) => j % step === 0 || j === idx.length - 1);
+    const labels = pick.map((i) => days[i]);
+    let datasets, o;
+    if (st.vsBench) {
+      const bm = new Map(r.chart.bench);
+      const base = r.chart.adj[pick[0]], bBase = bm.get(days[pick[0]]);
+      datasets = [{ label: r.symbol, data: pick.map((i) => (r.chart.adj[i] / base) * 100), borderColor: A, backgroundColor: A, borderWidth: 2 },
+        bBase ? { label: "S&P 500 (SPY)", data: pick.map((i) => (bm.has(days[i]) ? (bm.get(days[i]) / bBase) * 100 : null)), borderColor: G, backgroundColor: G, borderWidth: 1.5, spanGaps: true } : null].filter(Boolean);
+      o = { money: false, zero: false, maxXTicks: 8, label: `${r.symbol} against the S&P 500, growth of 100`, tooltip: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`,
+        lines: { y: [{ value: 100, color: rgba("#8e8e93", 0.6) }] } };
+    } else {
+      datasets = [{ label: r.symbol, data: pick.map((i) => r.chart.close[i]), borderColor: A, backgroundColor: A, borderWidth: 2 }];
+      o = { money: false, zero: false, legend: false, maxXTicks: 8, label: `${r.symbol} price`, tooltip: (c) => `${r.symbol}: ${money2(c.parsed.y)}` };
+    }
+    body = chart("line", { labels: labels.map((d) => longDate(d)), datasets }, o);
+  }
+  return card("Price", h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap" },
+    st.range === "1D" ? null : h("label", { class: "caption secondary", style: "display:flex;gap:6px;align-items:center" },
+      h("input", { type: "checkbox", checked: st.vsBench, onchange: (e) => { S.stock.vsBench = e.target.checked; route(); } }), "Compare with S&P 500"),
+    seg), body,
+  h("div", { class: "caption tertiary", text: st.range === "1D" ? "Today, 5-minute prices; the dashed line is yesterday's close."
+    : st.vsBench ? "Growth of 100 with dividends reinvested, for the stock and SPY (an S&P 500 fund)." : "Closing prices, adjusted for splits." }));
+}
+
+function stockPage() {
+  const st = S.stock;
+  const head = h("div", {}, h("h1", { class: "large", text: "Stock research" }),
+    h("p", { class: "callout secondary", style: "margin:4px 0 0", text: "One company at a time: price history, risk, fundamentals from SEC filings, valuation and filings. Facts and history only. No ratings, targets or recommendations." }));
+  const privacy = h("p", { class: "note", text: "Looking up a symbol sends only that symbol to Wealth Desk's lookup service, which fetches public data from Yahoo Finance and the SEC and sends it back. Nothing is saved; the result stays in this tab's memory until you clear the session or close it." });
+  let content = [];
+  if (!st) content = [unavailable("search", "Look up a stock", "Type a ticker symbol above. Suggestions come from the SEC's list of listed companies.")];
+  else if (st.loading) content = [h("div", { class: "secondary", text: `Looking up ${st.symbol}…` })];
+  else if (st.error) content = [unavailable("warn", `Couldn't look up ${st.symbol}`, st.error)];
+  else content = stockResult(st.result, st);
+  return {
+    title: "Stock research", subtitle: st?.result ? `${st.result.symbol} · ${st.result.name || ""}` : "",
+    actions: () => [st?.result ? tbtn("refresh", "Refresh", () => lookupStock(st.symbol), { help: "Fetch the latest data again" }) : null,
+      tbtn("doc", "PDF", () => { st?.result ? window.print() : toast("Look up a stock first."); }, { help: "Print, or choose Save as PDF in the print dialog" })].filter(Boolean),
+    body: h("div", { class: "page wide" }, printHead("Stock research", st?.result?.symbol || ""), head, stockSearch(), ...content, privacy),
+  };
+}
+
+function stockResult(r, st) {
+  const q = r.quote, v = r.valuation, rk = r.risk, dv = r.dividends;
+  const up = (q.change ?? 0) >= 0;
+  const fin = r.company && /bank|insur|financ|savings|credit|reit|real estate invest/i.test(r.company.sic || "");
+  const pos52 = q.high52 && q.low52 && q.high52 > q.low52 ? Math.min(1, Math.max(0, (q.price - q.low52) / (q.high52 - q.low52))) : null;
+
+  const quote = h("section", { class: "card stk-quote" },
+    h("div", { class: "stk-q1" },
+      h("div", {}, h("div", { class: "stk-sym", text: r.symbol }), h("div", { class: "secondary", text: [r.name, r.exchange, r.company?.sic].filter(Boolean).join(" · ") })),
+      h("div", { style: "text-align:right" }, h("div", { class: "stk-px tnum", text: money2(q.price) + (r.currency !== "USD" ? " " + r.currency : "") }),
+        h("div", { class: "tnum " + (up ? "up" : "down"), text: q.change === null ? "" : `${up ? "+" : "−"}${Math.abs(q.change).toFixed(2)} (${pct2(Math.abs(q.changePct)).replace(/^/, up ? "+" : "−")}) today` }))),
+    pos52 === null ? null : h("div", { class: "stk-52" }, h("span", { class: "caption secondary tnum", text: `52-week low ${money2(q.low52)}` }),
+      h("div", { class: "stk-52bar" }, h("i", { style: `left:${pos52 * 100}%` })), h("span", { class: "caption secondary tnum", text: `high ${money2(q.high52)}` })),
+    h("div", { class: "stk-kv" },
+      kv("Market value", big(v.marketCap)), kv("P/E (trailing)", mult(v.pe)), kv("Dividend yield", pct2(v.divYield)),
+      kv("1-year return", pct1(r.returns.find((x) => x.key === "1Y")?.stock)), kv("Beta (5 years)", rk.beta5y === null ? "—" : rk.beta5y.toFixed(2))),
+    h("div", { class: "caption tertiary", text: `Delayed quote, last trading day ${longDate(q.lastDay)}. Market value = price × shares outstanding from the latest filing${r.balance.sharesAsOf ? ` (${longDate(r.balance.sharesAsOf)})` : ""}.` }));
+
+  const returns = card("Returns", h("span", { class: "caption secondary", text: "Dividends reinvested · 3, 5 and 10 years are per year" }),
+    h("div", { class: "scrollx" }, h("table", { class: "grid" },
+      h("thead", {}, h("tr", {}, h("th", { class: "l", text: "" }), r.returns.map((x) => h("th", { text: x.key })))),
+      h("tbody", {},
+        h("tr", {}, h("td", { class: "l", text: r.symbol }), r.returns.map((x) => h("td", { class: x.stock === null ? "" : x.stock >= 0 ? "up" : "down", text: pct1(x.stock) }))),
+        h("tr", {}, h("td", { class: "l secondary", text: "S&P 500 (SPY)" }), r.returns.map((x) => h("td", { class: "secondary", text: pct1(x.bench) }))),
+        h("tr", {}, h("td", { class: "l secondary", text: "Difference" }), r.returns.map((x) => h("td", { class: "secondary", text: x.stock === null || x.bench === null ? "—" : pct1(x.stock - x.bench) })))))));
+
+  const risk = card("Risk", null, h("div", { class: "spreads stk-tiles" },
+    tileV("Volatility, last year", pct1(rk.vol1y).replace("+", ""), `S&P 500: ${pct1(rk.benchVol1y).replace("+", "")}`),
+    tileV("Beta (5 years, monthly)", rk.beta5y === null ? "—" : rk.beta5y.toFixed(2), rk.beta5y === null ? `Needs 24 months (has ${rk.betaMonths})` : `${rk.betaMonths} months against SPY`),
+    tileV("Largest fall (10 years)", rk.maxDD === undefined ? "—" : "−" + (rk.maxDD * 100).toFixed(1) + "%", rk.peakDay ? `${monthYear(rk.peakDay)} to ${monthYear(rk.troughDay)}; ${rk.recoveryDay ? "back by " + monthYear(rk.recoveryDay) : "not yet recovered"}` : ""),
+    tileV("Below its 10-year high", rk.currentDD === undefined ? "—" : (rk.currentDD < 0.0005 ? "At the high" : "−" + (rk.currentDD * 100).toFixed(1) + "%"), "Dividends reinvested")),
+    h("div", { class: "caption tertiary", text: "Volatility: how much daily returns swing, per year. Beta: how much the stock has tended to move when the S&P 500 moves 1%. Both describe the past, not the future." }));
+
+  const T = { overview: [quote, priceChartCard(r), returns, risk], financials: [], valuation: [], filings: [] };
+  let out = T.financials;
+
+  if (!r.annual.length) {
+    T.valuation.push(card("Fundamentals", null, h("p", { class: "secondary", text: st.inMap === false
+      ? "This symbol isn't on the SEC's list of operating companies (funds and many foreign companies aren't), so only price data is shown."
+      : st.factsError || (data.tickers === null ? "The SEC's company list couldn't be loaded, so fundamentals aren't shown." : "The SEC has no financial statements in XBRL for this company.") })));
+  } else {
+    const med = v.medians;
+    const vt = (label, now, m, fmt, note) => tileV(label, fmt(now), m === null || m === undefined ? note || "No 10-year median" : `10-year median ${fmt(m)}`);
+    T.valuation.push(card("Company size", null, h("div", { class: "stk-kv" },
+      kv("Market value", big(v.marketCap)), kv("Enterprise value", fin ? "n/m" : big(v.ev)), kv("Cash", big(r.balance.cash)), kv("Long-term debt", big(r.balance.debt)),
+      kv("Shares outstanding", r.balance.sharesOut ? (r.balance.sharesOut / 1e9).toFixed(2) + "B" : "—")),
+      h("div", { class: "caption tertiary", text: `Enterprise value = market value + long-term debt − cash, from the latest balance sheet${r.balance.cashAsOf ? ` (${longDate(r.balance.cashAsOf)})` : ""}.` })));
+    T.valuation.push(card("Valuation", h("span", { class: "caption secondary", text: `Trailing 12 months through ${longDate(r.ttm.epsThrough || r.ttm.revenueThrough)}` }),
+      h("div", { class: "spreads stk-tiles" },
+        vt("Price / earnings", v.pe, med.pe, mult, r.ttm.eps !== null && r.ttm.eps <= 0 ? "Earnings negative, so n/m" : null),
+        vt("Price / sales", v.ps, med.ps, mult),
+        tileV("Price / book", mult(v.pb), "Book = shareholders' equity"),
+        fin ? tileV("EV / EBITDA", "n/m", "Not meaningful for banks and insurers") : vt("EV / EBITDA", v.evEbitda, med.evEbitda, mult),
+        fin ? tileV("Free cash flow yield", "n/m", "Not meaningful for banks and insurers") : vt("Free cash flow yield", v.fcfYield, med.fcfYield, pct2),
+        tileV("Dividend yield", pct2(v.divYield), dv.growth5 === null ? "No 5-year dividend growth" : `Dividend grew ${pct1(dv.growth5).replace("+", "")} a year over 5 years`)),
+      h("div", { class: "caption tertiary", text: "Medians use each fiscal year-end's share price with that year's results. Today's figures use the latest price with trailing-12-month results. History is context, not a sign of what comes next." })));
+
+    const A = cssVar("--accent"), G = cssVar("--secondary");
+    out.push(card("Revenue and earnings", h("span", { class: "caption secondary", text: r.growth.revenueCAGR === null ? "" : `Revenue ${pct1(r.growth.revenueCAGR).replace("+", "")} a year · EPS ${r.growth.epsCAGR === null ? "—" : pct1(r.growth.epsCAGR).replace("+", "")} a year over ${r.growth.years.toFixed(0)} years` }),
+      chart("bar", { labels: r.annual.map((x) => monthYear(x.end)), datasets: [
+        { label: "Revenue", data: r.annual.map((x) => x.revenue), backgroundColor: rgba(A, 0.85) },
+        { label: "Net income", data: r.annual.map((x) => x.netIncome), backgroundColor: rgba(G, 0.7) }] },
+      { label: "Revenue and net income by fiscal year", tooltip: (c) => `${c.dataset.label}: ${big(c.parsed.y)}` })));
+
+    const rows = [
+      ["Revenue", "revenue", big], ["Revenue growth", "revGrowth", pct1], ["Gross margin", "grossMargin", pct2], ["Operating income", "opIncome", big],
+      ["Operating margin", "opMargin", pct2], ["Net income", "netIncome", big], ["Net margin", "netMargin", pct2], ["Diluted EPS", "eps", money2],
+      ["EPS growth", "epsGrowth", pct1], ["Operating cash flow", "ocf", big], ["Capital spending", "capex", big], ["Free cash flow", "fcf", big],
+      ["FCF margin", "fcfMargin", pct2], ["Diluted shares", "shares", (x) => (x === null ? "—" : (x / 1e9).toFixed(2) + "B")],
+      ["Cash", "cash", big], ["Long-term debt", "debt", big], ["Shareholders' equity", "equity", big], ["Dividends per share", "dps", money2],
+      ["Year-end price", "price", money2], ["P/E at year end", "pe", mult], ["P/S at year end", "ps", mult],
+    ];
+    const ttmCol = { revenue: r.ttm.revenue, opIncome: r.ttm.opIncome, netIncome: r.ttm.netIncome, eps: r.ttm.eps, ocf: r.ttm.ocf, capex: r.ttm.capex, fcf: r.ttm.fcf };
+    out.push(card("Financial statements", h("span", { class: "caption secondary", text: "Fiscal years from 10-K filings · per-share figures on today's share basis" }),
+      h("div", { class: "scrollx" }, h("table", { class: "grid stk-fin" },
+        h("thead", {}, h("tr", {}, h("th", { class: "l", text: "" }), r.annual.map((x) => h("th", { text: monthYear(x.end) })), h("th", { text: "TTM" }))),
+        h("tbody", {}, rows.map(([label, k, f]) => h("tr", {}, h("td", { class: "l", text: label }),
+          r.annual.map((x) => h("td", { text: f(x[k]) })), h("td", { class: "secondary", text: k in ttmCol ? f(ttmCol[k]) : "" })))))),
+      h("div", { class: "caption tertiary", text: "Each figure is the most recently filed value for that period, so restated numbers replace originals. TTM = last fiscal year + this year to date − the same period last year. Blank (—) means the company doesn't report that line in a standard form." })));
+  }
+
+  if (!r.annual.length) T.financials.push(T.valuation[0]);
+  if (r.filings.length) T.filings.push(card("Recent SEC filings", null, h("div", { class: "stk-filings" }, r.filings.map((f) =>
+    h("a", { href: f.url, target: "_blank", rel: "noopener noreferrer" }, h("span", { class: "tnum secondary", text: longDate(f.date) }), h("strong", { text: f.form }),
+      h("span", { class: "grow", text: f.description === f.form ? "" : f.description }), icon("chevron")))),
+    h("div", { class: "caption tertiary", text: "Opens the filing on sec.gov." })));
+
+  const pctField = (x) => (x === null || x === undefined ? undefined : Format.plain(x * 100, 2));
+  const send = (id, label, vals) => h("button", { class: "btn", text: label, onclick: () => openCalculator(id, Object.fromEntries(Object.entries(vals).filter(([, x]) => x !== undefined))) });
+  const r5 = r.returns.find((x) => x.key === "5Y")?.stock;
+  out = T.overview;
+  out.push(card("Use these numbers in a calculator", null,
+    h("div", { style: "display:flex;gap:8px;flex-wrap:wrap" },
+      send("position_pl", "Position gain/loss", { price: Format.plain(q.price, 4) }),
+      send("position_size", "Position sizing", { price: Format.plain(q.price, 4) }),
+      dv.ttm > 0 ? send("ddm", "Dividend discount model", { d0: Format.plain(dv.ttm, 4), price: Format.plain(q.price, 4) }) : null,
+      dv.yield > 0 ? send("dividend_income", "Dividend income growth", { y: pctField(dv.yield), g: pctField(dv.growth5) }) : null,
+      rk.beta5y !== null ? send("capm", "CAPM expected return", { b: Format.plain(rk.beta5y, 3) }) : null,
+      r5 !== null && rk.vol1y !== null ? send("sharpe", "Sharpe ratio", { r: pctField(r5), sd: pctField(rk.vol1y) }) : null),
+    h("div", { class: "caption tertiary", text: "Fills in what's known from this stock (price, dividend, beta, past return and volatility). Past growth and returns are filled in only as a starting point; change them to your own assumptions." })));
+
+  const m = data.roro;
+  if (m) {
+    const sum = clientMarketSummary(m);
+    if (sum) out.push(card("Market backdrop", h("a", { class: "callout", href: "#/advisor/roro", text: "RoRo Composite" }),
+      h("p", { class: "secondary", style: "margin:0", text: `${sum.headline} This describes overall market conditions, not this stock, and it doesn't predict returns.` })));
+  }
+
+  if (!T.filings.length) T.filings.push(card("Recent SEC filings", null, h("p", { class: "secondary", text: "No SEC filings are available for this symbol." })));
+  const tabs = [["overview", "Overview"], ["financials", "Financials"], ["valuation", "Valuation"], ["filings", "Filings"]];
+  const tab = T[st.tab] ? st.tab : "overview";
+  const result = [h("div", { class: "seg wide stk-tabs", role: "tablist", "aria-label": "Stock research sections" }, tabs.map(([k, label]) =>
+    h("button", { role: "tab", "aria-selected": String(tab === k), class: tab === k ? "on" : null, text: label, onclick: () => { S.stock.tab = k; route(); } }))),
+    ...T[tab]];
+  out = result;
+  out.push(h("p", { class: "note", text: `Sources: prices, dividends and splits from Yahoo Finance's chart feed (unofficial and unlicensed; quotes are delayed). Financial statements and filings from SEC EDGAR (official XBRL company facts and filing index). S&P 500 comparison uses SPY, an exchange-traded fund that tracks it. Figures can contain errors in the source data. This is factual information for education and discussion, not a recommendation to buy, sell or hold any security.` }));
+  return out;
+}
+const kv = (k, v) => h("div", {}, h("div", { class: "caption secondary", text: k }), h("div", { class: "tnum stk-kvv", text: v }));
+const tileV = (t, v, sub) => h("div", { class: "sptile" }, h("div", { class: "callout secondary", text: t }), h("div", { class: "v", text: v }), sub ? h("div", { class: "caption secondary", text: sub }) : null);
+
+// ---------------------------------------------------------------------------
 // Advisor: RoRo Composite
 
 const signed = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v) ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : "+"}${Math.abs(v).toFixed(d)}`);
@@ -1137,6 +1476,12 @@ function inputRow(key, calcID, field, onChange) {
     slider);
 }
 const inputs = (key, calcID, fields, on) => fields.map((f) => inputRow(key, calcID, f, on));
+// Optional inputs, folded under "More assumptions"; open when any of them has a value.
+function more(key, fields, note, ...kids) {
+  const d = h("details", { class: "igroup more" }, h("summary", { class: "cap-title", text: "More assumptions" }), note ? h("p", { class: "note", text: note }) : null, ...kids);
+  d.open = fields.some((f) => String(raw(key, f.id)).trim() !== "");
+  return d;
+}
 const group = (title, note, ...kids) => h("div", { class: "igroup" }, h("p", { class: "cap-title", text: title }), note ? h("p", { class: "note", text: note }) : null, ...kids);
 const headline = (text, cap) => h("div", { class: "headline" }, h("div", { class: "big", text }), cap ? h("div", { class: "cap", text: cap }) : null);
 const stat = (label, value, cap, neg) => h("div", { class: "stat" }, h("div", { class: "lbl", text: label }),
@@ -1199,7 +1544,8 @@ function growthTool(tool) {
   const run = () => clientRun("client.growth", "growth_schedule", Spec.growth);
   return toolPage(tool, (on) => [
     group("Your numbers", "Leave “taken out” empty if nothing is withdrawn.", inputs("client.growth", "growth_schedule", Spec.growth.slice(0, 3), on)),
-    group("Assumptions", "These are yours to set. A return is an assumption, not a promise.", inputs("client.growth", "growth_schedule", Spec.growth.slice(3), on)),
+    group("Assumptions", "These are yours to set. A return is an assumption, not a promise.", inputs("client.growth", "growth_schedule", Spec.growth.slice(3, 5), on)),
+    more("client.growth", Spec.growth.slice(5), "Inflation shows what the ending balance would buy in today's dollars.", inputs("client.growth", "growth_schedule", Spec.growth.slice(5), on)),
   ], () => {
     const c = run();
     if (!c?.ok || !c.ev.table) return needsInput(c);
@@ -1245,7 +1591,9 @@ function retirementTool(tool) {
   const t = () => clientRun("client.retirement", "retirement_timeline", Spec.retirement);
   return toolPage(tool, (on) => [
     group("About you", null, inputs("client.retirement", "retirement_mc", Spec.retirementYou, on)),
-    group("Assumptions", "Leave volatility empty for a single steady path, or enter it to see a range of outcomes.", inputs("client.retirement", "retirement_mc", Spec.retirementAssumptions, on)),
+    group("Assumptions", "A return is an assumption, not a promise.", inputs("client.retirement", "retirement_mc", Spec.retirementAssumptions.slice(0, 3), on)),
+    more("client.retirement", Spec.retirementAssumptions.slice(3), "Optional. Leave volatility empty for a single steady path, or enter it to see a range of outcomes. Enter a tax rate to include tax on withdrawals.",
+      inputs("client.retirement", "retirement_mc", Spec.retirementAssumptions.slice(3), on)),
   ], () => {
     const c = t();
     const hasVol = !blank(raw("client.retirement", "sd"));
@@ -1308,7 +1656,8 @@ function riskTool(tool) {
   };
   return toolPage(tool, (on, refill) => [
     group("Portfolio", "Whatever isn't in stocks or bonds is treated as cash.", inputs("client.risk", "portfolio_stress", Spec.risk.slice(0, 3), on)),
-    group("What if…", "You choose the scenario. This shows what would happen if it occurred, not how likely it is.", inputs("client.risk", "portfolio_stress", Spec.risk.slice(3), on)),
+    group("What if…", "You choose the scenario. This shows what would happen if it occurred, not how likely it is.", inputs("client.risk", "portfolio_stress", Spec.risk.slice(3, 5), on)),
+    more("client.risk", Spec.risk.slice(5), "Optional: how sensitive the bonds are to rates, inflation over the period, and any money taken out.", inputs("client.risk", "portfolio_stress", Spec.risk.slice(5), on)),
     group("Compare another mix", null,
       h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: S.compare, onchange: (e) => { S.compare = e.target.checked; refill(); on(); } }), "Show a second mix side by side"),
       S.compare ? inputs("client.risk.B", "portfolio_stress", [F("we", "Stocks (mix B)", 0, 100, 5), F("wb", "Bonds (mix B)", 0, 100, 5)], on) : null),
@@ -1529,7 +1878,7 @@ function marketTool(tool) {
 // ---------------------------------------------------------------------------
 // Router
 
-const ADVISOR_PAGES = { roro: roroPage, markets: marketsPage, calculator: padPage, scenarios: scenariosPage, history: historyPage };
+const ADVISOR_PAGES = { roro: roroPage, markets: marketsPage, stock: stockPage, calculators: calculatorsPage, calculator: padPage, scenarios: scenariosPage, history: historyPage };
 
 function route() {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
@@ -1538,7 +1887,10 @@ function route() {
   if (mode === "advisor") {
     if (sub === "roro" && data.roro === undefined) loadRoRo().then(route);
     if (sub === "markets" && data.markets === undefined) loadMarkets().then(route);
+    if (sub === "stock" && data.roro === undefined) loadRoRo().then(route);
+    if (sub === "stock" && data.tickers === undefined) loadTickers();
     if (!sub) return show(advisorHome(), { mode, selected: "home" });
+    if (sub === "home") { location.replace("#/advisor"); return; }
     if (ADVISOR_PAGES[sub]) return show(ADVISOR_PAGES[sub](), { mode, selected: sub });
     const calc = engine.calculator(sub);
     return calc ? show(calcPage(calc), { mode, selected: calc.id })

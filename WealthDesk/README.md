@@ -3,7 +3,7 @@
 A native macOS app for financial education and illustration. Independent software: not affiliated with, endorsed by, or approved by Morgan Stanley or any other firm.
 
 - **Client Mode:** five plain-language tools with sliders and charts (growth, retirement, risk, decisions, taxes and inflation).
-- **Advisor Mode:** 109 calculators with formulas, assumptions, Excel equivalents and sources; a scientific calculator; Markets (Treasury curve, watchlist); the native RoRo Composite dashboard.
+- **Advisor Mode:** four destinations. **Market Brief** (the landing page: the RoRo Composite's overall reading, as-of date and three horizon scores, with factors, history and methodology one click deeper), **Stock research** (one ticker: overview, financials, valuation and filings tabs), **Calculators** (109 calculators with formulas, assumptions, Excel equivalents and sources; most-used first, everyday math folded away, all searchable) and **Client Mode**. Retirement, portfolio stress and growth calculators have **Present to client**, which opens the matching Client Mode tool with the same numbers. Tools: Treasury yields and quotes, a scientific calculator, session scenarios and history.
 - **Privacy by design:** calculators open blank. Typed numbers live in memory only and are erased on quit. Nothing typed is ever transmitted. Scenario files (optionally AES-256 password-protected) and PDF reports are written only when the user chooses, where they choose. The app is sandboxed: network client access and user-selected files only.
 - **Accuracy:** every calculator is independently audited (`docs/ACCURACY_AUDIT.md`), and the shipped engine is checked against the reference on every build (`wdcheck`).
 
@@ -41,6 +41,15 @@ web/build.sh --full --serve   # then serve at http://localhost:8765
 ```
 
 Pushing to `main` (or the weekday schedule) publishes it to GitHub Pages (`.github/workflows/wealthdesk-web.yml`).
+
+## Stock research
+
+One ticker at a time, facts and history only (no ratings, targets or recommendations).
+
+- **Numbers:** `web/stock.js` (web), `Sources/WealthCore/Stock.swift` (Mac) and `tools/stock_reference.py` (an independent reference that spells out every rule) are checked against each other on saved public data in `Tests/stock_fixtures` by `node web/stock-check.mjs` (which also checks figures read straight from the 10-Ks and 10-Qs). Refresh the fixtures with `python3 tools/stock_fixtures.py`.
+- **Data:** prices, dividends and splits from Yahoo's chart feed; financial statements (XBRL company facts) and the filing list from SEC EDGAR; SPY stands in for the S&P 500.
+- **Lookup service:** browsers can't read those feeds, so the web version asks `api/stock.mjs`, a Vercel function at the repo root (GitHub Pages calls the Vercel one). The Mac app fetches prices from Yahoo itself and SEC data through the same service. The SEC asks automated tools to name a contact: set `SEC_CONTACT` in the Vercel project's environment variables; without it, the ticker list (and so fundamentals) is unavailable and only price data shows. Only the symbol is sent; nothing is stored or logged.
+- **Local preview with the lookup:** `web/build.sh && node web/dev-server.mjs` (port 8766). Without `SEC_CONTACT` it offers just the fixture companies.
 
 ## How it fits together
 
@@ -93,4 +102,4 @@ Formula language: `+ - * / ^`, comparisons, `if(c,a,b)`, element-wise list math,
 
 ## Data and privacy
 
-Preferences only (no calculator inputs) are stored in the app's sandbox container. The only network calls are the Markets page (Treasury.gov and Yahoo Finance), the RoRo page (FRED and Yahoo), both on open or Refresh, and the daily IRS.gov check for newer tax figures; sources open in the browser only when clicked. Calculations only, not investment, tax or legal advice.
+Preferences only (no calculator inputs) are stored in the app's sandbox container. The only network calls are the Markets page (Treasury.gov and Yahoo Finance), the RoRo page (FRED and Yahoo), both on open or Refresh, Stock research (the looked-up symbol to Yahoo and to Wealth Desk's lookup service for SEC data, only when you look one up), and the daily IRS.gov check for newer tax figures; sources open in the browser only when clicked. Calculations only, not investment, tax or legal advice.

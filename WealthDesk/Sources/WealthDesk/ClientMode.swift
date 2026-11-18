@@ -543,7 +543,10 @@ struct GrowthTool: View {
                 ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.prefix(3)))
             }
             InputGroup(title: "Assumptions", note: "These are yours to set. A return is an assumption, not a promise.") {
-                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.dropFirst(3)))
+                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.dropFirst(3).prefix(2)))
+            }
+            MoreAssumptions(key: "client.growth", ids: ClientSpec.growth.dropFirst(5).map(\.id), note: "Inflation shows what the ending balance would buy in today's dollars.") {
+                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.dropFirst(5)))
             }
         } results: {
             if let c, c.ok, let table = c.eval.table {
@@ -641,8 +644,12 @@ struct RetirementTool: View {
             InputGroup(title: "About you") {
                 ClientInputs(key: "client.retirement", calcID: "retirement_mc", fields: ClientSpec.retirementYou)
             }
-            InputGroup(title: "Assumptions", note: "Leave volatility empty for a single steady path, or enter it to see a range of outcomes.") {
-                ClientInputs(key: "client.retirement", calcID: "retirement_mc", fields: ClientSpec.retirementAssumptions)
+            InputGroup(title: "Assumptions", note: "A return is an assumption, not a promise.") {
+                ClientInputs(key: "client.retirement", calcID: "retirement_mc", fields: Array(ClientSpec.retirementAssumptions.prefix(3)))
+            }
+            MoreAssumptions(key: "client.retirement", ids: ClientSpec.retirementAssumptions.dropFirst(3).map(\.id),
+                            note: "Optional. Leave volatility empty for a single steady path, or enter it to see a range of outcomes. Enter a tax rate to include tax on withdrawals.") {
+                ClientInputs(key: "client.retirement", calcID: "retirement_mc", fields: Array(ClientSpec.retirementAssumptions.dropFirst(3)))
             }
         } results: {
             if let t, t.ok, let table = t.eval.table {
@@ -772,7 +779,10 @@ struct RiskTool: View {
                 ClientInputs(key: "client.risk", calcID: "portfolio_stress", fields: Array(ClientSpec.risk.prefix(3)))
             }
             InputGroup(title: "What if…", note: "You choose the scenario. This shows what would happen if it occurred, not how likely it is.") {
-                ClientInputs(key: "client.risk", calcID: "portfolio_stress", fields: Array(ClientSpec.risk.dropFirst(3)))
+                ClientInputs(key: "client.risk", calcID: "portfolio_stress", fields: Array(ClientSpec.risk.dropFirst(3).prefix(2)))
+            }
+            MoreAssumptions(key: "client.risk", ids: ClientSpec.risk.dropFirst(5).map(\.id), note: "Optional: how sensitive the bonds are to rates, inflation over the period, and any money taken out.") {
+                ClientInputs(key: "client.risk", calcID: "portfolio_stress", fields: Array(ClientSpec.risk.dropFirst(5)))
             }
             InputGroup(title: "Compare another mix") {
                 Toggle("Show a second mix side by side", isOn: $compare)

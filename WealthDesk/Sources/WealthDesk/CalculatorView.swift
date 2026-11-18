@@ -49,6 +49,10 @@ struct CalculatorView: View {
         .navigationSubtitle(calc.category)
         .toolbar {
             ToolbarItemGroup {
+                if let p = AdvisorFlow.present[calc.id] {
+                    Button { state.presentToClient(calc.id) } label: { Label("Present to client", systemImage: "person.2") }
+                        .help("Open the Client Mode view (\(ClientSpec.title(p.tool))) with these numbers")
+                }
                 Button { state.fillSampleNumbers(calc) } label: { Label("Sample numbers", systemImage: "wand.and.stars") }
                     .help("Fill in illustrative sample numbers (not a client's)")
                 Button { state.clearInputs(calc) } label: { Label("Clear", systemImage: "eraser") }
