@@ -447,6 +447,20 @@ export const Scientific = {
 // ---------------------------------------------------------------------------
 // Tax tables
 
+/** taxdata.json with the state tables from statetax.json attached to every tax year
+ *  (same rule as with_states in tools/build_catalog.py and TaxData.withStates in Swift). */
+export function withStates(taxJson, stateJson) {
+  if (!stateJson) return taxJson;
+  return {
+    ...taxJson,
+    tables: taxJson.tables.map((t) => ({
+      ...t,
+      states: t.taxYear === stateJson.taxYear ? stateJson
+        : { ...stateJson, notes: [`${t.taxYear} state figures are not yet published; ${stateJson.taxYear} state tables are used.`, ...stateJson.notes] },
+    })),
+  };
+}
+
 export class TaxTable {
   constructor(json) { Object.assign(this, json); }
   key(status) {
@@ -480,6 +494,144 @@ export class TaxTable {
     return NaN;
   }
   standardDeductionFor(status) { return this.standardDeduction[this.key(status)]; }
+
+  // ── State income tax: mirrors StateTax.swift and tools/build_catalog.py step for step ──
+  state(value) {
+    const v = trunc(value);
+    if (v === 0) return null;
+    const s = this.states?.list.find((x) => x.value === v);
+    if (!s) fail("Unknown state.");
+    return s;
+  }
+  static skey(status, table) {
+    const st = trunc(status);
+    if (st === 2) return "married";
+    if (st === 3 && table.hoh !== undefined) return "hoh";
+    return "single";
+  }
+  static bracketTax(b, x) {
+    let tax = 0;
+    for (let i = 0; i < b.length; i++) {
+      const floor = b[i][0], rate = b[i][1], top = i + 1 < b.length ? b[i + 1][0] : Infinity;
+      if (x > floor) tax += (Math.min(x, top) - floor) * rate;
+    }
+    return tax;
+  }
+  static steps(n, start, width) { return n > start ? Math.ceil((n - start) / width - 1e-9) : 0; }
+  static roundHalfUp(x, places = 0) { const m = 10 ** places; return Math.floor(x * m + 0.5 + 1e-7) / m; }
+  static bracketIndex(b, x) { let j = 0; for (let i = 0; i < b.length; i++) if (x > b[i][0]) j = i; return j; }
+  /** New York worksheet amounts for bracket j: recapture base and incremental benefit. */
+  static recaptureParts(b, j) {
+    const bk = b[j][0];
+    const base = TaxTable.roundHalfUp(bk * b[j - 1][1] - TaxTable.bracketTax(b, bk));
+    const total = TaxTable.roundHalfUp(bk * b[j][1] - TaxTable.bracketTax(b, bk));
+    return [base, total - base];
+  }
+  static stateTaxable(s, agi, status) {
+    const K = TaxTable.skey;
+    let ded = s.deduction[K(status, s.deduction)];
+    if (s.deductionPhaseout) {
+      const [a, b] = s.deductionPhaseout[K(status, s.deductionPhaseout)];
+      const cut = ded * Math.min(1, Math.max(0, (agi - a) / (b - a)));
+      ded -= s.phaseoutRound ? Math.floor(cut / s.phaseoutRound) * s.phaseoutRound : cut;
+    }
+    let ex = s.exemption[K(status, s.exemption)];
+    if (s.exemptionPhaseout) {
+      const [start, width, step] = s.exemptionPhaseout[K(status, s.exemptionPhaseout)];
+      ex = Math.max(0, ex - step * TaxTable.steps(agi, start, width));
+    }
+    return Math.max(0, agi - ded - ex);
+  }
+  static creditShare(s, agi, status) {
+    if (!s.creditRate) return 0;
+    let dec = 0;
+    for (const [over, d] of s.creditRate[TaxTable.skey(status, s.creditRate)]) if (agi > over || over === 0) dec = d;
+    return dec;
+  }
+  /** Tax from the brackets, with New York's recapture and Connecticut's add-backs and credit. */
+  static stateBeforeCredit(s, agi, status) {
+    const K = TaxTable.skey, b = s.brackets[K(status, s.brackets)], x = TaxTable.stateTaxable(s, agi, status);
+    let tax = TaxTable.bracketTax(b, x);
+    const rc = s.recapture;
+    if (rc) {
+      if (agi > rc.flatAgi) tax = x * b[b.length - 1][1];
+      else if (agi > rc.agiStart) {
+        const f = rc.first[K(status, rc.first)], j = TaxTable.bracketIndex(b, x), ph = rc.phaseIn;
+        if (j <= f) {
+          const frac = TaxTable.roundHalfUp(Math.min(agi - rc.agiStart, ph) / ph, 4);
+          tax += (x * b[f][1] - tax) * frac;
+        } else {
+          const [base, inc] = TaxTable.recaptureParts(b, j);
+          const frac = TaxTable.roundHalfUp(Math.min(Math.max(0, agi - b[j][0]), ph) / ph, 4);
+          tax += base + inc * frac;
+        }
+      }
+    }
+    if (s.addBack) for (const [start, width, step, cap] of s.addBack[K(status, s.addBack)]) tax += Math.min(cap, step * TaxTable.steps(agi, start, width));
+    if (s.creditRate) tax *= 1 - TaxTable.creditShare(s, agi, status);
+    return tax;
+  }
+  stateTax(agi, status, st) {
+    const s = this.state(st);
+    if (!s || s.none) return 0;
+    return Math.max(0, TaxTable.stateBeforeCredit(s, agi, status) - s.credit[TaxTable.skey(status, s.credit)]);
+  }
+  /** Rate on the next dollar, including recapture and phase-ins (Connecticut's steps spread evenly). */
+  stateMarginal(agi, status, st) {
+    const s = this.state(st);
+    if (!s || s.none) return 0;
+    const K = TaxTable.skey, b = s.brackets[K(status, s.brackets)], x = TaxTable.stateTaxable(s, agi, status);
+    let rate = b[0][1];
+    for (const row of b) if (x >= row[0]) rate = row[1];
+    const rc = s.recapture;
+    if (rc) {
+      const ph = rc.phaseIn;
+      if (agi > rc.flatAgi) return b[b.length - 1][1];
+      if (agi > rc.agiStart) {
+        const f = rc.first[K(status, rc.first)], j = TaxTable.bracketIndex(b, x);
+        if (j <= f) {
+          const frac = Math.min(agi - rc.agiStart, ph) / ph;
+          rate = rate * (1 - frac) + b[f][1] * frac;
+          if (agi - rc.agiStart < ph) rate += (x * b[f][1] - TaxTable.bracketTax(b, x)) / ph;
+        } else if (agi - b[j][0] < ph) {
+          rate += TaxTable.recaptureParts(b, j)[1] / ph;
+        }
+      }
+      return rate;
+    }
+    if (s.exemptionPhaseout) {
+      const [start, width, step] = s.exemptionPhaseout[K(status, s.exemptionPhaseout)];
+      if (x > 0 && agi > start && step * TaxTable.steps(agi, start, width) < s.exemption[K(status, s.exemption)]) rate *= 1 + step / width;
+    }
+    if (s.addBack) for (const [start, width, step, cap] of s.addBack[K(status, s.addBack)]) {
+      if (agi > start && step * TaxTable.steps(agi, start, width) < cap) rate += step / width;
+    }
+    if (s.creditRate) rate *= 1 - TaxTable.creditShare(s, agi, status);
+    return rate;
+  }
+  stateGainTax(agi, gain, status, st) {
+    const s = this.state(st);
+    if (!s || gain <= 0) return 0;
+    const g = s.gains || {};
+    if (g.separate) return TaxTable.bracketTax(g.separate.brackets, Math.max(0, gain - g.separate.deduction));
+    if (g.none || s.none) return 0;
+    let taxed = gain;
+    if (g.exemptAbove !== undefined) taxed = Math.min(taxed, g.exemptAbove);
+    if (g.exclude !== undefined) taxed *= 1 - g.exclude;
+    if (g.excludeFlat !== undefined) taxed = Math.max(0, taxed - g.excludeFlat);
+    let tax;
+    if (g.rates) {
+      const th = g.threshold[TaxTable.skey(status, g.threshold)], base = TaxTable.stateTaxable(s, agi, status);
+      const low = Math.max(0, Math.min(taxed, th - base));
+      tax = low * g.rates[0] + (taxed - low) * g.rates[1];
+    } else {
+      tax = this.stateTax(agi + taxed, status, st) - this.stateTax(agi, status, st);
+    }
+    if (g.maxRate !== undefined) tax = Math.min(tax, gain * g.maxRate);
+    if (g.surtax !== undefined && agi + gain > g.agiOver) tax += gain * g.surtax;
+    if (g.niiSurtax !== undefined) tax += Math.max(0, gain - g.niiOver) * g.niiSurtax;
+    return tax;
+  }
   ltcgTax(ordinary, gain, status) {
     const t = this.ltcgThresholds[this.key(status)], t0 = t[0], t15 = t[1], total = ordinary + gain;
     const in0 = Math.max(0, Math.min(total, t0) - ordinary);
@@ -704,6 +856,9 @@ class Evaluator {
       case "binomcdf": need(3); return Stats.binomCDF(n(0), n(1), n(2));
       case "incometax": need(2); return tax.incomeTax(n(0), n(1));
       case "margrate": need(2); return tax.marginalRate(n(0), n(1));
+      case "statetax": need(3); return tax.stateTax(n(0), n(1), n(2));
+      case "statemarg": need(3); return tax.stateMarginal(n(0), n(1), n(2));
+      case "stategaintax": need(4); return tax.stateGainTax(n(0), n(1), n(2), n(3));
       case "bracketroom": need(2); return tax.bracketRoom(n(0), n(1));
       case "stddeduction": need(1); return tax.standardDeductionFor(n(0));
       case "ltcgtax": need(3); return tax.ltcgTax(n(0), n(1), n(2));
@@ -994,7 +1149,8 @@ export const fieldKind = {
 };
 
 const TAX_FUNCS = ["incometax(", "margrate(", "bracketroom(", "stddeduction(", "ltcgtax(", "niitthreshold(",
-  "niitrate(", "rmdfactor(", "limit401k(", "limitira(", "giftexclusion(", "estateexemption(", "estaterate("];
+  "niitrate(", "rmdfactor(", "limit401k(", "limitira(", "giftexclusion(", "estateexemption(", "estaterate(",
+  "statetax(", "statemarg(", "stategaintax("];
 
 export function usesTaxTable(calc) {
   const text = [...calc.outputs.map((o) => o.expression), ...calc.rules.map((r) => r.left), ...calc.rules.map((r) => r.right)].join(" ");

@@ -38,7 +38,7 @@ echo "→ Bundling"
 rm -rf dist
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 lipo -create "$A/WealthDesk" "$X/WealthDesk" -output "$APP/Contents/MacOS/Wealth Desk"
-cp Resources/catalog.json Resources/taxdata.json Resources/roro_template.html "$APP/Contents/Resources/"
+cp Resources/catalog.json Resources/taxdata.json Resources/statetax.json Resources/roro_template.html "$APP/Contents/Resources/"
 
 ICONSET="$(mktemp -d)/WealthDesk.iconset"
 mkdir -p "$ICONSET"

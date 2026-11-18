@@ -4,7 +4,7 @@
 // Calculator inputs live in memory only and are gone when the tab closes. Preferences (favorites,
 // tax year, calculator mode) are kept in this browser, like the app keeps them on the Mac.
 import {
-  Engine, TaxData, Format, Scientific, fieldKind, usesTaxTable, exampleInputs, blankInputs, categories, search,
+  Engine, TaxData, withStates, Format, Scientific, fieldKind, usesTaxTable, exampleInputs, blankInputs, categories, search,
 } from "./engine.js";
 import { scenarioFileText, readScenarioFile } from "./scenario.js";
 import { clientMarketSummary, marketTone } from "./client_market.js";
@@ -338,6 +338,19 @@ function show(page, { mode, selected } = {}) {
   shell.detail.scrollTop = 0;
 }
 
+/** For a calculator with a state chosen: where that state's figures come from and what the estimate leaves out. */
+function stateNote(calc, vals) {
+  if (!calc.fields.some((f) => f.id === "st")) return null;
+  let st = null;
+  try { st = engine.tax.state(Number(vals.st || 0)); } catch { return null; }
+  if (!st) return null;
+  const S = engine.tax.states;
+  return card(`${st.name} tax data`, null,
+    h("p", { class: "callout", style: "margin:0", text: `Source: ${st.verified}. Tax year ${S.taxYear}, checked ${S.verifiedOn}.` }),
+    st.notes.length ? h("ul", { class: "callout secondary", style: "margin:6px 0 0;padding-left:18px" }, st.notes.map((n) => h("li", { text: n }))) : null,
+    h("p", { class: "caption secondary", style: "margin:6px 0 0", text: S.notes.join(" ") }));
+}
+
 /** "What each part means": why the formula works and what each piece does (tools/formula_notes.py). */
 function formulaBreakdown(calc, compact) {
   const e = calc.explain;
@@ -571,6 +584,7 @@ function calcPage(calc) {
           })), h("div", { class: "caption tertiary", text: "Click a result to copy it." })]
         : h("div", { class: "secondary", text: "Enter your numbers above. Results appear as soon as every field is filled in." })),
       complete && ev.table ? projectionCard(calc, ev.table) : null,
+      stateNote(calc, vals),
       detailsCard(calc));
     mountCharts(live);
     clearTimeout(histTimer);
@@ -1723,13 +1737,15 @@ function taxesTool(tool) {
       h("button", { class: S.taxTab === i ? "on" : null, text: t, onclick: () => { S.taxTab = i; refill(); on(); } })));
     if (S.taxTab === 0) return [seg, group("Inflation and buying power", null, inputs("client.inflation", "inflation_cost", Spec.inflation, on))];
     if (S.taxTab === 1) return [seg, group("Taxes on investment growth", "Compares paying tax on earnings every year with paying once at the end.", inputs("client.taxdrag", "tax_deferral", Spec.taxDrag, on))];
-    const f = engine.calculator("income_tax").fields.find((x) => x.id === "status");
-    const cur = raw("client.incometax", "status") || f.example;
-    return [seg, group("Federal income tax estimate", "Federal tax on ordinary taxable income only. No state tax, credits or other taxes.",
-      inputs("client.incometax", "income_tax", Spec.incomeTax, on),
-      h("div", { class: "crow" }, h("div", { class: "top" }, h("label", { for: "status", text: "Filing status" }),
-        h("select", { id: "status", onchange: (e) => { setRaw("client.incometax", "status", e.target.value); on(); } },
-          f.options.map((o) => h("option", { value: Format.plain(o.value), selected: Format.plain(o.value) === cur, text: o.label }))))))];
+    const choice = (id, label) => {
+      const f = engine.calculator("income_tax").fields.find((x) => x.id === id);
+      const cur = raw("client.incometax", id) || f.example;
+      return h("div", { class: "crow" }, h("div", { class: "top" }, h("label", { for: "ct-" + id, text: label }),
+        h("select", { id: "ct-" + id, onchange: (e) => { setRaw("client.incometax", id, e.target.value); on(); } },
+          f.options.map((o) => h("option", { value: Format.plain(o.value), selected: Format.plain(o.value) === cur, text: o.label })))));
+    };
+    return [seg, group("Income tax estimate", "Federal and state tax on ordinary taxable income. Local taxes, credits and other taxes aren't included.",
+      inputs("client.incometax", "income_tax", Spec.incomeTax, on), choice("status", "Filing status"), choice("st", "State you file in"))];
   }, () => {
     if (S.taxTab === 0) {
       const c = infl();
@@ -1766,15 +1782,33 @@ function taxesTool(tool) {
     try { income = Engine.parse(c?.inputs.ti ?? "", c.calc.fields[0]); } catch { /* not ready */ }
     const banner = taxBanner(() => route());
     if (!c?.ok || income === null) return [banner, needsInput(c)];
+    const st = engine.tax.state(Number(c.inputs.st || 0));
+    if (!st) {
+      return [
+        banner,
+        headline(`Estimated federal income tax: ${Format.currency(c.v(0))}, which is ${Format.percent(c.v(2))} of this income.`,
+          `The next dollar earned would be taxed at ${Format.percent(c.v(1))}. That higher rate applies only to income above the bracket line, not to all of it. Choose a state to add state income tax.`),
+        stats(stat("Federal income tax", Format.currency(c.v(0))), stat("Average rate on this income", Format.percent(c.v(2))),
+          stat("Rate on the next dollar", Format.percent(c.v(1))), stat("Room before the next bracket", Number.isNaN(c.v(3)) ? "Top bracket" : Format.currency(c.v(3)))),
+        chartCard("Where the income goes", null, chart("bar", { labels: ["Income"], datasets: [
+          { label: "Kept after federal income tax", data: [income - c.v(0)], backgroundColor: cssVar("--accent") },
+          { label: "Federal income tax", data: [c.v(0)], backgroundColor: cssVar("--orange") },
+        ] }, { stacked: true, indexAxis: "y", size: "h110" })),
+        howItWorks([c]),
+      ];
+    }
+    const noTax = st.none || (st.gains?.separate && !st.brackets);
     return [
       banner,
-      headline(`Estimated federal income tax: ${Format.currency(c.v(0))}, which is ${Format.percent(c.v(2))} of this income.`,
-        `The next dollar earned would be taxed at ${Format.percent(c.v(1))}. That higher rate applies only to income above the bracket line, not to all of it.`),
-      stats(stat("Federal income tax", Format.currency(c.v(0))), stat("Average rate on this income", Format.percent(c.v(2))),
-        stat("Rate on the next dollar", Format.percent(c.v(1))), stat("Room before the next bracket", Number.isNaN(c.v(3)) ? "Top bracket" : Format.currency(c.v(3)))),
-      chartCard("Where the income goes", null, chart("bar", { labels: ["Income"], datasets: [
-        { label: "Kept after federal income tax", data: [income - c.v(0)], backgroundColor: cssVar("--accent") },
+      headline(`Estimated income tax: ${Format.currency(c.v(7))}, which is ${Format.percent(c.v(8))} of this income.`,
+        noTax ? `${st.name} has no tax on wages, so this is all federal. The next dollar would be taxed at ${Format.percent(c.v(6))}.`
+          : `${Format.currency(c.v(0))} federal plus ${Format.currency(c.v(4))} ${st.name}. The next dollar would be taxed at ${Format.percent(c.v(6))}: ${Format.percent(c.v(1))} federal plus ${Format.percent(c.v(5))} state.`),
+      stats(stat("Federal income tax", Format.currency(c.v(0))), stat(`${st.name} income tax`, Format.currency(c.v(4)), "Estimate; local taxes not included"),
+        stat("Average rate, federal + state", Format.percent(c.v(8))), stat("Rate on the next dollar, federal + state", Format.percent(c.v(6)), `${Format.percent(c.v(1))} federal + ${Format.percent(c.v(5))} state`)),
+      chartCard("Where the income goes", st.notes.length ? st.notes.join(" ") : null, chart("bar", { labels: ["Income"], datasets: [
+        { label: "Kept after income tax", data: [income - c.v(7)], backgroundColor: cssVar("--accent") },
         { label: "Federal income tax", data: [c.v(0)], backgroundColor: cssVar("--orange") },
+        { label: `${st.name} income tax`, data: [c.v(4)], backgroundColor: rgba(cssVar("--blue"), 0.75) },
       ] }, { stacked: true, indexAxis: "y", size: "h110" })),
       howItWorks([c]),
     ];
@@ -1874,8 +1908,9 @@ function route() {
 
 async function boot() {
   try {
-    const [catalog, tax] = await Promise.all([loadJSON("data/catalog.json"), loadJSON("data/taxdata.json")]);
-    const taxData = new TaxData(tax);
+    const [catalog, taxJson, states] = await Promise.all([loadJSON("data/catalog.json"), loadJSON("data/taxdata.json"),
+      loadJSON("data/statetax.json").catch(() => null)]);
+    const taxData = new TaxData(withStates(taxJson, states));
     engine = new Engine(catalog, taxData, taxData.years.includes(Prefs.taxYear) ? Prefs.taxYear : undefined);
   } catch (e) {
     fill(app, unavailable("warn", "Wealth Desk couldn't start", `The calculator data didn't load (${e.message}). Check the connection and reload.`));

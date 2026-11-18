@@ -83,6 +83,19 @@ let missing = #"{"chart":{"result":null,"error":{"code":"Not Found","description
 expect((try? MarketParsers.parseQuote(Data(missing.utf8))) == nil, "Quote: unknown symbol throws")
 expect(MarketParsers.quoteURL(symbol: "^GSPC") != nil && MarketParsers.quoteURL(symbol: "a/b") == nil, "Quote URL: symbol validation")
 
+// State income tax against each state's own published example or formula.
+let stateTable = engine.tax
+func stateValue(_ code: String) -> Double { Double(stateTable.states?.list.first { $0.code == code }?.value ?? -1) }
+func stTax(_ agi: Double, _ status: Double, _ code: String) -> Double { (try? stateTable.stateTax(agi, status, stateValue(code))) ?? .nan }
+expect((stateTable.states?.list.count ?? 0) == 51, "51 state tables (50 states and DC) are loaded")
+expect(abs(stTax(136_412, 2, "CA") - (3_974.82 + 0.08 * (125_000 - 115_084) - 306)) < 0.005, "California: FTB 2025 Schedule Y example less exemption credits")
+expect(abs(stTax(70_000, 1, "WV") - (1_950.50 + 0.0458 * 8_000)) < 0.005, "West Virginia: §11-21-4j schedule")
+expect(abs(stTax(60_000, 1, "SC") - (0.0521 * 50_450 - 966)) < 0.01, "South Carolina: Act 110 formula with the SCIAD phase-out")
+expect(abs(stTax(102_470, 1, "AR") - (0.037 * 100_000 - 79.90 - 29)) < 0.10, "Arkansas: DFA 2026 formula")
+expect(abs(((try? stateTable.stateGainTax(200_000, 1_500_000, 1, stateValue("WA"))) ?? 0) - 91_978) < 0.005, "Washington: capital gains tax")
+expect(["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WY"].allSatisfy { stTax(500_000, 2, $0) == 0 }, "no-income-tax states")
+expect(((try? stateTable.stateTax(500_000, 2, 0)) ?? -1) == 0, "no state selected adds nothing")
+
 // Every formula has its plain-language breakdown ("What each part means").
 let unexplained = engine.calculators.filter { c in
     guard let e = c.explain else { return true }

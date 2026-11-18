@@ -1,0 +1,3108 @@
+{
+ "taxYear": 2026,
+ "verifiedOn": "2026-11-16",
+ "sources": [
+  {
+   "title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (as of Jan 1, 2026)",
+   "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"
+  },
+  {
+   "title": "Tax Foundation • State Capital Gains Tax Rates, 2026",
+   "url": "https://taxfoundation.org/data/all/state/state-capital-gains-tax-rates/"
+  },
+  {
+   "title": "New York State • IT-201-I (2025) tax rate schedules and tax computation worksheets",
+   "url": "https://www.tax.ny.gov/pdf/2025/inc/it201i_2025.pdf"
+  },
+  {
+   "title": "Connecticut DRS • Form CT-1040 TCS (Rev. 12/25), Tables A-E",
+   "url": "https://portal.ct.gov/-/media/drs/forms/2025/income/ct-1040-tcs_1225.pdf"
+  }
+ ],
+ "notes": [
+  "State tax is an estimate: brackets, standard deduction, personal exemptions and personal credits for the filing status.",
+  "Starts from adjusted gross income. In calculators that take federal taxable income, AGI is estimated as taxable income plus the federal standard deduction.",
+  "Not included: local income taxes (for example New York City, Maryland counties, and Ohio, Pennsylvania and Michigan cities), dependents, most other phase-outs, and state-specific adjustments such as Social Security or pension exclusions.",
+  "New York's and Connecticut's high-income recapture of their lower brackets is included.",
+  "Head of household uses single amounts except where a state publishes its own (California, Connecticut, New York, South Carolina)."
+ ],
+ "list": [
+  {
+   "code": "AL",
+   "name": "Alabama",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Alabama lets taxpayers deduct federal income tax paid and phases its standard deduction down at higher incomes; neither is modeled, so this overstates Alabama tax."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.02
+     ],
+     [
+      500,
+      0.04
+     ],
+     [
+      3000,
+      0.05
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.02
+     ],
+     [
+      1000,
+      0.04
+     ],
+     [
+      6000,
+      0.05
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 3000,
+    "married": 8500
+   },
+   "exemption": {
+    "single": 1500,
+    "married": 3000
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 1
+  },
+  {
+   "code": "AK",
+   "name": "Alaska",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 2
+  },
+  {
+   "code": "AZ",
+   "name": "Arizona",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.025
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.025
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 8350,
+    "married": 16700
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "exclude": 0.25
+   },
+   "value": 3
+  },
+  {
+   "code": "AR",
+   "name": "Arkansas",
+   "verified": "Official: Arkansas DFA Withholding Tax Formula effective 1/1/2026 (top rate 3.7% under HB 1001, 2026)",
+   "notes": [
+    "Between $94,700 and $97,600 of net income Arkansas takes back the benefit of its lower brackets; modeled as a steep band that ends at the DFA formula's 3.7% × income − $79.90."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      5600,
+      0.02
+     ],
+     [
+      11200,
+      0.03
+     ],
+     [
+      16000,
+      0.034
+     ],
+     [
+      26400,
+      0.037
+     ],
+     [
+      94700,
+      0.136055
+     ],
+     [
+      97600,
+      0.037
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      5600,
+      0.02
+     ],
+     [
+      11200,
+      0.03
+     ],
+     [
+      16000,
+      0.034
+     ],
+     [
+      26400,
+      0.037
+     ],
+     [
+      94700,
+      0.136055
+     ],
+     [
+      97600,
+      0.037
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 2470,
+    "married": 4940
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 29,
+    "married": 58
+   },
+   "gains": {
+    "exclude": 0.5,
+    "exemptAbove": 10000000
+   },
+   "value": 4
+  },
+  {
+   "code": "CA",
+   "name": "California",
+   "verified": "Official: FTB 2025 California Tax Rate Schedules X, Y, Z and 2025 standard deduction (2026 schedules not yet published)",
+   "notes": [
+    "Includes the 1% Behavioral Health Services Tax on taxable income over $1 million.",
+    "Uses 2025 brackets and deduction, the latest California has published; California indexes them each year."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.01
+     ],
+     [
+      11079,
+      0.02
+     ],
+     [
+      26264,
+      0.04
+     ],
+     [
+      41452,
+      0.06
+     ],
+     [
+      57542,
+      0.08
+     ],
+     [
+      72724,
+      0.093
+     ],
+     [
+      371479,
+      0.103
+     ],
+     [
+      445771,
+      0.113
+     ],
+     [
+      742953,
+      0.123
+     ],
+     [
+      1000000,
+      0.133
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.01
+     ],
+     [
+      22158,
+      0.02
+     ],
+     [
+      52528,
+      0.04
+     ],
+     [
+      82904,
+      0.06
+     ],
+     [
+      115084,
+      0.08
+     ],
+     [
+      145448,
+      0.093
+     ],
+     [
+      742958,
+      0.103
+     ],
+     [
+      891542,
+      0.113
+     ],
+     [
+      1000000,
+      0.123
+     ],
+     [
+      1485906,
+      0.133
+     ]
+    ],
+    "hoh": [
+     [
+      0,
+      0.01
+     ],
+     [
+      22173,
+      0.02
+     ],
+     [
+      52530,
+      0.04
+     ],
+     [
+      67716,
+      0.06
+     ],
+     [
+      83805,
+      0.08
+     ],
+     [
+      98990,
+      0.093
+     ],
+     [
+      505208,
+      0.103
+     ],
+     [
+      606251,
+      0.113
+     ],
+     [
+      1000000,
+      0.123
+     ],
+     [
+      1010417,
+      0.133
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 5706,
+    "married": 11412,
+    "hoh": 11412
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 153,
+    "married": 306
+   },
+   "value": 5
+  },
+  {
+   "code": "CO",
+   "name": "Colorado",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.044
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.044
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 6
+  },
+  {
+   "code": "CT",
+   "name": "Connecticut",
+   "verified": "Official: Connecticut DRS Form CT-1040 TCS (Rev. 12/25), Tables A-E; Connecticut has not changed them for 2026",
+   "notes": [
+    "Includes Connecticut's exemption phase-out, 2% rate phase-out add-back, recapture of lower brackets and personal tax credit (Tables A, C, D and E).",
+    "Connecticut adds tax in $5,000 steps of income; the next-dollar rate shown spreads each step evenly across its $5,000."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.02
+     ],
+     [
+      10000,
+      0.045
+     ],
+     [
+      50000,
+      0.055
+     ],
+     [
+      100000,
+      0.06
+     ],
+     [
+      200000,
+      0.065
+     ],
+     [
+      250000,
+      0.069
+     ],
+     [
+      500000,
+      0.0699
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.02
+     ],
+     [
+      20000,
+      0.045
+     ],
+     [
+      100000,
+      0.055
+     ],
+     [
+      200000,
+      0.06
+     ],
+     [
+      400000,
+      0.065
+     ],
+     [
+      500000,
+      0.069
+     ],
+     [
+      1000000,
+      0.0699
+     ]
+    ],
+    "hoh": [
+     [
+      0,
+      0.02
+     ],
+     [
+      16000,
+      0.045
+     ],
+     [
+      80000,
+      0.055
+     ],
+     [
+      160000,
+      0.06
+     ],
+     [
+      320000,
+      0.065
+     ],
+     [
+      400000,
+      0.069
+     ],
+     [
+      800000,
+      0.0699
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 15000,
+    "married": 24000,
+    "hoh": 19000
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "exemptionPhaseout": {
+    "single": [
+     30000,
+     1000,
+     1000
+    ],
+    "married": [
+     48000,
+     1000,
+     1000
+    ],
+    "hoh": [
+     38000,
+     1000,
+     1000
+    ]
+   },
+   "addBack": {
+    "single": [
+     [
+      56500,
+      5000,
+      25,
+      250
+     ],
+     [
+      105000,
+      5000,
+      25,
+      250
+     ],
+     [
+      200000,
+      5000,
+      90,
+      2700
+     ],
+     [
+      500000,
+      5000,
+      50,
+      450
+     ]
+    ],
+    "married": [
+     [
+      100500,
+      5000,
+      50,
+      500
+     ],
+     [
+      210000,
+      10000,
+      50,
+      500
+     ],
+     [
+      400000,
+      10000,
+      180,
+      5400
+     ],
+     [
+      1000000,
+      10000,
+      100,
+      900
+     ]
+    ],
+    "hoh": [
+     [
+      78500,
+      4000,
+      40,
+      400
+     ],
+     [
+      168000,
+      8000,
+      40,
+      400
+     ],
+     [
+      320000,
+      8000,
+      140,
+      4200
+     ],
+     [
+      800000,
+      8000,
+      80,
+      720
+     ]
+    ]
+   },
+   "creditRate": {
+    "single": [
+     [
+      0,
+      0.75
+     ],
+     [
+      18800,
+      0.7
+     ],
+     [
+      19300,
+      0.65
+     ],
+     [
+      19800,
+      0.6
+     ],
+     [
+      20300,
+      0.55
+     ],
+     [
+      20800,
+      0.5
+     ],
+     [
+      21300,
+      0.45
+     ],
+     [
+      21800,
+      0.4
+     ],
+     [
+      22300,
+      0.35
+     ],
+     [
+      25000,
+      0.3
+     ],
+     [
+      25500,
+      0.25
+     ],
+     [
+      26000,
+      0.2
+     ],
+     [
+      26500,
+      0.15
+     ],
+     [
+      31300,
+      0.14
+     ],
+     [
+      31800,
+      0.13
+     ],
+     [
+      32300,
+      0.12
+     ],
+     [
+      32800,
+      0.11
+     ],
+     [
+      33300,
+      0.1
+     ],
+     [
+      60000,
+      0.09
+     ],
+     [
+      60500,
+      0.08
+     ],
+     [
+      61000,
+      0.07
+     ],
+     [
+      61500,
+      0.06
+     ],
+     [
+      62000,
+      0.05
+     ],
+     [
+      62500,
+      0.04
+     ],
+     [
+      63000,
+      0.03
+     ],
+     [
+      63500,
+      0.02
+     ],
+     [
+      64000,
+      0.01
+     ],
+     [
+      64500,
+      0.0
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.75
+     ],
+     [
+      30000,
+      0.7
+     ],
+     [
+      30500,
+      0.65
+     ],
+     [
+      31000,
+      0.6
+     ],
+     [
+      31500,
+      0.55
+     ],
+     [
+      32000,
+      0.5
+     ],
+     [
+      32500,
+      0.45
+     ],
+     [
+      33000,
+      0.4
+     ],
+     [
+      33500,
+      0.35
+     ],
+     [
+      40000,
+      0.3
+     ],
+     [
+      40500,
+      0.25
+     ],
+     [
+      41000,
+      0.2
+     ],
+     [
+      41500,
+      0.15
+     ],
+     [
+      50000,
+      0.14
+     ],
+     [
+      50500,
+      0.13
+     ],
+     [
+      51000,
+      0.12
+     ],
+     [
+      51500,
+      0.11
+     ],
+     [
+      52000,
+      0.1
+     ],
+     [
+      96000,
+      0.09
+     ],
+     [
+      96500,
+      0.08
+     ],
+     [
+      97000,
+      0.07
+     ],
+     [
+      97500,
+      0.06
+     ],
+     [
+      98000,
+      0.05
+     ],
+     [
+      98500,
+      0.04
+     ],
+     [
+      99000,
+      0.03
+     ],
+     [
+      99500,
+      0.02
+     ],
+     [
+      100000,
+      0.01
+     ],
+     [
+      100500,
+      0.0
+     ]
+    ],
+    "hoh": [
+     [
+      0,
+      0.75
+     ],
+     [
+      24000,
+      0.7
+     ],
+     [
+      24500,
+      0.65
+     ],
+     [
+      25000,
+      0.6
+     ],
+     [
+      25500,
+      0.55
+     ],
+     [
+      26000,
+      0.5
+     ],
+     [
+      26500,
+      0.45
+     ],
+     [
+      27000,
+      0.4
+     ],
+     [
+      27500,
+      0.35
+     ],
+     [
+      34000,
+      0.3
+     ],
+     [
+      34500,
+      0.25
+     ],
+     [
+      35000,
+      0.2
+     ],
+     [
+      35500,
+      0.15
+     ],
+     [
+      44000,
+      0.14
+     ],
+     [
+      44500,
+      0.13
+     ],
+     [
+      45000,
+      0.12
+     ],
+     [
+      45500,
+      0.11
+     ],
+     [
+      46000,
+      0.1
+     ],
+     [
+      74000,
+      0.09
+     ],
+     [
+      74500,
+      0.08
+     ],
+     [
+      75000,
+      0.07
+     ],
+     [
+      75500,
+      0.06
+     ],
+     [
+      76000,
+      0.05
+     ],
+     [
+      76500,
+      0.04
+     ],
+     [
+      77000,
+      0.03
+     ],
+     [
+      77500,
+      0.02
+     ],
+     [
+      78000,
+      0.01
+     ],
+     [
+      78500,
+      0.0
+     ]
+    ]
+   },
+   "value": 7
+  },
+  {
+   "code": "DE",
+   "name": "Delaware",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      2000,
+      0.022
+     ],
+     [
+      5000,
+      0.039
+     ],
+     [
+      10000,
+      0.048
+     ],
+     [
+      20000,
+      0.052
+     ],
+     [
+      25000,
+      0.0555
+     ],
+     [
+      60000,
+      0.066
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      2000,
+      0.022
+     ],
+     [
+      5000,
+      0.039
+     ],
+     [
+      10000,
+      0.048
+     ],
+     [
+      20000,
+      0.052
+     ],
+     [
+      25000,
+      0.0555
+     ],
+     [
+      60000,
+      0.066
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 3250,
+    "married": 6500
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 110,
+    "married": 220
+   },
+   "value": 8
+  },
+  {
+   "code": "DC",
+   "name": "District of Columbia",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.04
+     ],
+     [
+      10000,
+      0.06
+     ],
+     [
+      40000,
+      0.065
+     ],
+     [
+      60000,
+      0.085
+     ],
+     [
+      250000,
+      0.0925
+     ],
+     [
+      500000,
+      0.0975
+     ],
+     [
+      1000000,
+      0.1075
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.04
+     ],
+     [
+      10000,
+      0.06
+     ],
+     [
+      40000,
+      0.065
+     ],
+     [
+      60000,
+      0.085
+     ],
+     [
+      250000,
+      0.0925
+     ],
+     [
+      500000,
+      0.0975
+     ],
+     [
+      1000000,
+      0.1075
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 9
+  },
+  {
+   "code": "FL",
+   "name": "Florida",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 10
+  },
+  {
+   "code": "GA",
+   "name": "Georgia",
+   "verified": "Law: HB 463 (signed May 2026) sets 4.99% for tax years beginning in 2026",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0499
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0499
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 12000,
+    "married": 24000
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 11
+  },
+  {
+   "code": "HI",
+   "name": "Hawaii",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.014
+     ],
+     [
+      9600,
+      0.032
+     ],
+     [
+      14400,
+      0.055
+     ],
+     [
+      19200,
+      0.064
+     ],
+     [
+      24000,
+      0.068
+     ],
+     [
+      36000,
+      0.072
+     ],
+     [
+      48000,
+      0.076
+     ],
+     [
+      125000,
+      0.079
+     ],
+     [
+      175000,
+      0.0825
+     ],
+     [
+      225000,
+      0.09
+     ],
+     [
+      275000,
+      0.1
+     ],
+     [
+      325000,
+      0.11
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.014
+     ],
+     [
+      19200,
+      0.032
+     ],
+     [
+      28800,
+      0.055
+     ],
+     [
+      38400,
+      0.064
+     ],
+     [
+      48000,
+      0.068
+     ],
+     [
+      72000,
+      0.072
+     ],
+     [
+      96000,
+      0.076
+     ],
+     [
+      250000,
+      0.079
+     ],
+     [
+      350000,
+      0.0825
+     ],
+     [
+      450000,
+      0.09
+     ],
+     [
+      550000,
+      0.1
+     ],
+     [
+      650000,
+      0.11
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 4400,
+    "married": 8800
+   },
+   "exemption": {
+    "single": 1144,
+    "married": 2288
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "maxRate": 0.0725
+   },
+   "value": 12
+  },
+  {
+   "code": "ID",
+   "name": "Idaho",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      4811,
+      0.053
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      9622,
+      0.053
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 13
+  },
+  {
+   "code": "IL",
+   "name": "Illinois",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0495
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0495
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 2925,
+    "married": 5850
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 14
+  },
+  {
+   "code": "IN",
+   "name": "Indiana",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Indiana counties add their own income tax, not included."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0295
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0295
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 1000,
+    "married": 2000
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 15
+  },
+  {
+   "code": "IA",
+   "name": "Iowa",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.038
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.038
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 40,
+    "married": 80
+   },
+   "value": 16
+  },
+  {
+   "code": "KS",
+   "name": "Kansas",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.052
+     ],
+     [
+      23000,
+      0.0558
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.052
+     ],
+     [
+      46000,
+      0.0558
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 3605,
+    "married": 8240
+   },
+   "exemption": {
+    "single": 9160,
+    "married": 18320
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 17
+  },
+  {
+   "code": "KY",
+   "name": "Kentucky",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Kentucky cities and counties add occupational taxes, not included."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.035
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.035
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 3360,
+    "married": 3360
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 18
+  },
+  {
+   "code": "LA",
+   "name": "Louisiana",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.03
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.03
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 12875,
+    "married": 25750
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 19
+  },
+  {
+   "code": "ME",
+   "name": "Maine",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.058
+     ],
+     [
+      27399,
+      0.0675
+     ],
+     [
+      64849,
+      0.0715
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.058
+     ],
+     [
+      54849,
+      0.0675
+     ],
+     [
+      129749,
+      0.0715
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 8350,
+    "married": 16700
+   },
+   "exemption": {
+    "single": 5300,
+    "married": 10600
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 20
+  },
+  {
+   "code": "MD",
+   "name": "Maryland",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Maryland counties and Baltimore City add 2.25%–3.30% local income tax, not included."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.02
+     ],
+     [
+      1000,
+      0.03
+     ],
+     [
+      2000,
+      0.04
+     ],
+     [
+      3000,
+      0.0475
+     ],
+     [
+      100000,
+      0.05
+     ],
+     [
+      125000,
+      0.0525
+     ],
+     [
+      150000,
+      0.055
+     ],
+     [
+      250000,
+      0.0575
+     ],
+     [
+      500000,
+      0.0625
+     ],
+     [
+      1000000,
+      0.065
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.02
+     ],
+     [
+      1000,
+      0.03
+     ],
+     [
+      2000,
+      0.04
+     ],
+     [
+      3000,
+      0.0475
+     ],
+     [
+      150000,
+      0.05
+     ],
+     [
+      175000,
+      0.0525
+     ],
+     [
+      225000,
+      0.055
+     ],
+     [
+      300000,
+      0.0575
+     ],
+     [
+      600000,
+      0.0625
+     ],
+     [
+      1200000,
+      0.065
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 3350,
+    "married": 6700
+   },
+   "exemption": {
+    "single": 3200,
+    "married": 6400
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "surtax": 0.02,
+    "agiOver": 350000
+   },
+   "value": 21
+  },
+  {
+   "code": "MA",
+   "name": "Massachusetts",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.05
+     ],
+     [
+      1083150,
+      0.09
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.05
+     ],
+     [
+      1083150,
+      0.09
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 4400,
+    "married": 8800
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 22
+  },
+  {
+   "code": "MI",
+   "name": "Michigan",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Some Michigan cities add income tax, not included."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0425
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0425
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 5900,
+    "married": 11800
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 23
+  },
+  {
+   "code": "MN",
+   "name": "Minnesota",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0535
+     ],
+     [
+      33310,
+      0.068
+     ],
+     [
+      109430,
+      0.0785
+     ],
+     [
+      203150,
+      0.0985
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0535
+     ],
+     [
+      48700,
+      0.068
+     ],
+     [
+      193480,
+      0.0785
+     ],
+     [
+      337930,
+      0.0985
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 15300,
+    "married": 30600
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "niiSurtax": 0.01,
+    "niiOver": 1000000
+   },
+   "value": 24
+  },
+  {
+   "code": "MS",
+   "name": "Mississippi",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      10000,
+      0.04
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      10000,
+      0.04
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 2300,
+    "married": 4600
+   },
+   "exemption": {
+    "single": 6000,
+    "married": 12000
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 25
+  },
+  {
+   "code": "MO",
+   "name": "Missouri",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      1348,
+      0.02
+     ],
+     [
+      2696,
+      0.025
+     ],
+     [
+      4044,
+      0.03
+     ],
+     [
+      5392,
+      0.035
+     ],
+     [
+      6740,
+      0.04
+     ],
+     [
+      8088,
+      0.045
+     ],
+     [
+      9436,
+      0.047
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      1348,
+      0.02
+     ],
+     [
+      2696,
+      0.025
+     ],
+     [
+      4044,
+      0.03
+     ],
+     [
+      5392,
+      0.035
+     ],
+     [
+      6740,
+      0.04
+     ],
+     [
+      8088,
+      0.045
+     ],
+     [
+      9436,
+      0.047
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "none": true
+   },
+   "value": 26
+  },
+  {
+   "code": "MT",
+   "name": "Montana",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.047
+     ],
+     [
+      47500,
+      0.0565
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.047
+     ],
+     [
+      95000,
+      0.0565
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "rates": [
+     0.03,
+     0.041
+    ],
+    "threshold": {
+     "single": 47500,
+     "married": 95000
+    }
+   },
+   "value": 27
+  },
+  {
+   "code": "NE",
+   "name": "Nebraska",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0246
+     ],
+     [
+      4130,
+      0.0351
+     ],
+     [
+      24760,
+      0.0455
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0246
+     ],
+     [
+      8250,
+      0.0351
+     ],
+     [
+      49530,
+      0.0455
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 8850,
+    "married": 17700
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 176,
+    "married": 352
+   },
+   "value": 28
+  },
+  {
+   "code": "NV",
+   "name": "Nevada",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 29
+  },
+  {
+   "code": "NH",
+   "name": "New Hampshire",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 30
+  },
+  {
+   "code": "NJ",
+   "name": "New Jersey",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.014
+     ],
+     [
+      20000,
+      0.0175
+     ],
+     [
+      35000,
+      0.035
+     ],
+     [
+      40000,
+      0.0553
+     ],
+     [
+      75000,
+      0.0637
+     ],
+     [
+      500000,
+      0.0897
+     ],
+     [
+      1000000,
+      0.1075
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.014
+     ],
+     [
+      20000,
+      0.0175
+     ],
+     [
+      50000,
+      0.0245
+     ],
+     [
+      70000,
+      0.035
+     ],
+     [
+      80000,
+      0.0553
+     ],
+     [
+      150000,
+      0.0637
+     ],
+     [
+      500000,
+      0.0897
+     ],
+     [
+      1000000,
+      0.1075
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 1000,
+    "married": 2000
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 31
+  },
+  {
+   "code": "NM",
+   "name": "New Mexico",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.015
+     ],
+     [
+      5500,
+      0.032
+     ],
+     [
+      16500,
+      0.043
+     ],
+     [
+      33500,
+      0.047
+     ],
+     [
+      66500,
+      0.049
+     ],
+     [
+      210000,
+      0.059
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.015
+     ],
+     [
+      8000,
+      0.032
+     ],
+     [
+      25000,
+      0.043
+     ],
+     [
+      50000,
+      0.047
+     ],
+     [
+      100000,
+      0.049
+     ],
+     [
+      315000,
+      0.059
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "excludeFlat": 2500
+   },
+   "value": 32
+  },
+  {
+   "code": "NY",
+   "name": "New York",
+   "verified": "Official: NY IT-201-I (2025) tax computation worksheets 1-16, with the 2026 rates; recapture amounts derived the same way",
+   "notes": [
+    "Includes New York's recapture of the lower brackets for incomes over $107,650 (the IT-201 tax computation worksheets), worked out with 2026 rates.",
+    "New York City and Yonkers income taxes are not included."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.039
+     ],
+     [
+      8500,
+      0.044
+     ],
+     [
+      11700,
+      0.0515
+     ],
+     [
+      13900,
+      0.054
+     ],
+     [
+      80650,
+      0.059
+     ],
+     [
+      215400,
+      0.0685
+     ],
+     [
+      1077550,
+      0.0965
+     ],
+     [
+      5000000,
+      0.103
+     ],
+     [
+      25000000,
+      0.109
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.039
+     ],
+     [
+      17150,
+      0.044
+     ],
+     [
+      23600,
+      0.0515
+     ],
+     [
+      27900,
+      0.054
+     ],
+     [
+      161550,
+      0.059
+     ],
+     [
+      323200,
+      0.0685
+     ],
+     [
+      2155350,
+      0.0965
+     ],
+     [
+      5000000,
+      0.103
+     ],
+     [
+      25000000,
+      0.109
+     ]
+    ],
+    "hoh": [
+     [
+      0,
+      0.039
+     ],
+     [
+      12800,
+      0.044
+     ],
+     [
+      17650,
+      0.0515
+     ],
+     [
+      20900,
+      0.054
+     ],
+     [
+      107650,
+      0.059
+     ],
+     [
+      269300,
+      0.0685
+     ],
+     [
+      1616450,
+      0.0965
+     ],
+     [
+      5000000,
+      0.103
+     ],
+     [
+      25000000,
+      0.109
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 8000,
+    "married": 16050,
+    "hoh": 11200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "recapture": {
+    "agiStart": 107650,
+    "phaseIn": 50000,
+    "flatAgi": 25000000,
+    "first": {
+     "single": 4,
+     "married": 3,
+     "hoh": 4
+    }
+   },
+   "value": 33
+  },
+  {
+   "code": "NC",
+   "name": "North Carolina",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0399
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0399
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 12750,
+    "married": 25500
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 34
+  },
+  {
+   "code": "ND",
+   "name": "North Dakota",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      48475,
+      0.0195
+     ],
+     [
+      244825,
+      0.025
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      80975,
+      0.0195
+     ],
+     [
+      298075,
+      0.025
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 16100,
+    "married": 32200
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "exclude": 0.4
+   },
+   "value": 35
+  },
+  {
+   "code": "OH",
+   "name": "Ohio",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Ohio cities and school districts add income tax, not included. Exemptions end above $500,000 of income; not modeled."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      26050,
+      0.0275
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      26050,
+      0.0275
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 2400,
+    "married": 4800
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 36
+  },
+  {
+   "code": "OK",
+   "name": "Oklahoma",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0
+     ],
+     [
+      3750,
+      0.025
+     ],
+     [
+      4900,
+      0.035
+     ],
+     [
+      7200,
+      0.045
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0
+     ],
+     [
+      7500,
+      0.025
+     ],
+     [
+      9800,
+      0.035
+     ],
+     [
+      14400,
+      0.045
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 6350,
+    "married": 12700
+   },
+   "exemption": {
+    "single": 1000,
+    "married": 2000
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 37
+  },
+  {
+   "code": "OR",
+   "name": "Oregon",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Oregon lets taxpayers subtract part of federal income tax paid; not modeled, so this overstates Oregon tax somewhat."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0475
+     ],
+     [
+      4550,
+      0.0675
+     ],
+     [
+      11400,
+      0.0875
+     ],
+     [
+      125000,
+      0.099
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0475
+     ],
+     [
+      9100,
+      0.0675
+     ],
+     [
+      22800,
+      0.0875
+     ],
+     [
+      250000,
+      0.099
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 2910,
+    "married": 5820
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 256,
+    "married": 512
+   },
+   "value": 38
+  },
+  {
+   "code": "PA",
+   "name": "Pennsylvania",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Pennsylvania municipalities and school districts add earned-income tax, not included."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0307
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0307
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 39
+  },
+  {
+   "code": "RI",
+   "name": "Rhode Island",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0375
+     ],
+     [
+      82050,
+      0.0475
+     ],
+     [
+      186450,
+      0.0599
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0375
+     ],
+     [
+      82050,
+      0.0475
+     ],
+     [
+      186450,
+      0.0599
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 11200,
+    "married": 22400
+   },
+   "exemption": {
+    "single": 5250,
+    "married": 10500
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 40
+  },
+  {
+   "code": "SC",
+   "name": "South Carolina",
+   "verified": "Official: SC Department of Revenue, 2026 Tax Legislation Update (Act 110 / H.4216): 1.99% and 5.21%, SC Income Adjusted Deduction",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0199
+     ],
+     [
+      30000,
+      0.0521
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0199
+     ],
+     [
+      30000,
+      0.0521
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 15000,
+    "married": 30000,
+    "hoh": 22500
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "deductionPhaseout": {
+    "single": [
+     40000,
+     95000
+    ],
+    "married": [
+     80000,
+     190000
+    ],
+    "hoh": [
+     60000,
+     142500
+    ]
+   },
+   "phaseoutRound": 10,
+   "gains": {
+    "exclude": 0.44
+   },
+   "value": 41
+  },
+  {
+   "code": "SD",
+   "name": "South Dakota",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 42
+  },
+  {
+   "code": "TN",
+   "name": "Tennessee",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 43
+  },
+  {
+   "code": "TX",
+   "name": "Texas",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 44
+  },
+  {
+   "code": "UT",
+   "name": "Utah",
+   "verified": "Law: SB 60 (2026) sets 4.45% retroactive to January 1, 2026",
+   "notes": [
+    "Utah's taxpayer credit phases out as income rises; not modeled, so higher earners' Utah tax is understated by up to the credit."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0445
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0445
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 0,
+    "married": 0
+   },
+   "credit": {
+    "single": 966,
+    "married": 1932
+   },
+   "value": 45
+  },
+  {
+   "code": "VT",
+   "name": "Vermont",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0335
+     ],
+     [
+      49400,
+      0.066
+     ],
+     [
+      119700,
+      0.076
+     ],
+     [
+      249700,
+      0.0875
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0335
+     ],
+     [
+      82500,
+      0.066
+     ],
+     [
+      199450,
+      0.076
+     ],
+     [
+      304000,
+      0.0875
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 7650,
+    "married": 15300
+   },
+   "exemption": {
+    "single": 5300,
+    "married": 10600
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 46
+  },
+  {
+   "code": "VA",
+   "name": "Virginia",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.02
+     ],
+     [
+      3000,
+      0.03
+     ],
+     [
+      5000,
+      0.05
+     ],
+     [
+      17000,
+      0.0575
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.02
+     ],
+     [
+      3000,
+      0.03
+     ],
+     [
+      5000,
+      0.05
+     ],
+     [
+      17000,
+      0.0575
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 8750,
+    "married": 17500
+   },
+   "exemption": {
+    "single": 930,
+    "married": 1860
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 47
+  },
+  {
+   "code": "WA",
+   "name": "Washington",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Washington has no tax on wages. It taxes long-term capital gains: 7% above a $278,000 deduction (2025 amount; 2026 not yet published) and 9.9% on gains above $1 million."
+   ],
+   "none": true,
+   "gains": {
+    "separate": {
+     "deduction": 278000,
+     "brackets": [
+      [
+       0,
+       0.07
+      ],
+      [
+       1000000,
+       0.099
+      ]
+     ]
+    }
+   },
+   "value": 48
+  },
+  {
+   "code": "WV",
+   "name": "West Virginia",
+   "verified": "Official: enrolled Committee Substitute for SB 392 (2026), §11-21-4j, rates for 2026",
+   "notes": [],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.0211
+     ],
+     [
+      10000,
+      0.0281
+     ],
+     [
+      25000,
+      0.0316
+     ],
+     [
+      40000,
+      0.0422
+     ],
+     [
+      60000,
+      0.0458
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.0211
+     ],
+     [
+      10000,
+      0.0281
+     ],
+     [
+      25000,
+      0.0316
+     ],
+     [
+      40000,
+      0.0422
+     ],
+     [
+      60000,
+      0.0458
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 0,
+    "married": 0
+   },
+   "exemption": {
+    "single": 2000,
+    "married": 4000
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "value": 49
+  },
+  {
+   "code": "WI",
+   "name": "Wisconsin",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [
+    "Wisconsin's standard deduction phases out as income rises; not modeled."
+   ],
+   "brackets": {
+    "single": [
+     [
+      0,
+      0.035
+     ],
+     [
+      15110,
+      0.044
+     ],
+     [
+      51950,
+      0.053
+     ],
+     [
+      332720,
+      0.0765
+     ]
+    ],
+    "married": [
+     [
+      0,
+      0.035
+     ],
+     [
+      20150,
+      0.044
+     ],
+     [
+      69260,
+      0.053
+     ],
+     [
+      443630,
+      0.0765
+     ]
+    ]
+   },
+   "deduction": {
+    "single": 13960,
+    "married": 25840
+   },
+   "exemption": {
+    "single": 700,
+    "married": 1400
+   },
+   "credit": {
+    "single": 0,
+    "married": 0
+   },
+   "gains": {
+    "exclude": 0.3
+   },
+   "value": 50
+  },
+  {
+   "code": "WY",
+   "name": "Wyoming",
+   "verified": "Tax Foundation 2026 table",
+   "notes": [],
+   "none": true,
+   "value": 51
+  }
+ ]
+}

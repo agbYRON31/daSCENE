@@ -329,15 +329,20 @@ note("position_size",
 
 # ── Tax ─────────────────────────────────────────────────────────────────────────
 note("income_tax",
-     "US income tax is progressive by slices: each bracket's rate applies only to the income inside that bracket, not to all of it. That's why moving into a higher bracket never lowers take-home pay.",
+     "US income tax is progressive by slices: each bracket's rate applies only to the income inside that bracket, not to all of it. That's why moving into a higher bracket never lowers take-home pay. Most states tax income the same way with their own brackets, after their own deduction and exemptions.",
      ("each slice of income", "The part of taxable income that falls inside one bracket."),
      ("× its bracket rate", "Taxed at that bracket's rate."),
-     ("sum", "Total tax; divided by income it gives the average rate. The marginal rate is the top bracket reached."))
+     ("sum", "Total federal tax; divided by income it gives the effective rate. The marginal rate is the top bracket reached."),
+     ("state's own brackets", "State tax starts from AGI (estimated as taxable income plus the federal standard deduction), subtracts the state's deduction and exemptions, then applies the state's brackets and any personal credit. New York and Connecticut also take back the benefit of their lower brackets at higher incomes, so their rate on the next dollar can sit well above the bracket rate while that phases in."),
+     ("combined marginal rate", "Federal plus state rate on the next dollar: the rate to use when a decision adds or removes income."))
+
 note("taxable_income",
-     "Tax is figured on income after deductions. You take whichever is bigger: your itemized deductions or the standard deduction.",
+     "Tax is figured on income after deductions. Federally you take whichever is bigger: itemized deductions or the standard deduction. States start from the same AGI but subtract their own deduction and exemptions.",
      ("AGI", "Adjusted gross income."),
-     ("larger of itemized or standard", "The deduction that saves more tax."),
-     ("−", "What's left is taxable income."))
+     ("larger of itemized or standard", "The federal deduction that saves more tax."),
+     ("−", "What's left is federal taxable income."),
+     ("state tax from AGI", "The state's own deduction and exemptions come off AGI, then its brackets apply."))
+
 note("after_tax_return",
      "Taxes take a share of each year's return, so you keep the rest.",
      ("Return", "The pre-tax return."),
@@ -347,10 +352,12 @@ note("tey",
      ("Tax-free yield", "What the municipal bond pays."),
      ("÷ (1 − tax rate)", "Grosses it up to a taxable equivalent; the higher your bracket, the more a tax-free yield is worth."))
 note("ltcg_tax",
-     "Long-term gains have their own 0%, 15% and 20% brackets, but they sit on top of ordinary income. So ordinary income decides how much room is left in the lower gain brackets.",
+     "Long-term gains have their own federal 0%, 15% and 20% brackets, but they sit on top of ordinary income, so ordinary income decides how much room is left in the lower brackets. Most states simply tax gains like other income; some exclude part of the gain or use their own rates.",
      ("ordinary income", "Fills the brackets first."),
      ("gains stack on top", "Gains are taxed in the slices above ordinary income."),
-     ("0% / 15% / 20% thresholds", "Each slice of gain is taxed at the rate for where it lands."))
+     ("0% / 15% / 20% thresholds", "Each slice of gain is taxed at the federal rate for where it lands."),
+     ("state tax on the gain", "The extra state tax from adding the gain to income, after any state exclusion (for example 44% in South Carolina), cap or separate rate."))
+
 note("niit",
      "A 3.8% surtax applies to investment income only when income is above a threshold, and only on the smaller of the two amounts.",
      ("MAGI over the threshold", "How far income exceeds the filing-status threshold."),
@@ -362,9 +369,11 @@ note("roth_vs_trad",
      ("× (1 − future rate)", "Traditional: tax taken at withdrawal."),
      ("× (1 − today's rate)", "Roth: tax paid up front, then tax-free growth."))
 note("roth_conversion",
-     "The tax cost of converting is the extra tax caused by adding the conversion to this year's income.",
+     "The tax cost of converting is the extra tax caused by adding the conversion to this year's income, federal and state.",
      ("Tax(income + conversion)", "Tax with the conversion added."),
-     ("− tax(income)", "Minus tax without it: the conversion's own cost."))
+     ("− tax(income)", "Minus tax without it: the conversion's own cost."),
+     ("federal and state", "The same difference worked out with the state's brackets, added to the federal amount."))
+
 note("tlh",
      "Capital losses first offset capital gains, then up to $3,000 of ordinary income per year; anything left carries forward to future years.",
      ("Losses offset gains", "Net capital gain is reduced first."),

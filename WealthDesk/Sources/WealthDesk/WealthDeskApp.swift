@@ -135,7 +135,7 @@ enum QAHooks {
             "client.risk.vol": ["sa": "16", "sb": "6", "rho": "0.1"],
             "client.inflation": ["c": "80000", "i": "3", "n": "20"],
             "client.taxdrag": ["a": "100000", "r": "7", "t": "24", "n": "20"],
-            "client.incometax": ["ti": "250000"],
+            "client.incometax": ["ti": "250000", "st": "5"],
         ]
         for (k, v) in fill { for (id, x) in v { state.setClient(k, id, x) } }
         var failures = 0

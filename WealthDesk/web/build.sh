@@ -28,7 +28,7 @@ out=dist/web
 rm -rf "$out"
 mkdir -p "$out/data"
 cp web/index.html web/styles.css web/app.js web/engine.js web/scenario.js web/client_market.js web/stock.js "$out/"
-cp Resources/catalog.json Resources/taxdata.json "$out/data/"
+cp Resources/catalog.json Resources/taxdata.json Resources/statetax.json "$out/data/"
 touch "$out/.nojekyll"
 
 if [[ $full == 1 ]]; then
