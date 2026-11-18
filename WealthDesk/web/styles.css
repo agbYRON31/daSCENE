@@ -458,6 +458,8 @@ table.cmp thead th { font-size: 14px; border-bottom: 1px solid var(--sep); }
 /* Stock research */
 .stk-search { position: relative; display: flex; gap: 8px; align-items: center; max-width: 520px; }
 .stk-field { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--control); border: 1px solid var(--sep); border-radius: 8px; padding: 6px 10px; }
+/* These two boxes hide the input's own focus ring, so the box around them shows it instead. */
+.sb-search label:focus-within, .stk-field:focus-within { outline: 3px solid var(--accent-18); box-shadow: inset 0 0 0 1px var(--accent); }
 .stk-field input { flex: 1; border: 0; background: none; font: inherit; font-size: 15px; color: inherit; outline: none; min-width: 0; }
 .stk-suggest { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; margin-top: 4px; background: var(--control); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
 .stk-suggest:empty { display: none; }
@@ -559,3 +561,8 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 .inputs-grid .ctrl input[type="text"] { max-width: none; }
 @media (max-width: 760px) { .tile strong, .modecard h2 { width: auto; } }
 .bigband { font: 650 36px/1 var(--font); letter-spacing: -.01em; }
+
+/* Focus moved to a page heading after navigation needs no ring; it isn't something to click. */
+[tabindex="-1"]:focus { outline: none; }
+/* Respect the system "reduce motion" setting (the phone sidebar slide). */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }

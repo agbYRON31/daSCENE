@@ -173,7 +173,10 @@ const rgba = (hex, a) => {
 };
 /** A canvas whose chart is created once the node is in the document (mountCharts). */
 function chart(type, chartData, o = {}) {
-  const canvas = h("canvas", { role: "img", "aria-label": o.label || "Chart" });
+  // Screen readers can't read a canvas; describe it by what it plots (the table under it has the figures).
+  const series = (chartData.datasets || []).map((d) => d.label).filter(Boolean).join(", ");
+  const label = o.label || `${type === "bar" ? "Bar" : "Line"} chart${o.xTitle ? ` by ${o.xTitle.toLowerCase()}` : ""}${series ? `: ${series}` : ""}`;
+  const canvas = h("canvas", { role: "img", "aria-label": label });
   const box = h("div", { class: "chartbox " + (o.size || "") }, canvas);
   box._make = () => {
     if (!window.Chart) return;
@@ -336,7 +339,30 @@ function clearSession() {
   toast("Session cleared. Everything typed has been erased.");
 }
 
+// Each page is drawn fresh, which used to drop keyboard focus back to the top of the document.
+// Remember what had focus and put it back on the same control in the new page (a sidebar row, a
+// tab, a toolbar button); if that control is gone (a link to another page), focus the new page's
+// heading so keyboard and screen-reader users start at the content.
+function focusKey() {
+  const el = document.activeElement;
+  if (!el || el === document.body || !app.contains(el)) return null;
+  const zone = el.closest(".tb") ? ".tb" : el.closest(".sidebar") ? ".sidebar" : "#detail";
+  return { zone, tag: el.tagName, id: el.id, href: el.getAttribute("href"), text: (el.getAttribute("aria-label") || el.textContent).trim() };
+}
+function restoreFocus(k) {
+  if (!k) return;
+  const narrow = matchMedia("(max-width: 760px)").matches;   // the sidebar is closed off-screen there
+  const zone = k.zone === ".sidebar" && narrow ? null : app.querySelector(k.zone);
+  let t = k.id ? document.getElementById(k.id) : null;
+  if (!t && zone) t = [...zone.querySelectorAll(k.tag)].find((e) => (e.getAttribute("href") ?? null) === k.href
+    && (e.getAttribute("aria-label") || e.textContent).trim() === k.text && !e.disabled);
+  if (!t) t = shell.detail.querySelector("h1") || shell.detail;
+  if ((t === shell.detail || t.tagName === "H1") && !t.hasAttribute("tabindex")) t.setAttribute("tabindex", "-1");
+  t.focus({ preventScroll: true });
+}
+
 function show(page, { mode, selected } = {}) {
+  const focused = focusKey();
   destroyCharts();
   current = { mode, ...page };
   shell.toolbar = h("header", { class: "tb" });
@@ -349,6 +375,7 @@ function show(page, { mode, selected } = {}) {
   mountCharts(shell.detail);
   page.mounted?.();
   shell.detail.scrollTop = 0;
+  restoreFocus(focused);
 }
 
 /** For a calculator with a state chosen: where that state's figures come from and what the estimate leaves out. */
