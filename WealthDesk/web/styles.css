@@ -453,3 +453,33 @@ table.cmp thead th { font-size: 14px; border-bottom: 1px solid var(--sep); }
   .print-head { display: block; font-size: 11px; color: #444; border-bottom: 1px solid #ccc; padding-bottom: 6px; margin-bottom: 4px; }
   body { font-size: 12px; }
 }
+
+/* Stock research */
+.stk-search { position: relative; display: flex; gap: 8px; align-items: center; max-width: 520px; }
+.stk-field { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--control); border: 1px solid var(--sep); border-radius: 8px; padding: 6px 10px; }
+.stk-field input { flex: 1; border: 0; background: none; font: inherit; font-size: 15px; color: inherit; outline: none; min-width: 0; }
+.stk-suggest { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; margin-top: 4px; background: var(--control); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+.stk-suggest:empty { display: none; }
+.stk-suggest button { display: flex; gap: 10px; width: 100%; text-align: left; border: 0; background: none; padding: 8px 12px; font: inherit; color: inherit; cursor: pointer; }
+.stk-suggest button:hover { background: var(--fill-2); }
+.stk-suggest button span { color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stk-q1 { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.stk-sym { font: 700 26px var(--rounded); letter-spacing: .5px; }
+.stk-px { font: 600 28px var(--rounded); }
+.stk-52 { display: flex; align-items: center; gap: 10px; }
+.stk-52bar { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--fill-2); }
+.stk-52bar i { position: absolute; top: -4px; width: 4px; height: 12px; margin-left: -2px; border-radius: 2px; background: var(--accent); }
+.stk-kv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stk-kvv { font-size: 17px; font-weight: 600; }
+.stk-tiles { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.scrollx { overflow-x: auto; }
+table.stk-fin td:first-child { position: sticky; left: 0; background: var(--control); }
+.stk-filings a { display: flex; gap: 12px; align-items: center; padding: 7px 0; color: inherit; text-decoration: none; }
+.stk-filings a + a { border-top: 1px solid var(--sep); }
+.stk-filings a:hover strong { color: var(--accent); }
+.stk-filings strong { width: 64px; }
+.stk-filings .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--secondary); }
+@media (max-width: 760px) {
+  .stk-kv { grid-template-columns: 1fr 1fr; }
+  .stk-tiles { grid-template-columns: 1fr 1fr; }
+}

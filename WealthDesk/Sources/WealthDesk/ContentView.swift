@@ -73,7 +73,7 @@ struct StartView: View {
                 Text("WEALTH DESK").font(.system(size: 13, weight: .bold)).tracking(3).foregroundStyle(Color.wealthAccent)
                 Text("See how financial decisions play out").font(.system(size: compact ? 26 : 34, weight: .semibold, design: .serif))
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                Text("Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent.")
+                Text("Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent (Stock research sends only the ticker symbol you look up).")
                     .font(compact ? .body : .title3).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 620)
             }
@@ -150,6 +150,7 @@ struct AdvisorView: View {
                     }
                 case .calculator?: CalculatorPadView()
                 case .markets?: MarketsView()
+                case .stock?: StockView()
                 case .roro?: RoRoView()
                 case .scenarios?: ScenariosView()
                 case .history?: HistoryView()
@@ -178,6 +179,7 @@ struct AdvisorHomeView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 14)], spacing: 14) {
                     HomeTile(symbol: "gauge.medium", title: "RoRo Composite", text: "Market risk conditions across 37 factors") { state.selection = .roro }
                     HomeTile(symbol: "chart.xyaxis.line", title: "Markets", text: "Treasury yield curve and a quote watchlist") { state.selection = .markets }
+                    HomeTile(symbol: "magnifyingglass", title: "Stock research", text: "One company: price, risk, fundamentals, filings") { state.selection = .stock }
                     HomeTile(symbol: "plusminus.circle", title: "Calculator", text: "Basic and scientific, with a history tape") { state.selection = .calculator }
                     HomeTile(symbol: "person.2", title: "Client Mode", text: "Six simple, visual tools for a conversation") { state.showClient(nil) }
                 }
@@ -259,6 +261,7 @@ struct SidebarView: View {
                     Label("Home", systemImage: "house").tag(SidebarItem.home)
                     Label("RoRo Composite", systemImage: "gauge.medium").tag(SidebarItem.roro)
                     Label("Markets", systemImage: "chart.xyaxis.line").tag(SidebarItem.markets)
+                    Label("Stock research", systemImage: "magnifyingglass").tag(SidebarItem.stock)
                     Label("Calculator", systemImage: "plusminus.circle").tag(SidebarItem.calculator)
                     Label("Session scenarios", systemImage: "tray.full")
                         .badge(state.session.scenarios.count)

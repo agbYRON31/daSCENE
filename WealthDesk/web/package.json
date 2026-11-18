@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Marks the web scripts as ES modules (for Node checks and the Vercel lookup function that imports stock.js)."
+}

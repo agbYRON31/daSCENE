@@ -18,13 +18,16 @@ for a in "$@"; do
   esac
 done
 
+# Syntax-check the page scripts (the self-tests import the engine, not the page).
+for f in app stock client_market scenario; do node --input-type=module --check < "web/$f.js"; done
 node web/check.mjs
 node web/client-market-check.mjs Tests/roro_expected.json Tests/roro_expected_2022-06-16.json
+if command -v python3 >/dev/null; then node web/stock-check.mjs --no-mac; fi
 
 out=dist/web
 rm -rf "$out"
 mkdir -p "$out/data"
-cp web/index.html web/styles.css web/app.js web/engine.js web/scenario.js web/client_market.js "$out/"
+cp web/index.html web/styles.css web/app.js web/engine.js web/scenario.js web/client_market.js web/stock.js "$out/"
 cp Resources/catalog.json Resources/taxdata.json "$out/data/"
 touch "$out/.nojekyll"
 
@@ -33,6 +36,7 @@ if [[ $full == 1 ]]; then
   swift build -c release --product roro
   node web/parity.mjs 80
   node web/scenario-check.mjs
+  node web/stock-check.mjs   # with the Mac engine (wdparity built above)
 
   # RoRo: the app's own engine, on today's published data. A failed download leaves the
   # site without RoRo data rather than failing the whole build.
