@@ -38,7 +38,7 @@ struct MarketBriefView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Market Brief").font(.largeTitle.weight(.semibold))
+                    Text("Market Brief").font(.wealthSerif(30))
                     Text("Where markets stand today, then the tools for the conversation.").foregroundStyle(.secondary)
                 }
                 brief
@@ -72,7 +72,7 @@ struct MarketBriefView: View {
                 })) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(band).font(.system(size: 40, weight: .bold, design: .serif)).foregroundStyle(RoRoStyle.bandColor(band))
-                    Text(RoRoStyle.signed(p["value"]?.num ?? .nan)).font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
+                    Text(RoRoStyle.signed(p["value"]?.num ?? .nan)).font(.wealthSerif(30)).monospacedDigit()
                     Text("\(RoRoStyle.signed(p["delta"]?.num ?? .nan)) since \(p["prev_date"]?.str ?? "the last run")").font(.callout).foregroundStyle(.secondary)
                 }
                 ScoreBar(value: p["value"]?.num ?? .nan, height: 12)
@@ -82,7 +82,7 @@ struct MarketBriefView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(names[h["label"]?.str ?? ""] ?? (h["label"]?.str ?? "")).font(.callout).foregroundStyle(.secondary)
                             HStack(alignment: .firstTextBaseline) {
-                                Text(RoRoStyle.signed(v)).font(.system(size: 22, weight: .semibold, design: .rounded)).monospacedDigit().foregroundStyle(RoRoStyle.color(v))
+                                Text(RoRoStyle.signed(v)).font(.wealthSerif(22)).monospacedDigit().foregroundStyle(RoRoStyle.color(v))
                                 Spacer()
                                 Text(v.isNaN ? "" : (v >= 20 ? "Offense" : (v <= -20 ? "Defense" : "Neutral"))).font(.caption).foregroundStyle(.secondary)
                             }
@@ -94,8 +94,8 @@ struct MarketBriefView: View {
                 }
                 HStack(spacing: 16) {
                     Button("Factors, history and methodology") { state.selection = .roro }
-                    Button("Show the client version") { state.showClient(.market) }.buttonStyle(.link)
-                    Button("Treasury yields & quotes") { state.selection = .markets }.buttonStyle(.link)
+                    Button("Show the client version") { state.showClient(.market) }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent)
+                    Button("Treasury yields & quotes") { state.selection = .markets }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent)
                 }
                 Text("Scale −100 (risk-off) to +100 (risk-on); Offense above +20, Defense below −20. A hand-calibrated model of current conditions, not a forecast of returns.")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -121,7 +121,7 @@ struct CalculatorsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Calculators").font(.largeTitle.weight(.semibold))
+                    Text("Calculators").font(.wealthSerif(30))
                     Text("Every calculator opens blank; type your own numbers. Formulas, assumptions and sources are on each one. The people icon means it can open the matching Client Mode tool with the same numbers (Present to client).")
                         .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
@@ -130,7 +130,7 @@ struct CalculatorsView: View {
                     TextField("Search all \(state.calculators.count) calculators", text: $query).textFieldStyle(.plain)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.12)))
                 .frame(maxWidth: 520)
 

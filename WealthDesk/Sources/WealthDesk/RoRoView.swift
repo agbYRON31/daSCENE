@@ -268,10 +268,10 @@ struct TabPickerStyle: ViewModifier {
 // MARK: - Helpers
 
 enum RoRoStyle {
-    static func color(_ score: Double) -> Color { score.isNaN ? .secondary : (score >= 20 ? .green : (score <= -20 ? .red : .orange)) }
+    static func color(_ score: Double) -> Color { score.isNaN ? .secondary : (score >= 20 ? .wealthUp : (score <= -20 ? .wealthDown : .wealthAmber)) }
     static func signed(_ v: Double, _ decimals: Int = 0) -> String { v.isNaN ? "—" : String(format: "%+.\(decimals)f", v).replacingOccurrences(of: "-", with: "−") }
     static func pct(_ v: Double) -> String { v.isNaN ? "—" : String(format: "%+.1f%%", v).replacingOccurrences(of: "-", with: "−") }
-    static func bandColor(_ band: String) -> Color { band == "OFFENSE" ? .green : (band == "DEFENSE" ? .red : .orange) }
+    static func bandColor(_ band: String) -> Color { band == "OFFENSE" ? .wealthUp : (band == "DEFENSE" ? .wealthDown : .wealthAmber) }
 }
 
 /// −100 … +100 scale with the ±20 lines marked.
@@ -323,7 +323,7 @@ struct RoRoCard<Content: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
     }
 }
@@ -359,7 +359,7 @@ struct RoRoOverview: View {
                             .lineLimit(1).minimumScaleFactor(0.5).layoutPriority(1)
                         if let lean = p["lean"]?.str, !lean.isEmpty { Text(lean).font(.caption.weight(.semibold)).foregroundStyle(.secondary).fixedSize().layoutPriority(2) }
                         Spacer(minLength: 0)
-                        Text(RoRoStyle.signed(p["value"]?.num ?? .nan)).font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
+                        Text(RoRoStyle.signed(p["value"]?.num ?? .nan)).font(.wealthSerif(30)).monospacedDigit()
                             .fixedSize()
                     }
                     ScoreBar(value: p["value"]?.num ?? .nan, height: 12)
@@ -379,7 +379,7 @@ struct RoRoOverview: View {
                 ForEach(Array((m["horizons"]?.items ?? []).enumerated()), id: \.offset) { _, h in
                     RoRoCard(title: "\(h["label"]?.str ?? "") · \(h["span"]?.str ?? "")") {
                         HStack(alignment: .firstTextBaseline) {
-                            Text(RoRoStyle.signed(h["value"]?.num ?? .nan)).font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
+                            Text(RoRoStyle.signed(h["value"]?.num ?? .nan)).font(.wealthSerif(30)).monospacedDigit()
                                 .foregroundStyle(RoRoStyle.color(h["value"]?.num ?? .nan))
                             Spacer()
                             Text(h["regime"]?.str ?? "").font(.caption.weight(.semibold)).foregroundStyle(.secondary)

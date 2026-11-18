@@ -285,7 +285,7 @@ struct ResultTile: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(output.label).font(.callout).foregroundStyle(.secondary).lineLimit(2)
             Text(Format.value(output.value, output.format))
-                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                .font(.wealthSerif(24))
                 .monospacedDigit()
                 .foregroundStyle(isNegative ? Color.red : Color.primary)
                 .textSelection(.enabled)
@@ -330,7 +330,7 @@ struct ProjectionCard: View {
              trailing: AnyView(
                 Button("Copy table") {
                     state.copy(state.engine?.tableTSV(table) ?? "", message: "Copied table. Paste into Excel.")
-                }.buttonStyle(.link))) {
+                }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent))) {
             Chart(points) { p in
                 LineMark(x: .value(table.spec.columns[0].label, p.x),
                          y: .value("Balance", p.y))
@@ -447,16 +447,17 @@ struct Card<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(title).font(.headline)
+                Text(title).font(.wealthSerif(17))
                 Spacer()
                 if let trailing { trailing }
             }
             content
         }
-        .padding(18)
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.wealthHair.opacity(0.1)))
+        .shadow(color: Color.black.opacity(0.04), radius: 3, y: 1)
     }
 }
 

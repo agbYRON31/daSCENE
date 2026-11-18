@@ -63,14 +63,15 @@ struct StartView: View {
                     .frame(maxWidth: .infinity, minHeight: geo.size.height)
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color.wealthPaper)
     }
 
     private func content(compact: Bool) -> some View {
         VStack(spacing: compact ? 18 : 28) {
             Spacer(minLength: 0)
             VStack(spacing: 8) {
-                Text("WEALTH DESK").font(.system(size: 13, weight: .bold)).tracking(3).foregroundStyle(Color.wealthAccent)
+                Text("WEALTH DESK").font(.system(size: 12, weight: .semibold)).tracking(4).foregroundStyle(Color.wealthGold)
+                Rectangle().fill(Color.wealthGold).frame(width: 44, height: 1).padding(.bottom, 4)
                 Text("See how financial decisions play out").font(.system(size: compact ? 26 : 34, weight: .semibold, design: .serif))
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 Text("Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent (Stock research sends only the ticker symbol you look up).")
@@ -112,8 +113,8 @@ struct ModeCard: View {
     var body: some View {
         Button(action: run) {
             VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: symbol).font(.system(size: 26)).foregroundStyle(Color.wealthAccent)
-                Text(title).font(.title2.weight(.semibold))
+                Image(systemName: symbol).font(.system(size: 26)).foregroundStyle(Color.wealthGold)
+                Text(title).font(.wealthSerif(23))
                 Text(text).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 4)
                 HStack { Text(action).fontWeight(.semibold); Image(systemName: "arrow.right") }
@@ -121,8 +122,8 @@ struct ModeCard: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, minHeight: 190, maxHeight: .infinity, alignment: .topLeading)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(hover ? Color.wealthAccent : Color.primary.opacity(0.1), lineWidth: hover ? 1.5 : 1))
+            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(hover ? Color.wealthGold : Color.wealthHair.opacity(0.1), lineWidth: hover ? 1.5 : 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -138,6 +139,9 @@ struct AdvisorView: View {
     var body: some View {
         NavigationSplitView {
             SidebarView()
+                .scrollContentBackground(.hidden)
+                .background(Color.wealthNavy)
+                .environment(\.colorScheme, .dark)
                 .navigationSplitViewColumnWidth(min: 230, ideal: 270, max: 360)
         } detail: {
             Group {
@@ -158,6 +162,8 @@ struct AdvisorView: View {
                 case .home?, nil: MarketBriefView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.wealthPaper)
             .toolbar {
                 ToolbarItem(placement: .navigation) { ModeSwitch() }
             }
@@ -173,7 +179,7 @@ struct AdvisorHomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Advisor workspace").font(.largeTitle.weight(.semibold))
+                    Text("Advisor workspace").font(.wealthSerif(30))
                     Text("Pick a tool. Every calculator opens blank; type your own numbers and results update as you go. Formulas, assumptions and sources are under “Details & Excel” on each one.")
                         .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
@@ -227,16 +233,16 @@ struct HomeTile: View {
     var body: some View {
         Button(action: run) {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: symbol).font(.title2).foregroundStyle(Color.wealthAccent).frame(width: 30)
+                Image(systemName: symbol).font(.title2).foregroundStyle(Color.wealthGold).frame(width: 30)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.headline)
+                    Text(title).font(.wealthSerif(16))
                     Text(text).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 74, alignment: .topLeading)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.08)))
             .contentShape(Rectangle())
         }

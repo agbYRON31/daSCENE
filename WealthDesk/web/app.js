@@ -552,7 +552,7 @@ function calcPage(calc) {
     errs[f.id] = h("div", { class: "err hidden" });
     const line = fieldKind.isChoice(f) || fieldKind.isSeries(f) ? c
       : h("div", { class: "line" }, h("span", { class: "pre", text: f.unit === "$" ? "$" : "" }), c, unitSuffix(f) ? h("span", { class: "suf", text: unitSuffix(f) }) : null);
-    return [h("label", { for: id, text: f.label }), h("div", { class: "ctrl" }, line, hints[f.id], errs[f.id])];
+    return h("div", { class: "fld" }, h("label", { for: id, text: f.label }), h("div", { class: "ctrl" }, line, hints[f.id], errs[f.id]));
   };
 
   function note(o) {
@@ -1018,7 +1018,7 @@ function priceChartCard(r) {
       chart("line", { labels: pts.map(([t]) => new Date(t * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })),
         datasets: [{ label: r.symbol, data: pts.map((p) => p[1]), borderColor: A, backgroundColor: A, borderWidth: 2 }] },
       { legend: false, zero: false, money: false, maxXTicks: 6, label: `${r.symbol} today`, tooltip: (c) => `${r.symbol}: ${money2(c.parsed.y)}`,
-        lines: r.quote.prevClose ? { y: [{ value: r.quote.prevClose, color: rgba("#8e8e93", 0.7) }] } : {} });
+        lines: r.quote.prevClose ? { y: [{ value: r.quote.prevClose, color: rgba(cssVar("--neutral"), 0.7) }] } : {} });
   } else {
     const days = r.chart.days, last = days[days.length - 1], spec = RANGES.find(([k]) => k === st.range)[1];
     let from;
@@ -1036,7 +1036,7 @@ function priceChartCard(r) {
       datasets = [{ label: r.symbol, data: pick.map((i) => (r.chart.adj[i] / base) * 100), borderColor: A, backgroundColor: A, borderWidth: 2 },
         bBase ? { label: "S&P 500 (SPY)", data: pick.map((i) => (bm.has(days[i]) ? (bm.get(days[i]) / bBase) * 100 : null)), borderColor: G, backgroundColor: G, borderWidth: 1.5, spanGaps: true } : null].filter(Boolean);
       o = { money: false, zero: false, maxXTicks: 8, label: `${r.symbol} against the S&P 500, growth of 100`, tooltip: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`,
-        lines: { y: [{ value: 100, color: rgba("#8e8e93", 0.6) }] } };
+        lines: { y: [{ value: 100, color: rgba(cssVar("--neutral"), 0.6) }] } };
     } else {
       datasets = [{ label: r.symbol, data: pick.map((i) => r.chart.close[i]), borderColor: A, backgroundColor: A, borderWidth: 2 }];
       o = { money: false, zero: false, legend: false, maxXTicks: 8, label: `${r.symbol} price`, tooltip: (c) => `${r.symbol}: ${money2(c.parsed.y)}` };
@@ -1250,7 +1250,7 @@ function roroOverview(m) {
         h("span", { class: "live caption secondary", text: `${b.factors_live}/${b.factors_total} live` })]))),
     rcard("Last 24 months", "Tactical is the raw daily composite; Intermediate and Strategic are smoothed (5- and 20-day).",
       chart("line", { labels: hist.dates, datasets: [
-        ["tactical", "Tactical", rgba(cssVar("--secondary").startsWith("rgba") ? "#8e8e93" : cssVar("--secondary"), 0.6), 1.1],
+        ["tactical", "Tactical", rgba(cssVar("--neutral"), 0.7), 1.1],
         ["intermediate", "Intermediate", cssVar("--accent"), 2.2],
         ["strategic", "Strategic", rgba(cssVar("--blue"), 0.7), 1.1],
       ].map(([k, label, color, w]) => ({ label, data: hist[k], borderColor: color, backgroundColor: color, borderWidth: w, spanGaps: true })) },
@@ -1487,7 +1487,7 @@ const headline = (text, cap) => h("div", { class: "headline" }, h("div", { class
 const stat = (label, value, cap, neg) => h("div", { class: "stat" }, h("div", { class: "lbl", text: label }),
   h("div", { class: "val" + (neg ? " neg" : ""), text: value, title: value }), cap ? h("div", { class: "cp", text: cap }) : null);
 const stats = (...k) => h("div", { class: "stats" }, ...k);
-const chartCard = (title, note, ...kids) => h("section", { class: "card" }, h("h3", { style: "margin:0;font-size:15px", text: title }), ...kids, note ? h("p", { class: "note", text: note }) : null);
+const chartCard = (title, note, ...kids) => h("section", { class: "card" }, h("h3", { class: "chart-title", text: title }), ...kids, note ? h("p", { class: "note", text: note }) : null);
 const footnote = () => h("p", { class: "footnote", text: "These are educational illustrations based only on the numbers typed in. They are not advice, a recommendation or a prediction. Nothing typed here is saved or sent; it is erased when this tab closes." });
 function needsInput(c) {
   if (!c) return h("div", { class: "needs secondary", text: "This tool is unavailable." });
@@ -1549,7 +1549,7 @@ function growthTool(tool) {
   ], () => {
     const c = run();
     if (!c?.ok || !c.ev.table) return needsInput(c);
-    const rows = c.ev.table.rows, years = rows.length ? rows[rows.length - 1][0] : 0, A = cssVar("--accent"), G = "#8e8e93", O = cssVar("--orange");
+    const rows = c.ev.table.rows, years = rows.length ? rows[rows.length - 1][0] : 0, A = cssVar("--accent"), G = cssVar("--neutral"), O = cssVar("--orange");
     const takesOut = c.v(4) > 0, runsOut = c.v(5) >= 0;
     if (!takesOut) {
       return [
@@ -1679,7 +1679,7 @@ function riskTool(tool) {
         chart("bar", { labels: [...(ba?.labels ?? []), ...(bb?.labels ?? [])], datasets: [
           { label: "Stocks", data: series("stocks"), backgroundColor: cssVar("--accent") },
           { label: "Bonds", data: series("bonds"), backgroundColor: rgba(cssVar("--blue"), 0.7) },
-          { label: "Cash", data: series("cash"), backgroundColor: rgba("#8e8e93", 0.5) },
+          { label: "Cash", data: series("cash"), backgroundColor: rgba(cssVar("--neutral"), 0.5) },
         ] }, { stacked: true, size: "h260" })),
       V?.ok ? chartCard("Typical ups and downs", "Volatility is a yardstick for normal fluctuation, not a worst case and not a prediction.",
         stats(stat("Volatility of this mix", Format.percent(V.v(0)), "Standard deviation of yearly returns, from your assumptions"),
@@ -1720,7 +1720,7 @@ function decisionsTool(tool) {
           h("tr", {}, h("td", { text: "How long the money lasts" }), h("td", { text: lasts(A) }), h("td", { text: lasts(B) }), h("td"))))),
       chartCard("Savings over time", "Both lines use a steady return every year. Real markets vary; see the retirement tool for a range of outcomes.",
         chart("line", { datasets: [
-          { label: "Option A", data: A.ev.table.rows.map((r) => ({ x: r[0] + 1, y: r[5] })), borderColor: "#8e8e93", backgroundColor: "#8e8e93", borderWidth: 2.5 },
+          { label: "Option A", data: A.ev.table.rows.map((r) => ({ x: r[0] + 1, y: r[5] })), borderColor: cssVar("--neutral"), backgroundColor: cssVar("--neutral"), borderWidth: 2.5 },
           { label: "Option B", data: B.ev.table.rows.map((r) => ({ x: r[0] + 1, y: r[5] })), borderColor: cssVar("--accent"), backgroundColor: cssVar("--accent"), borderWidth: 2.5 },
         ] }, { xType: "linear", xTitle: "Age", size: "h280" })),
       howItWorks([A]),
@@ -1773,7 +1773,7 @@ function taxesTool(tool) {
         headline(`Paying tax on earnings every year leaves ${Format.currency(c.v(0))}. Deferring the tax to the end leaves ${Format.currency(c.v(1))}.`,
           `The difference, ${Format.currency(c.v(2))}, comes from letting untaxed gains keep compounding.`),
         chartCard("Ending value after tax", null, chart("bar", { labels: ["Taxed every year", "Taxed once at the end"],
-          datasets: [{ label: "Ending value", data: [c.v(0), c.v(1)], backgroundColor: [rgba("#8e8e93", 0.6), cssVar("--accent")] }] }, { legend: false })),
+          datasets: [{ label: "Ending value", data: [c.v(0), c.v(1)], backgroundColor: [rgba(cssVar("--neutral"), 0.6), cssVar("--accent")] }] }, { legend: false })),
         howItWorks([c]),
       ];
     }
@@ -1853,7 +1853,7 @@ function marketTool(tool) {
         chart("line", { labels: sum.history.map((p) => p.x), datasets: [
           { label: "Medium-term reading", data: sum.history.map((p) => p.y), borderColor: A, backgroundColor: A, borderWidth: 2 }] },
         { money: false, yMin: -100, yMax: 100, zero: false, maxXTicks: 8, legend: false, label: "Medium-term market reading over the last two years",
-          tooltip: (c) => `Reading: ${signed(c.parsed.y, 1)}`, lines: { y: [{ value: 0, color: rgba("#8e8e93", 0.6) }] } })),
+          tooltip: (c) => `Reading: ${signed(c.parsed.y, 1)}`, lines: { y: [{ value: 0, color: rgba(cssVar("--neutral"), 0.6) }] } })),
       h("div", { class: "no-print", style: "display:flex;gap:14px;flex-wrap:wrap;align-items:center" },
         h("a", { class: "btn", href: "#/client/risk", text: "Explore a what-if with the risk tool" }),
         h("a", { class: "callout", href: "#/advisor/roro", text: "Full detail (Advisor Mode)" })),

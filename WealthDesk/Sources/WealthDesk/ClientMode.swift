@@ -186,6 +186,8 @@ struct ClientModeView: View {
                 case .market?: ClientMarketView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.wealthPaper)
             .navigationTitle(state.clientTool.map(ClientSpec.title) ?? "Wealth Desk")
             .navigationSubtitle("Client Mode")
             .toolbar {
@@ -266,14 +268,14 @@ struct ClientHome: View {
                     ForEach(ClientTool.allCases) { tool in
                         Button { state.clientTool = tool } label: {
                             VStack(alignment: .leading, spacing: 10) {
-                                Image(systemName: ClientSpec.symbol(tool)).font(.system(size: 24)).foregroundStyle(Color.wealthAccent)
-                                Text(ClientSpec.title(tool)).font(.title3.weight(.semibold)).multilineTextAlignment(.leading)
+                                Image(systemName: ClientSpec.symbol(tool)).font(.system(size: 24)).foregroundStyle(Color.wealthGold)
+                                Text(ClientSpec.title(tool)).font(.wealthSerif(19)).multilineTextAlignment(.leading)
                                 Text(ClientSpec.blurb(tool)).foregroundStyle(.secondary).multilineTextAlignment(.leading)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(22)
                             .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
-                            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+                            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 16))
                             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.primary.opacity(0.08)))
                             .contentShape(Rectangle())
                         }
@@ -321,7 +323,7 @@ struct ToolLayout<Inputs: View, Results: View>: View {
                         VStack(alignment: .leading, spacing: 16) { inputs }
                             .padding(16)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(nsColor: .controlBackgroundColor))
+                            .background(Color.wealthCard)
                         Divider()
                         resultsColumn.padding(16)
                     }
@@ -333,7 +335,7 @@ struct ToolLayout<Inputs: View, Results: View>: View {
                             .padding(20)
                     }
                     .frame(width: 380)
-                    .background(Color(nsColor: .controlBackgroundColor))
+                    .background(Color.wealthCard)
                     Divider()
                     ScrollView {
                         resultsColumn
@@ -353,7 +355,7 @@ struct InputGroup<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title.uppercased()).font(.caption.weight(.semibold)).tracking(0.8).foregroundStyle(.secondary)
+            Text(title.uppercased()).font(.caption.weight(.semibold)).tracking(1.4).foregroundStyle(Color.wealthGold)
             if let note { Text(note).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
             content
         }
@@ -421,12 +423,14 @@ struct Headline: View {
     var caption: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(text).font(.system(size: 21, weight: .medium)).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(.wealthSerif(22, .medium)).fixedSize(horizontal: false, vertical: true)
             if let caption { Text(caption).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
         }
-        .padding(18)
+        .padding(.vertical, 18).padding(.horizontal, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wealthAccent.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(alignment: .leading) { Rectangle().fill(Color.wealthGold).frame(width: 3).padding(.vertical, 1) }
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.wealthHair.opacity(0.1)))
     }
 }
 
@@ -438,13 +442,13 @@ struct StatTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label).font(.callout).foregroundStyle(.secondary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-            Text(value).font(.system(size: 24, weight: .semibold, design: .rounded)).monospacedDigit()
+            Text(value).font(.wealthSerif(24)).monospacedDigit()
                 .foregroundStyle(negative ? Color.red : Color.primary).lineLimit(1).minimumScaleFactor(0.6)
             if let caption { Text(caption).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.08)))
     }
 }
@@ -468,7 +472,7 @@ struct ChartCard<Content: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
     }
 }
@@ -509,7 +513,7 @@ struct HowItWorks: View {
                         FormulaBreakdown(calc: c.calc, compact: true)
                         Text(c.calc.assumptions).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         Text(c.calc.interpretation).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                        Button("Open the full calculator in Advisor Mode") { state.openInAdvisor(c) }.buttonStyle(.link).font(.caption)
+                        Button("Open the full calculator in Advisor Mode") { state.openInAdvisor(c) }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent).font(.caption)
                     }
                 }
             }
@@ -836,7 +840,7 @@ struct RiskTool: View {
                 }
                 HStack {
                     Button("See current market conditions (RoRo, Advisor Mode)") { state.enter(.advisor); state.selection = .roro }
-                        .buttonStyle(.link)
+                        .buttonStyle(.plain).foregroundStyle(Color.wealthAccent)
                     Spacer()
                 }
                 HowItWorks(calcs: [a] + (vol?.ok == true ? [vol!] : []))
@@ -906,7 +910,7 @@ struct DecisionsTool: View {
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
+                .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
                 ChartCard(title: "Savings over time", note: "Both lines use a steady return every year. Real markets vary; see the retirement tool for a range of outcomes.") {
                     let pts = ta.rows.map { Pt(age: $0[0] + 1, value: $0[5], option: "Option A") } + tb.rows.map { Pt(age: $0[0] + 1, value: $0[5], option: "Option B") }
@@ -1124,7 +1128,7 @@ struct ClientMarketView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(["Fast-moving signals", "Medium-term signals", "Slow-moving signals"][min(i, 2)]).font(.callout).foregroundStyle(.secondary)
                                 HStack(alignment: .firstTextBaseline) {
-                                    Text(Self.word(v)).font(.system(size: 22, weight: .semibold, design: .rounded)).foregroundStyle(RoRoStyle.color(v))
+                                    Text(Self.word(v)).font(.wealthSerif(22)).foregroundStyle(RoRoStyle.color(v))
                                     Spacer()
                                     Text(RoRoStyle.signed(v)).monospacedDigit().foregroundStyle(.secondary)
                                 }
@@ -1134,7 +1138,7 @@ struct ClientMarketView: View {
                             }
                             .padding(14)
                             .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+                            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
                             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.08)))
                         }
                     }
@@ -1165,7 +1169,7 @@ struct ClientMarketView: View {
                     }
                     HStack(spacing: 14) {
                         Button("Explore a what-if with the risk tool") { state.clientTool = .risk }
-                        Button("Full detail (Advisor Mode)") { state.enter(.advisor); state.selection = .roro }.buttonStyle(.link)
+                        Button("Full detail (Advisor Mode)") { state.enter(.advisor); state.selection = .roro }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent)
                     }
                     Text("Sources: Federal Reserve Economic Data (FRED) and delayed market prices from Yahoo Finance's unofficial feed. Readings come from a hand-calibrated model that has not been validated as a predictor of returns. This is general market information, not investment advice or a recommendation.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
