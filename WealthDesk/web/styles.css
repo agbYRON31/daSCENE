@@ -27,6 +27,7 @@
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
   --rounded: ui-rounded, -apple-system, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   --serif: "New York", ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --neutral: #8e8e93;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
   color-scheme: light;
 }
@@ -497,3 +498,77 @@ details.more > summary { cursor: pointer; }
 details.more > summary::marker { color: var(--secondary); }
 /* Stock research tabs */
 .stk-tabs { max-width: 520px; }
+
+
+/* ---------- Plain, tool-like layout (overrides the base styles above) ----------
+   Fewer boxes: sections are divided by hairlines, figures sit in ruled rows, and
+   navigation is lists, not icon tiles. Same colors as before. */
+h1.large, .calc-head h1, h1.serif, .home h1, .start h1 { font-family: var(--font); font-weight: 650; letter-spacing: -.012em; }
+h1.large, .calc-head h1, h1.serif { font-size: 24px; }
+.cap-title { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--text); }
+.card { border-radius: 8px; box-shadow: none; border: 1px solid var(--sep); padding: 16px 18px; gap: 12px; }
+.card-head h3, .chart-title { margin: 0; font-size: 14px; font-weight: 600; }
+.page { gap: 16px; }
+
+/* Start: left-aligned, two plain choices */
+.start { align-items: stretch; justify-content: center; text-align: left; gap: 22px; max-width: 760px; margin: 0 auto; background: none; }
+.win > .split, .start { background: var(--content); }
+.start .eyebrow { display: none; }
+.start h1 { font-size: 28px; margin: 0 0 6px; }
+.start .lede { font-size: 15px; margin: 0; max-width: none; }
+.modecards { grid-template-columns: 1fr; gap: 0; max-width: none; border-top: 1px solid var(--sep); }
+.modecard { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; min-height: 0; padding: 16px 0; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); }
+.modecard:hover { box-shadow: none; background: var(--fill); }
+.modecard svg.i { display: none; }
+.modecard h2 { font-size: 17px; width: 140px; flex: none; }
+.modecard p { flex: 1 1 300px; font-size: 14px; }
+.modecard .go { font-size: 13px; }
+.start .privacy { justify-content: flex-start; }
+.start .legal { margin: 0; }
+
+/* Navigation lists instead of icon tiles */
+.tiles { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--sep); }
+.tile { min-height: 0; padding: 11px 4px; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); align-items: baseline; gap: 14px; }
+.tile:hover { box-shadow: none; background: var(--fill); }
+.tile svg.i { display: none; }
+.tile > div { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.tile strong { font-size: 14px; width: 150px; }
+.catgrid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0 28px; }
+.catgrid a { background: none; border-radius: 0; padding: 6px 2px; border-bottom: 1px solid var(--fill-2); }
+.catgrid a:hover { background: var(--fill); }
+.cat h2 { font-size: 13px; font-weight: 600; color: var(--secondary); margin: 0 0 4px; }
+
+/* Figures in ruled rows, not boxes */
+.rtiles, .stats, .spreads, .stk-tiles { gap: 0 28px; }
+.rtile, .stat, .sptile { background: none; box-shadow: none; border-radius: 0; border-top: 1px solid var(--sep); padding: 10px 0 8px; min-height: 0; }
+.rtile:hover { background: none; }
+.rtile .val, .stat .val { font: 600 24px/1.2 var(--font); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.sptile .v { font-family: var(--font); }
+.ytile { background: none; border-radius: 0; border-top: 1px solid var(--sep); }
+
+/* Client Mode */
+.home { align-items: stretch; text-align: left; gap: 18px; max-width: 900px; }
+.home h1 { font-size: 26px; margin: 8px 0 4px; }
+.qcards { grid-template-columns: 1fr 1fr; gap: 0 32px; counter-reset: q; border-top: 1px solid var(--sep); }
+.qcard { counter-increment: q; flex-direction: row; gap: 14px; min-height: 0; padding: 14px 4px; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); }
+.qcard:hover { box-shadow: none; background: var(--fill); }
+.qcard svg.i { display: none; }
+.qcard::before { content: counter(q); font-weight: 600; color: var(--accent); width: 14px; flex: none; }
+.qcard h2 { font-size: 15px; margin-bottom: 3px; }
+.qcard p { font-size: 13px; }
+.footnote { text-align: left; margin: 0; }
+.headline { background: none; border-radius: 0; padding: 0 0 14px; border-bottom: 1px solid var(--sep); }
+.headline .big { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.needs, details.how { background: none; border: 1px solid var(--sep); border-radius: 8px; }
+.tool-out-inner > h1.serif { font-size: 26px; }
+
+/* Calculator inputs: two labelled columns */
+.inputs-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 24px; align-items: start; }
+.inputs-grid .fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.inputs-grid .fld > label { font-size: 13px; font-weight: 500; }
+.inputs-grid .ctrl input[type="text"] { max-width: none; }
+@media (max-width: 760px) { .qcards { grid-template-columns: 1fr; } .tile strong, .modecard h2 { width: auto; } }
+.bigband { font: 650 36px/1 var(--font); letter-spacing: -.01em; }
+.qcard { display: grid; grid-template-columns: 20px 1fr; column-gap: 10px; row-gap: 2px; align-items: baseline; }
+.qcard::before { grid-row: 1 / span 2; }
+.qcard h2, .qcard p { grid-column: 2; }

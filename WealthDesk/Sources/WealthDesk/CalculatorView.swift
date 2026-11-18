@@ -285,15 +285,15 @@ struct ResultTile: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(output.label).font(.callout).foregroundStyle(.secondary).lineLimit(2)
             Text(Format.value(output.value, output.format))
-                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                .font(.wealthSerif(24))
                 .monospacedDigit()
                 .foregroundStyle(isNegative ? Color.red : Color.primary)
                 .textSelection(.enabled)
             if let note { Text(note).font(.caption).foregroundStyle(.secondary) }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .overlay(alignment: .top) { Divider() }
         .contentShape(Rectangle())
     }
 
@@ -330,7 +330,7 @@ struct ProjectionCard: View {
              trailing: AnyView(
                 Button("Copy table") {
                     state.copy(state.engine?.tableTSV(table) ?? "", message: "Copied table. Paste into Excel.")
-                }.buttonStyle(.link))) {
+                }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent))) {
             Chart(points) { p in
                 LineMark(x: .value(table.spec.columns[0].label, p.x),
                          y: .value("Balance", p.y))
@@ -455,8 +455,8 @@ struct Card<Content: View>: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.1)))
     }
 }
 

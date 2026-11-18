@@ -163,7 +163,7 @@ struct MarketsView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.callout).foregroundStyle(.secondary)
             Text(v.map { String(format: "%+.0f bp", $0 * 10000) } ?? "—")
-                .font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit()
+                .font(.wealthSerif(20)).monospacedDigit()
                 .foregroundStyle((v ?? 0) < 0 ? Color.orange : Color.primary)
             if let v, v < 0 { Text("Inverted").font(.caption).foregroundStyle(.orange) }
         }

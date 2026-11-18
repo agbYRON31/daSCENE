@@ -185,7 +185,7 @@ struct StockView: View {
                         .onSubmit { focused = false; stock.lookup(query) }
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.12)))
                 Button("Look up") { focused = false; stock.lookup(query) }.buttonStyle(.borderedProminent)
             }
@@ -201,7 +201,7 @@ struct StockView: View {
                     }
                 }
                 .frame(maxWidth: 520)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.12)))
             }
         }
@@ -228,7 +228,7 @@ struct StockView: View {
             returnsCard(r)
             riskCard(r)
             calculatorsCard(r)
-            Card(title: "Market backdrop", trailing: AnyView(Button("RoRo Composite") { state.selection = .roro }.buttonStyle(.link))) {
+            Card(title: "Market backdrop", trailing: AnyView(Button("RoRo Composite") { state.selection = .roro }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent))) {
                 Text("The RoRo Composite describes overall market conditions, not this stock, and doesn't predict returns.").foregroundStyle(.secondary)
             }
         }
@@ -245,7 +245,7 @@ struct StockView: View {
     private func tile(_ t: String, _ v: String, _ sub: String?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(t).font(.callout).foregroundStyle(.secondary)
-            Text(v).font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit()
+            Text(v).font(.wealthSerif(20)).monospacedDigit()
             if let sub { Text(sub).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
         }
         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
@@ -261,7 +261,7 @@ struct StockView: View {
                 Text([r.name, r.exchange, r.company?.sic].compactMap { $0 }.joined(separator: " · ")).foregroundStyle(.secondary)
                 Spacer()
                 VStack(alignment: .trailing) {
-                    Text(F.money(price) + (r.currency == "USD" ? "" : " \(r.currency)")).font(.system(size: 28, weight: .semibold, design: .rounded)).monospacedDigit()
+                    Text(F.money(price) + (r.currency == "USD" ? "" : " \(r.currency)")).font(.wealthSerif(28)).monospacedDigit()
                     if let ch, let pct {
                         Text(String(format: "%@%.2f (%@%.2f%%) today", ch >= 0 ? "+" : "−", abs(ch), ch >= 0 ? "+" : "−", abs(pct * 100)))
                             .monospacedDigit().foregroundStyle(ch >= 0 ? Color.green : Color.red)

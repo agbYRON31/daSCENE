@@ -14,8 +14,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
 
+/// The app's colors: the original emerald accent on system backgrounds. Names are shared by the views.
 extension Color {
     static let wealthAccent = Color(red: 0.11, green: 0.47, blue: 0.38)
+    static let wealthGold = Color.secondary
+    static let wealthPaper = Color(nsColor: .windowBackgroundColor)
+    static let wealthCard = Color(nsColor: .controlBackgroundColor)
+    static let wealthHair = Color.primary
+    static let wealthUp = Color.green
+    static let wealthDown = Color.red
+    static let wealthAmber = Color.orange
+}
+
+extension NSColor {
+    convenience init(hex: UInt32) {
+        self.init(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
+}
+
+extension Font {
+    /// Display type for titles and figures (the system font, so it reads like a native tool).
+    static func wealthSerif(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight) }
 }
 
 @main

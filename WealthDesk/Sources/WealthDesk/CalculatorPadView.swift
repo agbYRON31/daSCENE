@@ -100,7 +100,7 @@ struct CalculatorPadView: View {
                     Text(error).foregroundStyle(.red).font(.callout)
                 } else if let p = preview {
                     Text("= " + Scientific.display(p))
-                        .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        .font(.wealthSerif(30))
                         .monospacedDigit()
                         .textSelection(.enabled)
                 } else {
@@ -112,7 +112,7 @@ struct CalculatorPadView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .trailing)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.08)))
     }
 
@@ -335,7 +335,7 @@ struct CalculatorPadView: View {
     private var tapePanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !state.session.variables.isEmpty {
-                Card(title: "Variables", trailing: AnyView(Button("Clear") { state.session.variables.removeAll() }.buttonStyle(.link))) {
+                Card(title: "Variables", trailing: AnyView(Button("Clear") { state.session.variables.removeAll() }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent))) {
                     ForEach(state.session.variables.keys.sorted(), id: \.self) { k in
                         Button { insertValue(k) } label: {
                             HStack {
@@ -351,7 +351,7 @@ struct CalculatorPadView: View {
                 }
             }
             Card(title: "History", trailing: AnyView(Button("Clear") { state.session.tape.removeAll() }
-                .buttonStyle(.link).disabled(state.session.tape.isEmpty))) {
+                .buttonStyle(.plain).foregroundStyle(Color.wealthAccent).disabled(state.session.tape.isEmpty))) {
                 if state.session.tape.isEmpty {
                     Text("Results appear here. Click one to reuse it.").font(.callout).foregroundStyle(.secondary)
                 } else {
