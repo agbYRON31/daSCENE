@@ -294,7 +294,7 @@ struct ClientHome: View {
 struct ClientFootnote: View {
     var body: some View {
         Text("These are educational illustrations based only on the numbers typed in. They are not advice, a recommendation or a prediction. Nothing typed here is saved or sent; it is erased when Wealth Desk quits.")
-            .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center).frame(maxWidth: 760)
+            .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 760)
     }
 }
 

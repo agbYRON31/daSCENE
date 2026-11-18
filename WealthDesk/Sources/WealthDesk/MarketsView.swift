@@ -148,7 +148,7 @@ struct MarketsView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                     ForEach(curve.points) { p in yieldTile(p, prior: curve.prior[p.label]) }
                 }
-                Text("Click a maturity to price a bond at that yield.").font(.caption).foregroundStyle(.tertiary)
+                Text("Click a maturity to price a bond at that yield.").font(.caption).foregroundStyle(.secondary)
                 Text("Source: U.S. Department of the Treasury, daily par yield curve rates (official). Observation date \(curve.date); end-of-day figures, not real-time. Downloaded \(market.lastRefresh.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "—").")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             } else if let err = market.curveError {
@@ -216,7 +216,7 @@ struct MarketsView: View {
                     Divider()
                 }
             }
-            Text("Click a price to open Position gain/loss with it filled in.").font(.caption).foregroundStyle(.tertiary)
+            Text("Click a price to open Position gain/loss with it filled in.").font(.caption).foregroundStyle(.secondary)
             Text("Source: Yahoo Finance chart feed (unofficial and unlicensed; quotes are delayed and the feed may stop working). Each quote shows its own time. Ticker symbols are sent to Yahoo; nothing typed into a calculator is.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }

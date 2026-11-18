@@ -289,7 +289,7 @@ struct StockView: View {
                 kv("Beta (5 years)", (r.risk["beta5y"] ?? nil).map { String(format: "%.2f", $0) } ?? "—")
             }
             Text("Delayed quote, last trading day \(F.date(r.lastDay)). Market value = price × shares outstanding from the latest filing (\(F.date(r.balanceAsOf["shares"] ?? nil))).")
-                .font(.caption).foregroundStyle(.tertiary)
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -304,7 +304,7 @@ struct StockView: View {
                 kv("Shares outstanding", (r.balance["sharesOut"] ?? nil).map { String(format: "%.2fB", $0 / 1e9) } ?? "—")
             }
             Text("Enterprise value = market value + long-term debt − cash, from the latest balance sheet (\(F.date(r.balanceAsOf["cash"] ?? nil))).")
-                .font(.caption).foregroundStyle(.tertiary)
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -359,7 +359,7 @@ struct StockView: View {
                 .frame(height: 240)
             }
             Text(range == "1D" ? "Today, 5-minute prices." : vsBench ? "Growth of 100 with dividends reinvested, for the stock and SPY (an S&P 500 fund)." : "Closing prices, adjusted for splits.")
-                .font(.caption).foregroundStyle(.tertiary)
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -395,7 +395,7 @@ struct StockView: View {
                 tile("Below its 10-year high", cur.map { $0 < 0.0005 ? "At the high" : String(format: "−%.1f%%", $0 * 100) } ?? "—", "Dividends reinvested")
             }
             Text("Volatility: how much daily returns swing, per year. Beta: how much the stock has tended to move when the S&P 500 moves 1%. Both describe the past, not the future.")
-                .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -420,7 +420,7 @@ struct StockView: View {
                 tile("Dividend yield", F.pct2(v["divYield"] ?? nil), g5.map { "Dividend grew \(F.pct($0)) a year over 5 years" } ?? "No 5-year dividend growth")
             }
             Text("Medians use each fiscal year-end's share price with that year's results. Today's figures use the latest price with trailing-12-month results. History is context, not a sign of what comes next.")
-                .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -471,7 +471,7 @@ struct StockView: View {
                 }.font(.callout).monospacedDigit()
             }
             Text("Each figure is the most recently filed value for that period, so restated numbers replace originals. TTM = last fiscal year + this year to date − the same period last year. Blank (—) means the company doesn't report that line in a standard form.")
-                .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -488,7 +488,7 @@ struct StockView: View {
                     }.contentShape(Rectangle())
                 }.buttonStyle(.plain)
             }
-            Text("Opens the filing on sec.gov in your browser.").font(.caption).foregroundStyle(.tertiary)
+            Text("Opens the filing on sec.gov in your browser.").font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -509,7 +509,7 @@ struct StockView: View {
                 if let r5, let vol { Button("Sharpe ratio") { state.openCalculator("sharpe", setting: ["r": pf(r5)!, "sd": pf(vol)!]) } }
             }
             Text("Fills in what's known from this stock (price, dividend, beta, past return and volatility). Past growth and returns are filled in only as a starting point; change them to your own assumptions.")
-                .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
