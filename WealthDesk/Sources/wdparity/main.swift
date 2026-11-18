@@ -40,6 +40,13 @@ if args.count == 5 && args[1] == "lines" {
     print("evaluated \(out.count) calculator lines")
     exit(0)
 }
+// Stock screen: wdparity stock <fixture.json> → the figures web/stock-check.mjs compares.
+if args.count == 3 && args[1] == "stock" {
+    let o = try! JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: args[2]))) as! [String: Any]
+    let r = try! StockMath.analyze(StockInput(json: o))
+    FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject: r.checkJSON()))
+    exit(0)
+}
 guard args.count == 4 else { print("usage: wdparity <Resources> <cases.json> <out.json>"); exit(2) }
 let res = URL(fileURLWithPath: args[1])
 let taxData = try! TaxData.load(from: res.appendingPathComponent("taxdata.json"))
