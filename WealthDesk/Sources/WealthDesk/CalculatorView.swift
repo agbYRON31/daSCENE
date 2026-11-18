@@ -291,9 +291,9 @@ struct ResultTile: View {
                 .textSelection(.enabled)
             if let note { Text(note).font(.caption).foregroundStyle(.secondary) }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .overlay(alignment: .top) { Divider() }
         .contentShape(Rectangle())
     }
 
@@ -447,17 +447,16 @@ struct Card<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(title).font(.wealthSerif(17))
+                Text(title).font(.headline)
                 Spacer()
                 if let trailing { trailing }
             }
             content
         }
-        .padding(20)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.wealthHair.opacity(0.1)))
-        .shadow(color: Color.black.opacity(0.04), radius: 3, y: 1)
+        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.1)))
     }
 }
 

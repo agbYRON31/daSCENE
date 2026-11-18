@@ -257,35 +257,37 @@ struct ClientHome: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 26) {
-                VStack(spacing: 8) {
-                    Text("What would you like to explore?").font(.system(size: 30, weight: .semibold, design: .serif))
-                    Text("Pick a question, type in any numbers, and watch the picture change.")
-                        .font(.title3).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("What would you like to explore?").font(.system(size: 26, weight: .semibold))
+                    Text("Pick a question, type in any numbers, and watch the picture change.").foregroundStyle(.secondary)
                 }
-                .padding(.top, 18)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 18)], spacing: 18) {
-                    ForEach(ClientTool.allCases) { tool in
+                .padding(.top, 8)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 360), spacing: 32, alignment: .top)], spacing: 0) {
+                    ForEach(Array(ClientTool.allCases.enumerated()), id: \.element) { n, tool in
                         Button { state.clientTool = tool } label: {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Image(systemName: ClientSpec.symbol(tool)).font(.system(size: 24)).foregroundStyle(Color.wealthGold)
-                                Text(ClientSpec.title(tool)).font(.wealthSerif(19)).multilineTextAlignment(.leading)
-                                Text(ClientSpec.blurb(tool)).foregroundStyle(.secondary).multilineTextAlignment(.leading)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            VStack(spacing: 0) {
+                                Divider()
+                                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                    Text("\(n + 1)").fontWeight(.semibold).foregroundStyle(Color.wealthAccent).frame(width: 16, alignment: .leading)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(ClientSpec.title(tool)).font(.system(size: 15, weight: .semibold)).multilineTextAlignment(.leading)
+                                        Text(ClientSpec.blurb(tool)).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.leading)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(.vertical, 13)
                             }
-                            .padding(22)
-                            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
-                            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 16))
-                            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.primary.opacity(0.08)))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .frame(maxWidth: 1000)
                 ClientFootnote()
             }
             .padding(28)
+            .frame(maxWidth: 900, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
     }
@@ -294,7 +296,7 @@ struct ClientHome: View {
 struct ClientFootnote: View {
     var body: some View {
         Text("These are educational illustrations based only on the numbers typed in. They are not advice, a recommendation or a prediction. Nothing typed here is saved or sent; it is erased when Wealth Desk quits.")
-            .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center).frame(maxWidth: 760)
+            .font(.caption).foregroundStyle(.tertiary).frame(maxWidth: 760, alignment: .leading)
     }
 }
 
@@ -307,7 +309,7 @@ struct ToolLayout<Inputs: View, Results: View>: View {
 
     private var resultsColumn: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(question).font(.system(size: 26, weight: .semibold, design: .serif))
+            Text(question).font(.system(size: 26, weight: .semibold))
                 .fixedSize(horizontal: false, vertical: true)
             results
             ClientFootnote().frame(maxWidth: .infinity)
@@ -355,7 +357,7 @@ struct InputGroup<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title.uppercased()).font(.caption.weight(.semibold)).tracking(1.4).foregroundStyle(Color.wealthGold)
+            Text(title).font(.subheadline.weight(.semibold))
             if let note { Text(note).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
             content
         }
@@ -423,14 +425,12 @@ struct Headline: View {
     var caption: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(text).font(.wealthSerif(22, .medium)).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(.system(size: 21, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
             if let caption { Text(caption).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
         }
-        .padding(.vertical, 18).padding(.horizontal, 20)
+        .padding(.bottom, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(alignment: .leading) { Rectangle().fill(Color.wealthGold).frame(width: 3).padding(.vertical, 1) }
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.wealthHair.opacity(0.1)))
+        .overlay(alignment: .bottom) { Divider() }
     }
 }
 
@@ -446,10 +446,9 @@ struct StatTile: View {
                 .foregroundStyle(negative ? Color.red : Color.primary).lineLimit(1).minimumScaleFactor(0.6)
             if let caption { Text(caption).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
-        .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.08)))
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .overlay(alignment: .top) { Divider() }
     }
 }
 
@@ -1107,7 +1106,7 @@ struct ClientMarketView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text(ClientSpec.title(.market)).font(.system(size: 26, weight: .semibold, design: .serif))
+                Text(ClientSpec.title(.market)).font(.system(size: 26, weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 if let m = roro.model {
                     let s = roro.status

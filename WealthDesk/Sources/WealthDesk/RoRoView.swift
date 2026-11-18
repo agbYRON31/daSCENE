@@ -355,7 +355,7 @@ struct RoRoOverview: View {
                 RoRoCard(title: "Posture · driven by the Intermediate dial (1–3 months)") {
                     let band = p["band"]?.str ?? "—"
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(band).font(.system(size: 40, weight: .bold, design: .serif)).foregroundStyle(RoRoStyle.bandColor(band))
+                        Text(band).font(.system(size: 40, weight: .bold)).foregroundStyle(RoRoStyle.bandColor(band))
                             .lineLimit(1).minimumScaleFactor(0.5).layoutPriority(1)
                         if let lean = p["lean"]?.str, !lean.isEmpty { Text(lean).font(.caption.weight(.semibold)).foregroundStyle(.secondary).fixedSize().layoutPriority(2) }
                         Spacer(minLength: 0)

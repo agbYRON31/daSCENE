@@ -69,35 +69,37 @@ struct StartView: View {
     private func content(compact: Bool) -> some View {
         VStack(spacing: compact ? 18 : 28) {
             Spacer(minLength: 0)
-            VStack(spacing: 8) {
-                Text("WEALTH DESK").font(.system(size: 12, weight: .semibold)).tracking(4).foregroundStyle(Color.wealthGold)
-                Rectangle().fill(Color.wealthGold).frame(width: 44, height: 1).padding(.bottom, 4)
-                Text("See how financial decisions play out").font(.system(size: compact ? 26 : 34, weight: .semibold, design: .serif))
-                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("See how financial decisions play out").font(.system(size: compact ? 24 : 28, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
                 Text("Type in any numbers and watch the results update. Nothing is filled in for you, and nothing you type is saved or sent (Stock research sends only the ticker symbol you look up).")
-                    .font(compact ? .body : .title3).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 620)
+                    .font(.body).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(alignment: .top, spacing: compact ? 12 : 20) {
+            .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: 0) {
+                Divider()
                 ModeCard(symbol: "person.2", title: "Client Mode",
                          text: "Six plain-language tools with sliders and charts: growth, retirement, risk, decisions, taxes and inflation, and market conditions.",
                          action: "Open Client Mode") { state.showClient(nil) }
+                Divider()
                 ModeCard(symbol: "square.grid.3x3", title: "Advisor Mode",
                          text: "The full workspace: \(state.calculators.count) calculators with formulas and methodology, market data and the RoRo Composite.",
                          action: "Open Advisor Mode") { state.enter(.advisor) }
+                Divider()
             }
-            .fixedSize(horizontal: false, vertical: true)   // both cards as tall as the taller one
-            .frame(maxWidth: 760)
-            VStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 6) {
                 Label("This session lives in memory only and is cleared when you quit. Saving a scenario or a PDF happens only when you choose to.",
                       systemImage: "lock.shield")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Text("Educational calculations and hypothetical illustrations. Not investment, tax or legal advice. Wealth Desk is an independent application, not affiliated with or endorsed by Morgan Stanley. Don't enter real client information unless your firm has approved this tool for that use.")
-                    .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 700)
+                    .font(.caption).foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
         }
+        .frame(maxWidth: 760)
         .padding(compact ? 18 : 32)
     }
 }
@@ -112,18 +114,14 @@ struct ModeCard: View {
 
     var body: some View {
         Button(action: run) {
-            VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: symbol).font(.system(size: 26)).foregroundStyle(Color.wealthGold)
-                Text(title).font(.wealthSerif(23))
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text(title).font(.system(size: 16, weight: .semibold)).frame(width: 130, alignment: .leading)
                 Text(text).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 4)
-                HStack { Text(action).fontWeight(.semibold); Image(systemName: "arrow.right") }
-                    .foregroundStyle(Color.wealthAccent)
+                Spacer(minLength: 8)
+                Text(action).font(.callout.weight(.medium)).foregroundStyle(Color.wealthAccent)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 190, maxHeight: .infinity, alignment: .topLeading)
-            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(hover ? Color.wealthGold : Color.wealthHair.opacity(0.1), lineWidth: hover ? 1.5 : 1))
+            .padding(.vertical, 14).padding(.horizontal, 4)
+            .background(hover ? Color.primary.opacity(0.04) : Color.clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -139,9 +137,6 @@ struct AdvisorView: View {
     var body: some View {
         NavigationSplitView {
             SidebarView()
-                .scrollContentBackground(.hidden)
-                .background(Color.wealthNavy)
-                .environment(\.colorScheme, .dark)
                 .navigationSplitViewColumnWidth(min: 230, ideal: 270, max: 360)
         } detail: {
             Group {
@@ -232,18 +227,16 @@ struct HomeTile: View {
 
     var body: some View {
         Button(action: run) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: symbol).font(.title2).foregroundStyle(Color.wealthGold).frame(width: 30)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.wealthSerif(16))
-                    Text(text).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .firstTextBaseline, spacing: 14) {
+                    Text(title).fontWeight(.semibold).frame(width: 140, alignment: .leading)
+                    Text(text).foregroundStyle(.secondary).lineLimit(2)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                 }
-                Spacer(minLength: 0)
+                .padding(.vertical, 10)
+                Divider()
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 74, alignment: .topLeading)
-            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.08)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

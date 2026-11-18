@@ -14,18 +14,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
 
-/// Private-bank palette (mirrors the tokens at the top of web/styles.css): warm ivory and navy ink in
-/// light mode, midnight navy in dark mode. Emerald marks what you can click; gold is ornament only.
+/// The app's colors: the original emerald accent on system backgrounds. Names are shared by the views.
 extension Color {
-    static let wealthAccent = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0x5AAE8C) : NSColor(hex: 0x1E5A47) })
-    static let wealthGold = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0xCFAE6C) : NSColor(hex: 0x9C7A35) })
-    static let wealthPaper = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0x0A1322) : NSColor(hex: 0xF6F2EA) })
-    static let wealthCard = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0x111D30) : NSColor(hex: 0xFFFDF8) })
-    static let wealthNavy = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0x070F1C) : NSColor(hex: 0x12223A) })
-    static let wealthHair = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0xECE5D6) : NSColor(hex: 0x15233B) })
-    static let wealthUp = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0x5CBF92) : NSColor(hex: 0x2D7A57) })
-    static let wealthDown = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0xE07A66) : NSColor(hex: 0xA8402F) })
-    static let wealthAmber = Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0xD9A54A) : NSColor(hex: 0xB07A1F) })
+    static let wealthAccent = Color(red: 0.11, green: 0.47, blue: 0.38)
+    static let wealthGold = Color.secondary
+    static let wealthPaper = Color(nsColor: .windowBackgroundColor)
+    static let wealthCard = Color(nsColor: .controlBackgroundColor)
+    static let wealthHair = Color.primary
+    static let wealthUp = Color.green
+    static let wealthDown = Color.red
+    static let wealthAmber = Color.orange
 }
 
 extension NSColor {
@@ -35,8 +33,8 @@ extension NSColor {
 }
 
 extension Font {
-    /// Serif display type for titles and figures.
-    static func wealthSerif(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight, design: .serif) }
+    /// Display type for titles and figures (the system font, so it reads like a native tool).
+    static func wealthSerif(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight) }
 }
 
 @main

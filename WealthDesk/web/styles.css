@@ -1,74 +1,60 @@
 /* Wealth Desk for the web: styled after the macOS app (window toolbar, source-list sidebar,
    control-background cards, segmented controls). Light and dark follow the system setting. */
-/* Private-bank palette: warm ivory and navy ink in light mode, midnight navy in dark mode.
-   Emerald marks anything you can click; gold is ornament only (eyebrows, rules, selection). */
 :root {
-  --accent: #1e5a47;
-  --accent-08: rgba(30, 90, 71, 0.07);
-  --accent-12: rgba(30, 90, 71, 0.11);
-  --accent-18: rgba(30, 90, 71, 0.18);
-  --gold: #9c7a35;
-  --gold-soft: rgba(156, 122, 53, 0.12);
-  --neutral: #8b8473;
-  --window: #efe9de;
-  --content: #f6f2ea;
-  --control: #fffdf8;
-  --sidebar: #12223a;
-  --sb-text: #ece5d6;
-  --sb-secondary: rgba(236, 229, 214, 0.58);
-  --sb-fill: rgba(236, 229, 214, 0.08);
-  --sb-sel: rgba(207, 174, 108, 0.22);
-  --toolbar: #fbf8f2;
-  --text: #15233b;
-  --secondary: rgba(21, 35, 59, 0.64);
-  --tertiary: rgba(21, 35, 59, 0.4);
-  --fill: rgba(21, 35, 59, 0.035);
-  --fill-2: rgba(21, 35, 59, 0.065);
-  --fill-3: rgba(21, 35, 59, 0.12);
-  --hair: rgba(21, 35, 59, 0.1);
-  --sep: rgba(21, 35, 59, 0.11);
-  --red: #a8402f;
-  --green: #2d7a57;
-  --orange: #b07a1f;
-  --blue: #2c5d8f;
-  --selection: rgba(30, 90, 71, 0.16);
-  --shadow: 0 1px 2px rgba(21, 35, 59, 0.06), 0 0 0 1px rgba(21, 35, 59, 0.07);
-  --lift: 0 10px 30px rgba(21, 35, 59, 0.08), 0 0 0 1px rgba(21, 35, 59, 0.08);
+  --accent: #1c7861;
+  --accent-08: rgba(28, 120, 97, 0.08);
+  --accent-12: rgba(28, 120, 97, 0.12);
+  --accent-18: rgba(28, 120, 97, 0.18);
+  --window: #ececec;
+  --content: #f5f5f5;
+  --control: #ffffff;
+  --sidebar: #e8e8ea;
+  --toolbar: #f6f6f6;
+  --text: #1d1d1f;
+  --secondary: rgba(0, 0, 0, 0.55);
+  --tertiary: rgba(0, 0, 0, 0.32);
+  --fill: rgba(0, 0, 0, 0.04);
+  --fill-2: rgba(0, 0, 0, 0.07);
+  --fill-3: rgba(0, 0, 0, 0.12);
+  --hair: rgba(0, 0, 0, 0.1);
+  --sep: rgba(0, 0, 0, 0.12);
+  --red: #e0352b;
+  --green: #28a745;
+  --orange: #e8890c;
+  --blue: #2f7de1;
+  --selection: rgba(28, 120, 97, 0.22);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
-  --rounded: var(--font);
-  --serif: "Iowan Old Style", "New York", ui-serif, "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --rounded: ui-rounded, -apple-system, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --serif: "New York", ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --neutral: #8e8e93;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --accent: #5aae8c;
-    --accent-08: rgba(90, 174, 140, 0.1);
-    --accent-12: rgba(90, 174, 140, 0.16);
-    --accent-18: rgba(90, 174, 140, 0.26);
-    --gold: #cfae6c;
-    --gold-soft: rgba(207, 174, 108, 0.14);
-    --neutral: #8e8a7e;
-    --window: #0c1626;
-    --content: #0a1322;
-    --control: #111d30;
-    --sidebar: #070f1c;
-    --toolbar: #0e192b;
-    --text: #ece5d6;
-    --secondary: rgba(236, 229, 214, 0.62);
-    --tertiary: rgba(236, 229, 214, 0.36);
-    --fill: rgba(236, 229, 214, 0.045);
-    --fill-2: rgba(236, 229, 214, 0.08);
-    --fill-3: rgba(236, 229, 214, 0.14);
-    --hair: rgba(236, 229, 214, 0.1);
-    --sep: rgba(236, 229, 214, 0.11);
-    --red: #e07a66;
-    --green: #5cbf92;
-    --orange: #d9a54a;
-    --blue: #7fa8d6;
-    --selection: rgba(90, 174, 140, 0.28);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(236, 229, 214, 0.07);
-    --lift: 0 12px 34px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(236, 229, 214, 0.1);
+    --accent-08: rgba(28, 120, 97, 0.16);
+    --accent-12: rgba(28, 120, 97, 0.22);
+    --accent-18: rgba(28, 120, 97, 0.3);
+    --window: #282828;
+    --content: #1e1e1e;
+    --control: #2b2b2d;
+    --sidebar: #2c2c2e;
+    --toolbar: #323234;
+    --text: #f2f2f2;
+    --secondary: rgba(255, 255, 255, 0.58);
+    --tertiary: rgba(255, 255, 255, 0.3);
+    --fill: rgba(255, 255, 255, 0.05);
+    --fill-2: rgba(255, 255, 255, 0.08);
+    --fill-3: rgba(255, 255, 255, 0.14);
+    --hair: rgba(255, 255, 255, 0.1);
+    --sep: rgba(255, 255, 255, 0.12);
+    --red: #ff5f57;
+    --green: #32d74b;
+    --orange: #ff9f0a;
+    --blue: #4a9bff;
+    --selection: rgba(28, 120, 97, 0.45);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
     color-scheme: dark;
   }
 }
@@ -513,77 +499,76 @@ details.more > summary::marker { color: var(--secondary); }
 /* Stock research tabs */
 .stk-tabs { max-width: 520px; }
 
-/* ---------- Private-bank finish (overrides the base styles above) ---------- */
-body { font-size: 14px; letter-spacing: .003em; }
-h1.large, .calc-head h1, h1.serif, .home h1, .start h1 { font-family: var(--serif); font-weight: 600; letter-spacing: -.005em; }
-h1.large, .calc-head h1 { font-size: 30px; }
-.card-head h3, .cat h2, .needs h3, .modal h2, .unavailable h2, .details h4 { font-family: var(--serif); font-weight: 600; font-size: 17px; }
-.cat h2 { font-size: 18px; margin-bottom: 10px; }
-.cap-title, .sb-sec, .start .eyebrow { color: var(--gold); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; font-weight: 600; }
-.start .eyebrow { font-size: 12px; letter-spacing: .3em; display: inline-flex; flex-direction: column; align-items: center; gap: 10px; }
-.start .eyebrow::after { content: ""; width: 44px; height: 1px; background: var(--gold); }
-.tb-title strong { font-family: var(--serif); font-size: 16px; font-weight: 600; }
-.tb { background: var(--toolbar); border-bottom: 1px solid var(--hair); }
-.tbtn svg.i { color: var(--text); }
-.tbtn.on svg.i { color: var(--gold); }
-.seg { background: var(--fill-2); border-radius: 8px; }
-.seg .on { background: var(--control); color: var(--text); box-shadow: var(--shadow); }
 
-/* Navy sidebar in both modes */
-.sidebar { background: var(--sidebar); border-right: 0; color: var(--sb-text); }
-.sb-search label { background: var(--sb-fill); color: var(--sb-secondary); }
-.sb-search input { color: var(--sb-text); }
-.sb-search input::placeholder { color: var(--sb-secondary); }
-.sb-row { color: var(--sb-text); border-radius: 7px; }
-.sb-row:hover { background: var(--sb-fill); }
-.sb-row.sel { background: var(--sb-sel); box-shadow: inset 2px 0 0 var(--gold); }
-.sb-row svg.i { color: #cfae6c; }
-.sb-row .acr, .sb-row .badge { color: var(--sb-secondary); }
-.sb-row .badge { background: var(--sb-fill); }
-.sb-sec { color: #cfae6c; opacity: .85; margin: 16px 8px 4px; }
-.sb-foot { color: var(--sb-secondary); border-top: 1px solid var(--sb-fill); }
-.sb-foot .link { color: #cfae6c; }
+/* ---------- Plain, tool-like layout (overrides the base styles above) ----------
+   Fewer boxes: sections are divided by hairlines, figures sit in ruled rows, and
+   navigation is lists, not icon tiles. Same colors as before. */
+h1.large, .calc-head h1, h1.serif, .home h1, .start h1 { font-family: var(--font); font-weight: 650; letter-spacing: -.012em; }
+h1.large, .calc-head h1, h1.serif { font-size: 24px; }
+.cap-title { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--text); }
+.card { border-radius: 8px; box-shadow: none; border: 1px solid var(--sep); padding: 16px 18px; gap: 12px; }
+.card-head h3, .chart-title { margin: 0; font-size: 14px; font-weight: 600; }
+.page { gap: 16px; }
 
-/* Cards and tiles: hairline frames, quiet lift on hover */
-.card, .tile, .modecard, .qcard, .stat, .list, .display { border-radius: 12px; box-shadow: var(--shadow); }
-.card { padding: 20px 22px; gap: 14px; }
-.tile:hover, .modecard:hover, .qcard:hover { box-shadow: var(--lift); }
-.tile svg.i, .modecard svg.i, .qcard svg.i { color: var(--gold); }
-.modecard h2, .qcard h2, .tile strong { font-family: var(--serif); font-weight: 600; }
-.modecard h2 { font-size: 23px; }
-.qcard h2 { font-size: 19px; }
-.tile strong { font-size: 16px; }
-.catgrid a { background: var(--control); box-shadow: var(--shadow); }
-.catgrid a:hover { box-shadow: 0 0 0 1px var(--accent); }
-.btn { border-radius: 8px; padding: 5px 14px; box-shadow: var(--shadow); background: var(--control); }
-.btn.primary { background: var(--accent); color: #fff; box-shadow: none; }
+/* Start: left-aligned, two plain choices */
+.start { align-items: stretch; justify-content: center; text-align: left; gap: 22px; max-width: 760px; margin: 0 auto; background: none; }
+.win > .split, .start { background: var(--content); }
+.start .eyebrow { display: none; }
+.start h1 { font-size: 28px; margin: 0 0 6px; }
+.start .lede { font-size: 15px; margin: 0; max-width: none; }
+.modecards { grid-template-columns: 1fr; gap: 0; max-width: none; border-top: 1px solid var(--sep); }
+.modecard { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; min-height: 0; padding: 16px 0; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); }
+.modecard:hover { box-shadow: none; background: var(--fill); }
+.modecard svg.i { display: none; }
+.modecard h2 { font-size: 17px; width: 140px; flex: none; }
+.modecard p { flex: 1 1 300px; font-size: 14px; }
+.modecard .go { font-size: 13px; }
+.start .privacy { justify-content: flex-start; }
+.start .legal { margin: 0; }
 
-/* Figures: serif, lining, tabular */
-.rtile .val, .stat .val, .bignum, .stk-px, .stk-sym, .sptile .v, .display .preview, .ytile .v, .stk-kvv, .qrow .px .p {
-  font-family: var(--serif); font-variant-numeric: lining-nums tabular-nums; font-weight: 600;
-}
-.rtile .val, .stat .val { font-size: 27px; }
-.rtile, .sptile, .ytile { background: var(--control); box-shadow: var(--shadow); }
-.rtile:hover, .ytile:hover { box-shadow: var(--lift); background: var(--control); }
-.bigband { font: 600 42px/1 var(--serif); letter-spacing: .02em; }
+/* Navigation lists instead of icon tiles */
+.tiles { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--sep); }
+.tile { min-height: 0; padding: 11px 4px; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); align-items: baseline; gap: 14px; }
+.tile:hover { box-shadow: none; background: var(--fill); }
+.tile svg.i { display: none; }
+.tile > div { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.tile strong { font-size: 14px; width: 150px; }
+.catgrid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0 28px; }
+.catgrid a { background: none; border-radius: 0; padding: 6px 2px; border-bottom: 1px solid var(--fill-2); }
+.catgrid a:hover { background: var(--fill); }
+.cat h2 { font-size: 13px; font-weight: 600; color: var(--secondary); margin: 0 0 4px; }
 
-/* Client Mode: headline as a framed statement with a gold rule */
-.headline { background: var(--control); box-shadow: var(--shadow); border-left: 3px solid var(--gold); border-radius: 4px 12px 12px 4px; padding: 20px 22px; }
-.headline .big { font-family: var(--serif); font-size: 23px; font-weight: 500; line-height: 1.3; }
-.tool-in { background: var(--control); border-right: 1px solid var(--hair); }
-.needs { background: var(--control); box-shadow: var(--shadow); }
-details.how { background: var(--control); box-shadow: var(--shadow); }
-.home h1 { font-size: 36px; }
+/* Figures in ruled rows, not boxes */
+.rtiles, .stats, .spreads, .stk-tiles { gap: 0 28px; }
+.rtile, .stat, .sptile { background: none; box-shadow: none; border-radius: 0; border-top: 1px solid var(--sep); padding: 10px 0 8px; min-height: 0; }
+.rtile:hover { background: none; }
+.rtile .val, .stat .val { font: 600 24px/1.2 var(--font); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.sptile .v { font-family: var(--font); }
+.ytile { background: none; border-radius: 0; border-top: 1px solid var(--sep); }
 
-/* Calculator inputs: two columns of labelled fields */
-.inputs-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px 22px; align-items: start; }
+/* Client Mode */
+.home { align-items: stretch; text-align: left; gap: 18px; max-width: 900px; }
+.home h1 { font-size: 26px; margin: 8px 0 4px; }
+.qcards { grid-template-columns: 1fr 1fr; gap: 0 32px; counter-reset: q; border-top: 1px solid var(--sep); }
+.qcard { counter-increment: q; flex-direction: row; gap: 14px; min-height: 0; padding: 14px 4px; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); }
+.qcard:hover { box-shadow: none; background: var(--fill); }
+.qcard svg.i { display: none; }
+.qcard::before { content: counter(q); font-weight: 600; color: var(--accent); width: 14px; flex: none; }
+.qcard h2 { font-size: 15px; margin-bottom: 3px; }
+.qcard p { font-size: 13px; }
+.footnote { text-align: left; margin: 0; }
+.headline { background: none; border-radius: 0; padding: 0 0 14px; border-bottom: 1px solid var(--sep); }
+.headline .big { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.needs, details.how { background: none; border: 1px solid var(--sep); border-radius: 8px; }
+.tool-out-inner > h1.serif { font-size: 26px; }
+
+/* Calculator inputs: two labelled columns */
+.inputs-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 24px; align-items: start; }
 .inputs-grid .fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.inputs-grid .fld > label { font-size: 13px; font-weight: 500; color: var(--text); }
+.inputs-grid .fld > label { font-size: 13px; font-weight: 500; }
 .inputs-grid .ctrl input[type="text"] { max-width: none; }
-.inputs-grid .ctrl .line { gap: 6px; }
-input[type="text"], input[type="password"], input[type="search"], select, textarea { border-radius: 7px; padding: 6px 9px; background: var(--control); }
-.start { background: radial-gradient(1200px 500px at 50% -10%, var(--gold-soft), transparent 70%), var(--window); }
-.sidebar .sb-search input { background: none; box-shadow: none; padding: 1px 0; outline: 0; }
-.brief .caption.secondary:first-child { color: var(--gold); letter-spacing: .12em; text-transform: uppercase; font-size: 11px; font-weight: 600; }
-.chart-title { margin: 0; font: 600 17px var(--serif); }
-.rcard .cap-title, section.card > .cap-title { margin-bottom: 2px; }
+@media (max-width: 760px) { .qcards { grid-template-columns: 1fr; } .tile strong, .modecard h2 { width: auto; } }
+.bigband { font: 650 36px/1 var(--font); letter-spacing: -.01em; }
+.qcard { display: grid; grid-template-columns: 20px 1fr; column-gap: 10px; row-gap: 2px; align-items: baseline; }
+.qcard::before { grid-row: 1 / span 2; }
+.qcard h2, .qcard p { grid-column: 2; }

@@ -42,7 +42,8 @@ struct MarketBriefView: View {
                     Text("Where markets stand today, then the tools for the conversation.").foregroundStyle(.secondary)
                 }
                 brief
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 14)], spacing: 14) {
+                VStack(spacing: 0) {
+                    Divider()
                     HomeTile(symbol: "magnifyingglass", title: "Stock research", text: "Look up one company: price, risk, fundamentals, filings") { state.selection = .stock }
                     HomeTile(symbol: "square.grid.2x2", title: "Calculators", text: "\(state.calculators.count) calculators, most-used first") { state.selection = .calculators }
                     HomeTile(symbol: "person.2", title: "Client Mode", text: "Plain-language tools to show a client") { state.showClient(nil) }
@@ -71,7 +72,7 @@ struct MarketBriefView: View {
                     Text("As of \(m["asof"]?.str ?? "—")").font(.caption).foregroundStyle(.secondary)
                 })) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text(band).font(.system(size: 40, weight: .bold, design: .serif)).foregroundStyle(RoRoStyle.bandColor(band))
+                    Text(band).font(.system(size: 40, weight: .bold)).foregroundStyle(RoRoStyle.bandColor(band))
                     Text(RoRoStyle.signed(p["value"]?.num ?? .nan)).font(.wealthSerif(30)).monospacedDigit()
                     Text("\(RoRoStyle.signed(p["delta"]?.num ?? .nan)) since \(p["prev_date"]?.str ?? "the last run")").font(.callout).foregroundStyle(.secondary)
                 }
@@ -206,7 +207,7 @@ struct MoreAssumptions<Content: View>: View {
                 content
             }.padding(.top, 8)
         } label: {
-            Text("MORE ASSUMPTIONS").font(.caption.weight(.semibold)).tracking(0.8).foregroundStyle(.secondary)
+            Text("More assumptions").font(.subheadline.weight(.semibold))
         }
     }
 }
