@@ -116,6 +116,7 @@ private enum F {
     static func big(_ v: Double?) -> String {
         guard let v else { return "—" }
         let a = abs(v), s = v < 0 ? "−" : ""
+        if a >= 1e12 { return String(format: "%@$%.2fT", s, a / 1e12) }
         if a >= 1e9 { return String(format: "%@$%.1fB", s, a / 1e9) }
         if a >= 1e6 { return String(format: "%@$%.1fM", s, a / 1e6) }
         if a >= 1e3 { return String(format: "%@$%.0fK", s, a / 1e3) }
@@ -137,6 +138,7 @@ struct StockView: View {
     @State private var query = ""
     @State private var range = "1Y"
     @State private var vsBench = true
+    @State private var tab = "Overview"
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -148,8 +150,6 @@ struct StockView: View {
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 search
-                Text("Looking up a symbol sends only that symbol: to Yahoo Finance for prices, and to Wealth Desk's lookup service for SEC data. Nothing is saved; the result is cleared with the session.")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 if stock.loading {
                     ProgressView("Looking up \(stock.symbol)…").frame(maxWidth: .infinity)
                 } else if let e = stock.error {
@@ -159,6 +159,8 @@ struct StockView: View {
                 } else {
                     ContentUnavailable(title: "Look up a stock", message: "Type a ticker symbol above. Suggestions come from the SEC's list of listed companies.", symbol: "magnifyingglass")
                 }
+                Text("Looking up a symbol sends only that symbol: to Yahoo Finance for prices, and to Wealth Desk's lookup service for SEC data. Nothing is saved; the result is cleared with the session.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             .padding(18)
             .frame(maxWidth: 980, alignment: .leading)
@@ -210,21 +212,25 @@ struct StockView: View {
     }
 
     @ViewBuilder private func result(_ r: StockReport) -> some View {
-        quoteCard(r)
-        priceCard(r)
-        returnsCard(r)
-        riskCard(r)
-        if r.annual.isEmpty {
-            Card(title: "Fundamentals") { Text(stock.note ?? "No financial statements are available for this symbol.").foregroundStyle(.secondary) }
-        } else {
-            valuationCard(r)
-            earningsCard(r)
-            statementsCard(r)
-        }
-        if !r.filings.isEmpty { filingsCard(r) }
-        calculatorsCard(r)
-        Card(title: "Market backdrop", trailing: AnyView(Button("RoRo Composite") { state.selection = .roro }.buttonStyle(.link))) {
-            Text("The RoRo Composite describes overall market conditions, not this stock, and doesn't predict returns.").foregroundStyle(.secondary)
+        Picker("Section", selection: $tab) { ForEach(["Overview", "Financials", "Valuation", "Filings"], id: \.self) { Text($0).tag($0) } }
+            .pickerStyle(.segmented).labelsHidden().frame(maxWidth: 520)
+        let none = Card(title: "Fundamentals") { Text(stock.note ?? "No financial statements are available for this symbol.").foregroundStyle(.secondary) }
+        switch tab {
+        case "Financials":
+            if r.annual.isEmpty { none } else { earningsCard(r); statementsCard(r) }
+        case "Valuation":
+            if r.annual.isEmpty { none } else { sizeCard(r); valuationCard(r) }
+        case "Filings":
+            if r.filings.isEmpty { Card(title: "Recent SEC filings") { Text("No SEC filings are available for this symbol.").foregroundStyle(.secondary) } } else { filingsCard(r) }
+        default:
+            quoteCard(r)
+            priceCard(r)
+            returnsCard(r)
+            riskCard(r)
+            calculatorsCard(r)
+            Card(title: "Market backdrop", trailing: AnyView(Button("RoRo Composite") { state.selection = .roro }.buttonStyle(.link))) {
+                Text("The RoRo Composite describes overall market conditions, not this stock, and doesn't predict returns.").foregroundStyle(.secondary)
+            }
         }
         Text("Sources: prices, dividends and splits from Yahoo Finance's chart feed (unofficial and unlicensed; quotes are delayed). Financial statements and filings from SEC EDGAR (official XBRL company facts and filing index). S&P 500 comparison uses SPY, an exchange-traded fund that tracks it. Figures can contain errors in the source data. This is factual information for education and discussion, not a recommendation to buy, sell or hold any security.")
             .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -277,11 +283,27 @@ struct StockView: View {
             }
             HStack {
                 kv("Market value", F.big(r.valuation["marketCap"] ?? nil))
-                kv("Enterprise value", fin ? "n/m" : F.big(r.valuation["ev"] ?? nil))
+                kv("P/E (trailing)", F.mult(r.valuation["pe"] ?? nil))
                 kv("Dividend yield", F.pct2(r.valuation["divYield"] ?? nil))
-                kv("Shares outstanding", (r.balance["sharesOut"] ?? nil).map { String(format: "%.2fB", $0 / 1e9) } ?? "—")
+                kv("1-year return", F.pct1(r.returns.first { $0.key == "1Y" }?.stock))
+                kv("Beta (5 years)", (r.risk["beta5y"] ?? nil).map { String(format: "%.2f", $0) } ?? "—")
             }
             Text("Delayed quote, last trading day \(F.date(r.lastDay)). Market value = price × shares outstanding from the latest filing (\(F.date(r.balanceAsOf["shares"] ?? nil))).")
+                .font(.caption).foregroundStyle(.tertiary)
+        }
+    }
+
+    private func sizeCard(_ r: StockReport) -> some View {
+        let fin = isFinancial(r)
+        return Card(title: "Company size") {
+            HStack {
+                kv("Market value", F.big(r.valuation["marketCap"] ?? nil))
+                kv("Enterprise value", fin ? "n/m" : F.big(r.valuation["ev"] ?? nil))
+                kv("Cash", F.big(r.balance["cash"] ?? nil))
+                kv("Long-term debt", F.big(r.balance["debt"] ?? nil))
+                kv("Shares outstanding", (r.balance["sharesOut"] ?? nil).map { String(format: "%.2fB", $0 / 1e9) } ?? "—")
+            }
+            Text("Enterprise value = market value + long-term debt − cash, from the latest balance sheet (\(F.date(r.balanceAsOf["cash"] ?? nil))).")
                 .font(.caption).foregroundStyle(.tertiary)
         }
     }
