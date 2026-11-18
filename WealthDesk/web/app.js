@@ -275,9 +275,16 @@ function toggleSidebar() {
 // Advisor Mode has four destinations; the rest are tools. The full calculator library lives on the
 // Calculators page (and in the sidebar search), not in the sidebar itself.
 const SIDE = [
-  ["home", "Market Brief", "gauge", "#/advisor"], ["stock", "Stock research", "search", "#/advisor/stock"],
+  ["home", "Market Brief", "gauge", "#/advisor"], ["roro", "RoRo Composite", "gauge", "#/advisor/roro"], ["stock", "Stock research", "search", "#/advisor/stock"],
   ["calculators", "Calculators", "table", "#/advisor/calculators"], ["client", "Client Mode", "people", "#/client"],
 ];
+// Extra words the sidebar search matches for each page.
+const PAGE_WORDS = {
+  home: "roro market brief risk on risk off regime overview", roro: "roro risk on off composite factors regime posture market",
+  stock: "stock ticker equity company fundamentals sec filings", calculators: "calculator library formulas",
+  client: "client mode present", markets: "treasury yields curve bonds rates quotes watchlist markets",
+  calculator: "calculator scientific", scenarios: "scenarios saved", history: "history",
+};
 const SIDE_TOOLS = [
   ["markets", "Treasury yields & quotes", "chart"], ["calculator", "Calculator", "plusminus"],
   ["scenarios", "Session scenarios", "tray"], ["history", "Session history", "clock"],
@@ -291,12 +298,18 @@ function sidebar(selected) {
     const q = searchText.trim();
     if (q) {
       const hits = search(q, engine.calculators);
-      fill(list, h("div", { class: "sb-sec", text: "Results" }), hits.length ? hits.map(row) : h("div", { class: "sb-row secondary", text: "No matches" }));
+      // Pages match by name or keyword too (RoRo, Treasury yields, stocks…), not just calculators.
+      const ql = q.toLowerCase();
+      const pages = [...SIDE, ...SIDE_TOOLS.map(([id, label, ic]) => [id, label, ic, `#/advisor/${id}`])]
+        .filter(([id, label]) => (label + " " + (PAGE_WORDS[id] || "")).toLowerCase().includes(ql));
+      fill(list, h("div", { class: "sb-sec", text: "Results" }),
+        pages.map(([id, label, ic, href]) => h("a", { class: "sb-row", href }, icon(ic), h("span", { class: "grow", text: label }))),
+        hits.map(row), !hits.length && !pages.length ? h("div", { class: "sb-row secondary", text: "No matches" }) : null);
       return;
     }
     const favs = Prefs.favorites.map((id) => engine.calculator(id)).filter(Boolean);
     fill(list,
-      SIDE.map(([id, label, ic, href]) => h("a", { class: "sb-row big" + (selected === id || (id === "calculators" && isCalc) || (id === "home" && selected === "roro") ? " sel" : ""), href },
+      SIDE.map(([id, label, ic, href]) => h("a", { class: "sb-row big" + (selected === id || (id === "calculators" && isCalc) ? " sel" : ""), href },
         icon(ic), h("span", { class: "grow", text: label }))),
       h("div", { class: "sb-sec", text: "Tools" }),
       SIDE_TOOLS.map(([id, label, ic]) => h("a", { class: "sb-row" + (selected === id ? " sel" : ""), href: `#/advisor/${id}` },

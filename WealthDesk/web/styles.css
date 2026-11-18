@@ -333,13 +333,13 @@ table.grid tbody tr + tr td { border-top: 1px solid var(--fill-2); }
 /* ---------- Client Mode ---------- */
 .home { max-width: 1000px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 26px; text-align: center; }
 .home h1 { font: 600 30px/1.2 var(--serif); margin: 18px 0 8px; }
-.home .lede { font-size: 17px; color: var(--secondary); margin: 0; }
 .qcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; width: 100%; text-align: left; }
 .qcard { display: flex; flex-direction: column; gap: 10px; padding: 22px; min-height: 150px; border-radius: 16px; background: var(--control); box-shadow: 0 0 0 1px var(--hair); color: var(--text); text-decoration: none; }
 .qcard:hover { box-shadow: 0 0 0 1.5px var(--accent); text-decoration: none; }
 .qcard svg.i { width: 24px; height: 24px; color: var(--accent); }
 .qcard h2 { font-size: 17px; margin: 0; font-weight: 600; }
 .qcard p { margin: 0; color: var(--secondary); }
+.home .lede { font-size: 17px; color: var(--secondary); margin: 0; }
 .footnote { font-size: 12px; color: var(--tertiary); max-width: 760px; text-align: center; margin: 0 auto; }
 .tool { display: grid; grid-template-columns: 380px 1fr; min-height: 100%; }
 .tool-in { background: var(--control); border-right: 1px solid var(--sep); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
@@ -547,16 +547,6 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 .ytile { background: none; border-radius: 0; border-top: 1px solid var(--sep); }
 
 /* Client Mode */
-.home { align-items: stretch; text-align: left; gap: 18px; max-width: 900px; }
-.home h1 { font-size: 26px; margin: 8px 0 4px; }
-.qcards { grid-template-columns: 1fr 1fr; gap: 0 32px; counter-reset: q; border-top: 1px solid var(--sep); }
-.qcard { counter-increment: q; flex-direction: row; gap: 14px; min-height: 0; padding: 14px 4px; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); }
-.qcard:hover { box-shadow: none; background: var(--fill); }
-.qcard svg.i { display: none; }
-.qcard::before { content: counter(q); font-weight: 600; color: var(--accent); width: 14px; flex: none; }
-.qcard h2 { font-size: 15px; margin-bottom: 3px; }
-.qcard p { font-size: 13px; }
-.footnote { text-align: left; margin: 0; }
 .headline { background: none; border-radius: 0; padding: 0 0 14px; border-bottom: 1px solid var(--sep); }
 .headline .big { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
 .needs, details.how { background: none; border: 1px solid var(--sep); border-radius: 8px; }
@@ -567,8 +557,5 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 .inputs-grid .fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .inputs-grid .fld > label { font-size: 13px; font-weight: 500; }
 .inputs-grid .ctrl input[type="text"] { max-width: none; }
-@media (max-width: 760px) { .qcards { grid-template-columns: 1fr; } .tile strong, .modecard h2 { width: auto; } }
+@media (max-width: 760px) { .tile strong, .modecard h2 { width: auto; } }
 .bigband { font: 650 36px/1 var(--font); letter-spacing: -.01em; }
-.qcard { display: grid; grid-template-columns: 20px 1fr; column-gap: 10px; row-gap: 2px; align-items: baseline; }
-.qcard::before { grid-row: 1 / span 2; }
-.qcard h2, .qcard p { grid-column: 2; }

@@ -250,16 +250,19 @@ struct SidebarView: View {
         List(selection: $state.selection) {
             if !state.search.isEmpty {
                 let results = CatalogLoader.search(state.search, in: state.calculators)
+                let pages = Self.pages.filter { ($0.title + " " + $0.words).localizedCaseInsensitiveContains(state.search.trimmingCharacters(in: .whitespaces)) }
                 Section("Results") {
-                    if results.isEmpty {
+                    if results.isEmpty && pages.isEmpty {
                         Text("No matches").foregroundStyle(.secondary)
                     }
+                    ForEach(pages, id: \.title) { p in Label(p.title, systemImage: p.symbol).tag(p.item) }
                     ForEach(results) { row($0) }
                 }
             } else {
                 // Four destinations; the full calculator library is on the Calculators page and in search.
                 Section {
                     Label("Market Brief", systemImage: "gauge.medium").tag(SidebarItem.home)
+                    Label("RoRo Composite", systemImage: "gauge.with.dots.needle.67percent").tag(SidebarItem.roro)
                     Label("Stock research", systemImage: "magnifyingglass").tag(SidebarItem.stock)
                     Label("Calculators", systemImage: "square.grid.2x2").tag(SidebarItem.calculators)
                     Button { state.showClient(nil) } label: { Label("Client Mode", systemImage: "person.2") }.buttonStyle(.plain)
@@ -289,6 +292,18 @@ struct SidebarView: View {
                 .padding(.horizontal, 14).padding(.vertical, 8)
         }
     }
+
+    /// Pages the sidebar search finds by name or keyword, alongside calculators.
+    static let pages: [(title: String, symbol: String, item: SidebarItem, words: String)] = [
+        ("Market Brief", "gauge.medium", .home, "roro market brief risk on risk off regime overview"),
+        ("RoRo Composite", "gauge.with.dots.needle.67percent", .roro, "roro risk on off composite factors regime posture market"),
+        ("Stock research", "magnifyingglass", .stock, "stock ticker equity company fundamentals sec filings"),
+        ("Calculators", "square.grid.2x2", .calculators, "calculator library formulas"),
+        ("Treasury yields & quotes", "chart.xyaxis.line", .markets, "treasury yields curve bonds rates quotes watchlist markets"),
+        ("Calculator", "plusminus.circle", .calculator, "calculator scientific"),
+        ("Session scenarios", "tray.full", .scenarios, "scenarios saved"),
+        ("Session history", "clock.arrow.circlepath", .history, "history"),
+    ]
 
     func row(_ c: Calculator) -> some View {
         HStack {

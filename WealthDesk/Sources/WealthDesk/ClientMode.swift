@@ -257,37 +257,35 @@ struct ClientHome: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("What would you like to explore?").font(.system(size: 26, weight: .semibold))
-                    Text("Pick a question, type in any numbers, and watch the picture change.").foregroundStyle(.secondary)
+            VStack(spacing: 26) {
+                VStack(spacing: 8) {
+                    Text("What would you like to explore?").font(.system(size: 28, weight: .semibold))
+                    Text("Pick a question, type in any numbers, and watch the picture change.")
+                        .font(.title3).foregroundStyle(.secondary)
                 }
-                .padding(.top, 8)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 360), spacing: 32, alignment: .top)], spacing: 0) {
-                    ForEach(Array(ClientTool.allCases.enumerated()), id: \.element) { n, tool in
+                .padding(.top, 18)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 18)], spacing: 18) {
+                    ForEach(ClientTool.allCases) { tool in
                         Button { state.clientTool = tool } label: {
-                            VStack(spacing: 0) {
-                                Divider()
-                                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                    Text("\(n + 1)").fontWeight(.semibold).foregroundStyle(Color.wealthAccent).frame(width: 16, alignment: .leading)
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(ClientSpec.title(tool)).font(.system(size: 15, weight: .semibold)).multilineTextAlignment(.leading)
-                                        Text(ClientSpec.blurb(tool)).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.leading)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(.vertical, 13)
+                            VStack(alignment: .leading, spacing: 10) {
+                                Image(systemName: ClientSpec.symbol(tool)).font(.system(size: 24)).foregroundStyle(Color.wealthAccent)
+                                Text(ClientSpec.title(tool)).font(.title3.weight(.semibold)).multilineTextAlignment(.leading)
+                                Text(ClientSpec.blurb(tool)).foregroundStyle(.secondary).multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
+                            .padding(22)
+                            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+                            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+                            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.primary.opacity(0.08)))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
                 }
+                .frame(maxWidth: 1000)
                 ClientFootnote()
             }
             .padding(28)
-            .frame(maxWidth: 900, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
     }
@@ -296,7 +294,7 @@ struct ClientHome: View {
 struct ClientFootnote: View {
     var body: some View {
         Text("These are educational illustrations based only on the numbers typed in. They are not advice, a recommendation or a prediction. Nothing typed here is saved or sent; it is erased when Wealth Desk quits.")
-            .font(.caption).foregroundStyle(.tertiary).frame(maxWidth: 760, alignment: .leading)
+            .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center).frame(maxWidth: 760)
     }
 }
 
