@@ -1714,7 +1714,7 @@ function decisionsTool(tool) {
   const row = (label, x, y) => {
     const d = y - x;
     return h("tr", {}, h("td", { text: label }), h("td", { text: Format.currency(x) }), h("td", { text: Format.currency(y) }),
-      h("td", { class: d < 0 ? "down" : "pos", style: d < 0 ? "" : "color:var(--accent)", text: (d >= 0 ? "+" : "") + Format.currency(d) }));
+      h("td", { class: d < 0 ? "down" : "pos", style: d < 0 ? "" : "color:var(--accent-text)", text: (d >= 0 ? "+" : "") + Format.currency(d) }));
   };
   return toolPage(tool, (on) => [
     group("Option A: the starting plan", "Shared with “Am I on track for retirement?”.",
