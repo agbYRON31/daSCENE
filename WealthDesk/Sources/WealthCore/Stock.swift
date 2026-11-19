@@ -486,6 +486,54 @@ extension StockMath {
     }
 }
 
+/// Chart studies on split-adjusted closes (display aids, not signals). Same rules as web/stock.js.
+public enum ChartStudies {
+    public static let fibRatios: [Double] = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1]
+
+    public static func sma(_ c: [Double], _ n: Int) -> [Double?] {
+        c.indices.map { i in
+            guard i >= n - 1 else { return nil }
+            var t = 0.0
+            for k in (i - n + 1)...i { t += c[k] }
+            return t / Double(n)
+        }
+    }
+    public static func bollinger(_ c: [Double], _ n: Int = 20, _ k: Double = 2) -> (mid: [Double?], up: [Double?], lo: [Double?]) {
+        let mid = sma(c, n)
+        var up: [Double?] = [], lo: [Double?] = []
+        for i in c.indices {
+            guard let m = mid[i] else { up.append(nil); lo.append(nil); continue }
+            var v = 0.0
+            for j in (i - n + 1)...i { v += (c[j] - m) * (c[j] - m) }
+            let sd = (v / Double(n)).squareRoot()
+            up.append(m + k * sd); lo.append(m - k * sd)
+        }
+        return (mid, up, lo)
+    }
+    public static func rsi(_ c: [Double], _ n: Int = 14) -> [Double?] {
+        var out = [Double?](repeating: nil, count: c.count)
+        guard c.count > n else { return out }
+        var g = 0.0, l = 0.0
+        for i in 1...n { let d = c[i] - c[i - 1]; if d > 0 { g += d } else { l -= d } }
+        g /= Double(n); l /= Double(n)
+        func val() -> Double { l == 0 ? (g == 0 ? 50 : 100) : 100 - 100 / (1 + g / l) }
+        out[n] = val()
+        if c.count > n + 1 {
+            for i in (n + 1)..<c.count {
+                let d = c[i] - c[i - 1]
+                g = (g * Double(n - 1) + (d > 0 ? d : 0)) / Double(n)
+                l = (l * Double(n - 1) + (d < 0 ? -d : 0)) / Double(n)
+                out[i] = val()
+            }
+        }
+        return out
+    }
+    public static func fibLevels(_ c: [Double]) -> [(ratio: Double, price: Double)] {
+        guard let hi = c.max(), let lo = c.min() else { return [] }
+        return fibRatios.map { ($0, hi - (hi - lo) * $0) }
+    }
+}
+
 extension StockReport {
     /// The figures the cross-check compares, in the reference's layout.
     public func checkJSON() -> [String: Any] {
@@ -512,6 +560,12 @@ extension StockReport {
             "valuation": valuation.mapValues { n($0) }.merging(["medians": medians.mapValues { n($0) }]) { a, _ in a },
             "growth": growth.mapValues { n($0) },
             "filings": filings.map { ["date": $0.date, "form": $0.form, "description": $0.description, "url": $0.url] },
+            "indicators": { () -> [String: Any] in
+                let c = bars.map(\.close), bb = ChartStudies.bollinger(c)
+                func arr(_ v: [Double?]) -> [Any] { v.map { $0.map { $0 as Any } ?? NSNull() } }
+                return ["sma50": arr(ChartStudies.sma(c, 50)), "sma200": arr(ChartStudies.sma(c, 200)), "bbMid": arr(bb.mid), "bbUp": arr(bb.up),
+                        "bbLo": arr(bb.lo), "rsi14": arr(ChartStudies.rsi(c)), "fib": ChartStudies.fibLevels(c).map { ["ratio": $0.ratio, "price": $0.price] }]
+            }(),
         ]
     }
 }

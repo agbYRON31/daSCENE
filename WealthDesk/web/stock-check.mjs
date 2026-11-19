@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyze } from "./stock.js";
+import { analyze, sma, bollinger, rsi, fibLevels } from "./stock.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = join(root, "Tests", "stock_fixtures");
@@ -54,6 +54,21 @@ near(kq.revenue, 47941000000 + 39232000000 - 36119000000, 0, "Coca-Cola trailing
 compared++; if (kq.revenueThrough !== "2026-10-02") fail("Coca-Cola trailing revenue should run through 2026-10-02");
 compared++; if (jpm.valuation.evEbitda !== null) fail("JPMorgan: EV/EBITDA should be blank (banks don't report it)");
 compared++; if (aapl.risk.betaMonths !== 60) fail("Apple beta should use 60 complete months");
+
+// Chart studies against worked examples.
+// RSI: the 14-day example in StockCharts' "Relative Strength Index" ChartSchool article (first values 70.53, 66.32, 66.55, 69.41, 66.36).
+const rc = [44.3389, 44.0902, 44.1497, 43.6124, 44.3278, 44.8264, 45.0955, 45.4245, 45.8433, 46.0826, 45.8931, 46.0328, 45.614, 46.282, 46.282, 46.0028, 46.0328, 46.4116, 46.2222];
+const rv = rsi(rc, 14);
+[70.53, 66.32, 66.55, 69.41, 66.36].forEach((x, i) => near(rv[14 + i], x, 0.01, `RSI worked example, day ${15 + i}`));
+compared++; if (rv[13] !== null) fail("RSI should be blank before 14 changes");
+near(sma([1, 2, 3, 4, 5], 5)[4], 3, 1e-12, "5-day average of 1..5");
+compared++; if (sma([1, 2, 3], 5).some((x) => x !== null)) fail("Average needs a full window");
+const bb = bollinger([2, 4, 4, 4, 5, 5, 7, 9], 8, 2);
+near(bb.up[7], 5 + 2 * 2, 1e-12, "Bollinger upper band (mean 5, population sd 2)");
+near(bb.lo[7], 5 - 2 * 2, 1e-12, "Bollinger lower band");
+const fl = fibLevels([100, 150, 200, 120]);
+near(fl.find((x) => x.ratio === 0.5).price, 150, 1e-12, "Fibonacci 50% between 200 and 100");
+near(fl.find((x) => x.ratio === 0.618).price, 138.2, 1e-9, "Fibonacci 61.8% between 200 and 100");
 
 console.log(fails ? `${fails} differences` : `Stock screen OK: ${files.length} companies, ${compared} values match the reference${swift ? " and the Mac app's engine" : ""} and the filings.`);
 process.exit(fails ? 1 : 0);

@@ -236,6 +236,56 @@ function median(v) {
   return n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2;
 }
 
+// --- Chart studies (on split-adjusted closes; display aids, not signals) ---
+
+/** Simple moving average: mean of the last n closes; null until n closes exist. */
+export function sma(c, n) {
+  return c.map((_, i) => {
+    if (i < n - 1) return null;
+    let t = 0;
+    for (let k = i - n + 1; k <= i; k++) t += c[k];
+    return t / n;
+  });
+}
+/** Bollinger bands: n-day average ± k population standard deviations. */
+export function bollinger(c, n = 20, k = 2) {
+  const mid = sma(c, n);
+  const up = [], lo = [];
+  c.forEach((_, i) => {
+    if (mid[i] === null) { up.push(null); lo.push(null); return; }
+    let v = 0;
+    for (let j = i - n + 1; j <= i; j++) v += (c[j] - mid[i]) ** 2;
+    const sd = Math.sqrt(v / n);
+    up.push(mid[i] + k * sd); lo.push(mid[i] - k * sd);
+  });
+  return { mid, up, lo };
+}
+/** Relative strength index with Wilder's smoothing; null for the first n days. */
+export function rsi(c, n = 14) {
+  const out = c.map(() => null);
+  if (c.length <= n) return out;
+  let g = 0, l = 0;
+  for (let i = 1; i <= n; i++) { const d = c[i] - c[i - 1]; if (d > 0) g += d; else l -= d; }
+  g /= n; l /= n;
+  const val = () => (l === 0 ? (g === 0 ? 50 : 100) : 100 - 100 / (1 + g / l));
+  out[n] = val();
+  for (let i = n + 1; i < c.length; i++) {
+    const d = c[i] - c[i - 1];
+    g = (g * (n - 1) + (d > 0 ? d : 0)) / n;
+    l = (l * (n - 1) + (d < 0 ? -d : 0)) / n;
+    out[i] = val();
+  }
+  return out;
+}
+export const FIB_RATIOS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+/** Fibonacci retracement levels between the high and low of the closes given (measured down from the high). */
+export function fibLevels(c) {
+  const v = c.filter((x) => x !== null && x !== undefined);
+  if (!v.length) return [];
+  const hi = Math.max(...v), lo = Math.min(...v);
+  return FIB_RATIOS.map((r) => ({ ratio: r, price: hi - (hi - lo) * r }));
+}
+
 export function analyze(fx) {
   const daily = fx.daily, bench = fx.bench, intra = fx.intraday || { meta: {} }, meta = daily.meta;
   const s = series(daily), b = series(bench), off = meta.gmtoffset || 0;
@@ -342,6 +392,8 @@ export function analyze(fx) {
     risk: { vol1y: volatility(s), benchVol1y: volatility(b), beta5y: bt, betaMonths: months, ...drawdown(s) },
     dividends: { ttm: ttmDiv, yield: div(ttmDiv, price), growth5 },
     annual: rows, ttm, balance: bal, valuation, growth, filings,
+    indicators: (() => { const c = s.map((x) => x[1]), bb = bollinger(c, 20, 2);
+      return { sma50: sma(c, 50), sma200: sma(c, 200), bbMid: bb.mid, bbUp: bb.up, bbLo: bb.lo, rsi14: rsi(c, 14), fib: fibLevels(c) }; })(),
     // For charts and the screen; not part of the cross-check.
     company: subs ? { cik: parseInt(subs.cik, 10), name: subs.name, sic: subs.sicDescription || null, exchanges: subs.exchanges || [] } : null,
     currency: meta.currency || "USD", exchange: meta.exchangeName || null, instrumentType: meta.instrumentType || null,

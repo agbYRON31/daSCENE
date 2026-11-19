@@ -138,6 +138,7 @@ struct StockView: View {
     @State private var query = ""
     @State private var range = "1Y"
     @State private var vsBench = true
+    @State private var studies: Set<String> = []
     @State private var tab = "Overview"
     @FocusState private var focused: Bool
 
@@ -310,9 +311,29 @@ struct StockView: View {
 
     struct Pt: Identifiable { let id: Int; let x: Date; let y: Double; let series: String }
 
+    struct Band: Identifiable { let id: Int; let x: Date; let lo: Double; let hi: Double }
+    static let studyList: [(key: String, label: String)] = [("ma50", "50-day average"), ("ma200", "200-day average"), ("bb", "Bollinger bands"), ("fib", "Fibonacci levels"), ("rsi", "RSI")]
+
+    /// Only the series actually drawn, in a fixed order, so the legend never lists a hidden line.
+    static func seriesNames(_ symbol: String, _ pts: [Pt]) -> [String] {
+        let present = Set(pts.map(\.series))
+        return [symbol, "S&P 500 (SPY)", "50-day average", "200-day average"].filter(present.contains)
+    }
+    static func seriesColor(_ symbol: String) -> (String) -> Color {
+        { name in name == symbol ? .wealthAccent : name == "50-day average" ? .orange : name == "200-day average" ? .blue : .secondary }
+    }
+
+    private func studyBinding(_ k: String) -> Binding<Bool> {
+        Binding(get: { studies.contains(k) }, set: { on in
+            if on { studies.insert(k); vsBench = false } else { studies.remove(k) }
+        })
+    }
+
     private func priceCard(_ r: StockReport) -> some View {
         let ranges = ["1D", "1M", "6M", "YTD", "1Y", "5Y", "10Y"]
-        var pts: [Pt] = []
+        var pts: [Pt] = [], band: [Band] = [], rsiPts: [Pt] = []
+        var fibs: [(ratio: Double, price: Double)] = []
+        let showStudies = range != "1D" && !vsBench && !studies.isEmpty
         if range == "1D" {
             pts = r.intraday.enumerated().map { Pt(id: $0.offset, x: Date(timeIntervalSince1970: $0.element.0), y: $0.element.1, series: r.symbol) }
         } else if let last = r.bars.last {
@@ -328,38 +349,87 @@ struct StockView: View {
             }
             var i0 = r.bars.firstIndex { $0.day >= from } ?? 0
             if i0 > 0 && r.bars[i0].day > from { i0 -= 1 }
-            let slice = Array(r.bars[i0...])
-            let step = max(1, slice.count / 600)
-            let pick = slice.enumerated().filter { $0.offset % step == 0 || $0.offset == slice.count - 1 }.map(\.element)
-            if vsBench, let base = pick.first {
+            let count = r.bars.count - i0
+            let step = max(1, count / 600)
+            let idx = (i0..<r.bars.count).filter { ($0 - i0) % step == 0 || $0 == r.bars.count - 1 }
+            if vsBench, let base = idx.first.map({ r.bars[$0] }) {
                 let bm = Dictionary(r.benchBars.map { ($0.day, $0.adj) }, uniquingKeysWith: { a, _ in a })
-                pts = pick.enumerated().map { Pt(id: $0.offset, x: F.day($0.element.day), y: $0.element.adj / base.adj * 100, series: r.symbol) }
+                pts = idx.enumerated().map { Pt(id: $0.offset, x: F.day(r.bars[$0.element].day), y: r.bars[$0.element].adj / base.adj * 100, series: r.symbol) }
                 if let bb = bm[base.day] {
-                    pts += pick.enumerated().compactMap { e in bm[e.element.day].map { Pt(id: 100_000 + e.offset, x: F.day(e.element.day), y: $0 / bb * 100, series: "S&P 500 (SPY)") } }
+                    pts += idx.enumerated().compactMap { e in bm[r.bars[e.element].day].map { Pt(id: 100_000 + e.offset, x: F.day(r.bars[e.element].day), y: $0 / bb * 100, series: "S&P 500 (SPY)") } }
                 }
             } else {
-                pts = pick.enumerated().map { Pt(id: $0.offset, x: F.day($0.element.day), y: $0.element.close, series: r.symbol) }
+                let c = r.bars.map(\.close)
+                pts = idx.enumerated().map { Pt(id: $0.offset, x: F.day(r.bars[$0.element].day), y: c[$0.element], series: r.symbol) }
+                func add(_ series: String, _ v: [Double?], _ base: Int) {
+                    pts += idx.enumerated().compactMap { e in v[e.element].map { Pt(id: base + e.offset, x: F.day(r.bars[e.element].day), y: $0, series: series) } }
+                }
+                if studies.contains("ma50") { add("50-day average", ChartStudies.sma(c, 50), 200_000) }
+                if studies.contains("ma200") { add("200-day average", ChartStudies.sma(c, 200), 300_000) }
+                if studies.contains("bb") {
+                    let b = ChartStudies.bollinger(c)
+                    band = idx.enumerated().compactMap { e in
+                        guard let lo = b.lo[e.element], let hi = b.up[e.element] else { return nil }
+                        return Band(id: e.offset, x: F.day(r.bars[e.element].day), lo: lo, hi: hi)
+                    }
+                }
+                if studies.contains("fib") { fibs = ChartStudies.fibLevels(Array(c[i0...])) }
+                if studies.contains("rsi") {
+                    let rv = ChartStudies.rsi(c)
+                    rsiPts = idx.enumerated().compactMap { e in rv[e.element].map { Pt(id: e.offset, x: F.day(r.bars[e.element].day), y: $0, series: "RSI") } }
+                }
             }
         }
         return Card(title: "Price", trailing: AnyView(HStack {
             if range != "1D" { Toggle("Compare with S&P 500", isOn: $vsBench).toggleStyle(.checkbox).font(.caption) }
             Picker("", selection: $range) { ForEach(ranges, id: \.self) { Text($0).tag($0) } }.pickerStyle(.segmented).labelsHidden().frame(width: 330)
         })) {
+            if range != "1D" {
+                HStack(spacing: 12) {
+                    ForEach(Self.studyList, id: \.key) { s in Toggle(s.label, isOn: studyBinding(s.key)).toggleStyle(.checkbox).font(.callout) }
+                }
+            }
             if pts.count < 2 {
                 Text(range == "1D" ? "No trading yet today." : "Not enough history.").foregroundStyle(.secondary)
             } else {
-                Chart(pts) { p in
-                    LineMark(x: .value("Date", p.x), y: .value("Value", p.y), series: .value("Series", p.series))
-                        .foregroundStyle(by: .value("Series", p.series))
-                        .lineStyle(StrokeStyle(lineWidth: p.series == r.symbol ? 2 : 1.4))
+                Chart {
+                    ForEach(band) { b in
+                        AreaMark(x: .value("Date", b.x), yStart: .value("Lower", b.lo), yEnd: .value("Upper", b.hi))
+                            .foregroundStyle(Color.secondary.opacity(0.14))
+                    }
+                    ForEach(pts) { p in
+                        LineMark(x: .value("Date", p.x), y: .value("Value", p.y), series: .value("Series", p.series))
+                            .foregroundStyle(by: .value("Series", p.series))
+                            .lineStyle(StrokeStyle(lineWidth: p.series == r.symbol ? 2 : 1.4))
+                    }
+                    ForEach(fibs, id: \.ratio) { f in
+                        RuleMark(y: .value("Fibonacci", f.price))
+                            .foregroundStyle(Color.secondary.opacity(0.6))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .annotation(position: .top, alignment: .leading) {
+                                Text("\(String(format: "%g", f.ratio * 100))% · \(F.money(f.price))").font(.caption2).foregroundStyle(.secondary)
+                            }
+                    }
                 }
-                .chartForegroundStyleScale([r.symbol: Color.wealthAccent, "S&P 500 (SPY)": Color.secondary])
-                .chartLegend(range != "1D" && vsBench ? .visible : .hidden)
+                .chartForegroundStyleScale(domain: Self.seriesNames(r.symbol, pts), range: Self.seriesNames(r.symbol, pts).map(Self.seriesColor(r.symbol)))
+                .chartLegend(range != "1D" && (vsBench || studies.contains("ma50") || studies.contains("ma200")) ? .visible : .hidden)
                 .chartYScale(domain: .automatic(includesZero: false))
-                .frame(height: 240)
+                .frame(height: showStudies ? 320 : 240)
+                if !rsiPts.isEmpty {
+                    Text("RSI (14 days)").font(.caption).foregroundStyle(.secondary)
+                    Chart {
+                        RuleMark(y: .value("70", 70)).foregroundStyle(Color.secondary.opacity(0.6)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        RuleMark(y: .value("30", 30)).foregroundStyle(Color.secondary.opacity(0.6)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        ForEach(rsiPts) { p in LineMark(x: .value("Date", p.x), y: .value("RSI", p.y)).foregroundStyle(Color.wealthAccent) }
+                    }
+                    .chartYScale(domain: 0...100)
+                    .chartYAxis { AxisMarks(values: [0, 30, 50, 70, 100]) }
+                    .frame(height: 100)
+                }
             }
-            Text(range == "1D" ? "Today, 5-minute prices." : vsBench ? "Growth of 100 with dividends reinvested, for the stock and SPY (an S&P 500 fund)." : "Closing prices, adjusted for splits.")
-                .font(.caption).foregroundStyle(.secondary)
+            Text(range == "1D" ? "Today, 5-minute prices." : vsBench ? "Growth of 100 with dividends reinvested, for the stock and SPY (an S&P 500 fund). Turn this off to add chart studies."
+                 : "Closing prices, adjusted for splits. Studies: moving averages of daily closes; Bollinger bands are the 20-day average ± 2 standard deviations; Fibonacci levels are measured down from the highest to the lowest close in the range shown; RSI (14) uses Wilder's smoothing. They describe past prices and don't predict where the price will go.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 

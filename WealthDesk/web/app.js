@@ -8,7 +8,7 @@ import {
 } from "./engine.js";
 import { scenarioFileText, readScenarioFile } from "./scenario.js";
 import { clientMarketSummary, marketTone } from "./client_market.js";
-import { analyze } from "./stock.js";
+import { analyze, sma, bollinger, rsi, fibLevels } from "./stock.js";
 
 // ---------------------------------------------------------------------------
 // Preferences (this browser only) and session (memory only)
@@ -151,8 +151,15 @@ const linesPlugin = {
     ctx.save();
     for (const l of opts?.y || []) {
       const y = scales.y.getPixelForValue(l.value);
+      if (y < A.top - 1 || y > A.bottom + 1) continue;
       ctx.strokeStyle = l.color; ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(A.left, y); ctx.lineTo(A.right, y); ctx.stroke();
+      if (l.label) {
+        ctx.setLineDash([]); ctx.font = "11px " + cssVar("--font");
+        const w = ctx.measureText(l.label).width + 8, x0 = A.left + 4;
+        ctx.globalAlpha = 0.85; ctx.fillStyle = cssVar("--control"); ctx.fillRect(x0, y - 8, w, 15); ctx.globalAlpha = 1;
+        ctx.fillStyle = cssVar("--secondary"); ctx.fillText(l.label, x0 + 4, y + 3.5);
+      }
     }
     for (const l of opts?.x || []) {
       const x = scales.x.getPixelForValue(l.value);
@@ -1028,7 +1035,7 @@ function tickerMatches(q) {
 async function lookupStock(sym) {
   sym = sym.trim().toUpperCase().replace(/\./g, "-");
   if (!sym) return;
-  S.stock = { symbol: sym, loading: true, range: S.stock?.range || "1Y", vsBench: S.stock?.vsBench ?? true };
+  S.stock = { symbol: sym, loading: true, range: S.stock?.range || "1Y", vsBench: S.stock?.vsBench ?? true, studies: S.stock?.studies };
   route();
   await loadTickers();
   const cik = data.tickers?.[sym]?.[0];
@@ -1036,7 +1043,7 @@ async function lookupStock(sym) {
     const r = await fetch(`${STOCK_API}?t=${encodeURIComponent(sym)}${cik ? `&cik=${cik}` : ""}`, { cache: "no-store" });
     const body = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(body.error || `The lookup service answered ${r.status}.`);
-    S.stock = { ...S.stock, loading: false, result: analyze(body), noFacts: !body.facts, factsError: body.factsError, inMap: !!cik };
+    S.stock = { ...S.stock, _studyCache: {}, loading: false, result: analyze(body), noFacts: !body.facts, factsError: body.factsError, inMap: !!cik };
   } catch (e) {
     S.stock = { ...S.stock, loading: false, error: e.message === "Failed to fetch" ? "Couldn't reach the lookup service. Check the connection and try again." : e.message };
   }
@@ -1096,17 +1103,48 @@ function priceChartCard(r) {
       o = { money: false, zero: false, maxXTicks: 8, label: `${r.symbol} against the S&P 500, growth of 100`, tooltip: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`,
         lines: { y: [{ value: 100, color: rgba(cssVar("--neutral"), 0.6) }] } };
     } else {
-      datasets = [{ label: r.symbol, data: pick.map((i) => r.chart.close[i]), borderColor: A, backgroundColor: A, borderWidth: 2 }];
-      o = { money: false, zero: false, legend: false, maxXTicks: 8, label: `${r.symbol} price`, tooltip: (c) => `${r.symbol}: ${money2(c.parsed.y)}` };
+      const on = st.studies || {}, c = r.chart.close, at = (arr) => pick.map((i) => arr[i]);
+      const study = (st._studyCache ||= {});
+      const get = (k, f) => (study[k] ||= f());
+      datasets = [{ label: r.symbol, data: at(c), borderColor: A, backgroundColor: A, borderWidth: 2, order: 1 }];
+      if (on.bb) {
+        const bb = get("bb", () => bollinger(c, 20, 2)), N = cssVar("--neutral");
+        datasets.push({ label: "Bollinger upper (20, 2)", data: at(bb.up), borderColor: rgba(N, 0.8), borderWidth: 1, borderDash: [3, 3], order: 3 },
+          { label: "Bollinger lower (20, 2)", data: at(bb.lo), borderColor: rgba(N, 0.8), borderWidth: 1, borderDash: [3, 3], fill: "-1", backgroundColor: rgba(N, 0.08), order: 3 });
+      }
+      if (on.ma50) datasets.push({ label: "50-day average", data: at(get("ma50", () => sma(c, 50))), borderColor: cssVar("--orange"), backgroundColor: cssVar("--orange"), borderWidth: 1.5, order: 2 });
+      if (on.ma200) datasets.push({ label: "200-day average", data: at(get("ma200", () => sma(c, 200))), borderColor: cssVar("--blue"), backgroundColor: cssVar("--blue"), borderWidth: 1.5, order: 2 });
+      const fibs = on.fib ? fibLevels(idx.map((i) => c[i])) : [];
+      o = { money: false, zero: false, legend: datasets.length > 1, maxXTicks: 8, label: `${r.symbol} price`,
+        tooltip: (x) => `${x.dataset.label}: ${money2(x.parsed.y)}`,
+        lines: { y: fibs.map((f) => ({ value: f.price, color: rgba(cssVar("--neutral"), 0.7), label: `${(f.ratio * 100).toFixed(1).replace(".0", "")}% · ${money2(f.price)}` })) } };
     }
-    body = chart("line", { labels: labels.map((d) => longDate(d)), datasets }, o);
+    const anyStudy = !st.vsBench && Object.values(st.studies || {}).some(Boolean);
+    body = [chart("line", { labels: labels.map((d) => longDate(d)), datasets }, { ...o, size: anyStudy ? "h340" : undefined })];
+    if (!st.vsBench && st.studies?.rsi) {
+      const rv = (st._studyCache.rsi ||= rsi(r.chart.close, 14));
+      body.push(h("div", { class: "caption secondary", style: "margin-top:4px", text: "RSI (14 days)" }),
+        chart("line", { labels: labels.map((d) => longDate(d)), datasets: [{ label: "RSI (14)", data: pick.map((i) => rv[i]), borderColor: cssVar("--accent"), borderWidth: 1.5 }] },
+          { size: "h110", legend: false, money: false, zero: false, yMin: 0, yMax: 100, maxXTicks: 8, label: `${r.symbol} 14-day RSI`,
+            yTicks: { color: cssVar("--secondary"), stepSize: 50 }, tooltip: (x) => `RSI: ${x.parsed.y.toFixed(1)}`,
+            lines: { y: [{ value: 70, color: rgba(cssVar("--neutral"), 0.7), label: "70" }, { value: 30, color: rgba(cssVar("--neutral"), 0.7), label: "30" }] } }));
+    }
   }
+  const STUDIES = [["ma50", "50-day average"], ["ma200", "200-day average"], ["bb", "Bollinger bands"], ["fib", "Fibonacci levels"], ["rsi", "RSI"]];
+  const studyBar = st.range === "1D" ? null : h("div", { class: "studies", role: "group", "aria-label": "Chart studies" },
+    STUDIES.map(([k, label]) => h("label", { class: "study" + (st.studies?.[k] ? " on" : "") },
+      h("input", { type: "checkbox", checked: !!st.studies?.[k], onchange: (e) => {
+        S.stock.studies = { ...(S.stock.studies || {}), [k]: e.target.checked };
+        if (e.target.checked) S.stock.vsBench = false;
+        route();
+      } }), label)));
   return card("Price", h("div", { style: "display:flex;gap:10px;align-items:center;flex-wrap:wrap" },
     st.range === "1D" ? null : h("label", { class: "caption secondary", style: "display:flex;gap:6px;align-items:center" },
       h("input", { type: "checkbox", checked: st.vsBench, onchange: (e) => { S.stock.vsBench = e.target.checked; route(); } }), "Compare with S&P 500"),
-    seg), body,
+    seg), studyBar, body,
   h("div", { class: "caption tertiary", text: st.range === "1D" ? "Today, 5-minute prices; the dashed line is yesterday's close."
-    : st.vsBench ? "Growth of 100 with dividends reinvested, for the stock and SPY (an S&P 500 fund)." : "Closing prices, adjusted for splits." }));
+    : st.vsBench ? "Growth of 100 with dividends reinvested, for the stock and SPY (an S&P 500 fund). Turn this off to add chart studies."
+    : "Closing prices, adjusted for splits. Studies: moving averages of daily closes; Bollinger bands are the 20-day average ± 2 standard deviations; Fibonacci levels are measured down from the highest to the lowest close in the range shown; RSI (14) uses Wilder's smoothing. They describe past prices and don't predict where the price will go." }));
 }
 
 function stockPage() {
