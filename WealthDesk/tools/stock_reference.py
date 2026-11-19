@@ -300,6 +300,50 @@ class Facts:
         return e["val"] * self.factor(dnum(e["filed"])), dnum(e["end"])
 
 
+def sma(c, n):
+    out = []
+    for i in range(len(c)):
+        out.append(None if i < n - 1 else sum(c[i - n + 1:i + 1]) / n)
+    return out
+
+
+def bollinger(c, n=20, k=2):
+    mid = sma(c, n)
+    up, lo = [], []
+    for i, m in enumerate(mid):
+        if m is None:
+            up.append(None); lo.append(None); continue
+        sd = math.sqrt(sum((x - m) ** 2 for x in c[i - n + 1:i + 1]) / n)
+        up.append(m + k * sd); lo.append(m - k * sd)
+    return mid, up, lo
+
+
+def rsi(c, n=14):
+    """Wilder's RSI: first average over n changes, then (prev*(n-1) + current)/n."""
+    out = [None] * len(c)
+    if len(c) <= n:
+        return out
+    ch = [c[i] - c[i - 1] for i in range(1, len(c))]
+    g = sum(max(d, 0) for d in ch[:n]) / n
+    l = sum(max(-d, 0) for d in ch[:n]) / n
+    val = lambda: (50 if g == 0 else 100) if l == 0 else 100 - 100 / (1 + g / l)
+    out[n] = val()
+    for i in range(n + 1, len(c)):
+        d = c[i] - c[i - 1]
+        g = (g * (n - 1) + max(d, 0)) / n
+        l = (l * (n - 1) + max(-d, 0)) / n
+        out[i] = val()
+    return out
+
+
+FIB_RATIOS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1]
+
+
+def fib_levels(c):
+    hi, lo = max(c), min(c)
+    return [{"ratio": r, "price": hi - (hi - lo) * r} for r in FIB_RATIOS]
+
+
 def div(a, b):
     return None if a is None or b is None or b == 0 else a / b
 
@@ -433,6 +477,8 @@ def analyze(fx):
         "risk": {"vol1y": volatility(s), "benchVol1y": volatility(b), "beta5y": bt, "betaMonths": months, **(drawdown(s) or {})},
         "dividends": {"ttm": ttm_div, "yield": div(ttm_div, price), "growth5": growth5},
         "annual": rows, "ttm": ttm, "balance": bal, "valuation": val, "growth": growth, "filings": filings,
+        "indicators": (lambda c: (lambda bb: {"sma50": sma(c, 50), "sma200": sma(c, 200), "bbMid": bb[0], "bbUp": bb[1], "bbLo": bb[2],
+                                              "rsi14": rsi(c, 14), "fib": fib_levels(c)})(bollinger(c)))([x[1] for x in s]),
     }
 
 

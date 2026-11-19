@@ -577,3 +577,9 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 [tabindex="-1"]:focus { outline: none; }
 /* Respect the system "reduce motion" setting (the phone sidebar slide). */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+/* Stock chart studies */
+.studies { display: flex; gap: 6px; flex-wrap: wrap; }
+.study { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; padding: 3px 9px; border: 1px solid var(--sep); border-radius: 99px; cursor: pointer; color: var(--secondary); user-select: none; }
+.study input { margin: 0; accent-color: var(--accent); }
+.study.on { color: var(--text); border-color: var(--accent); }
+.chartbox.h340 { height: 340px; }
