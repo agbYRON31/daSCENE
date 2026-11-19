@@ -523,29 +523,7 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 .card-head h3, .chart-title { margin: 0; font-size: 14px; font-weight: 600; }
 .page { gap: 16px; }
 
-/* Start: left-aligned, two plain choices */
-.start { align-items: stretch; justify-content: center; text-align: left; gap: 22px; max-width: 760px; margin: 0 auto; background: none; }
-.win > .split, .start { background: var(--content); }
-.start .eyebrow { display: none; }
-.start h1 { font-size: 28px; margin: 0 0 6px; }
-.start .lede { font-size: 15px; margin: 0; max-width: none; }
-.modecards { grid-template-columns: 1fr; gap: 0; max-width: none; border-top: 1px solid var(--sep); }
-.modecard { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; min-height: 0; padding: 16px 0; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); }
-.modecard:hover { box-shadow: none; background: var(--fill); }
-.modecard svg.i { display: none; }
-.modecard h2 { font-size: 17px; width: 140px; flex: none; }
-.modecard p { flex: 1 1 300px; font-size: 14px; }
-.modecard .go { font-size: 13px; }
-.start .privacy { justify-content: flex-start; }
-.start .legal { margin: 0; }
 
-/* Navigation lists instead of icon tiles */
-.tiles { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--sep); }
-.tile { min-height: 0; padding: 11px 4px; border-radius: 0; background: none; box-shadow: none; border-bottom: 1px solid var(--sep); align-items: baseline; gap: 14px; }
-.tile:hover { box-shadow: none; background: var(--fill); }
-.tile svg.i { display: none; }
-.tile > div { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
-.tile strong { font-size: 14px; width: 150px; }
 .catgrid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0 28px; }
 .catgrid a { background: none; border-radius: 0; padding: 6px 2px; border-bottom: 1px solid var(--fill-2); }
 .catgrid a:hover { background: var(--fill); }
@@ -570,7 +548,7 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 .inputs-grid .fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .inputs-grid .fld > label { font-size: 13px; font-weight: 500; }
 .inputs-grid .ctrl input[type="text"] { max-width: none; }
-@media (max-width: 760px) { .tile strong, .modecard h2 { width: auto; } }
+
 .bigband { font: 650 36px/1 var(--font); letter-spacing: -.01em; }
 
 /* Focus moved to a page heading after navigation needs no ring; it isn't something to click. */
