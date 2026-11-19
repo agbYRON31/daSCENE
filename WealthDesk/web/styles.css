@@ -583,3 +583,9 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 .study input { margin: 0; accent-color: var(--accent); }
 .study.on { color: var(--text); border-color: var(--accent); }
 .chartbox.h340 { height: 340px; }
+/* Stock chart readout: today's values, color-keyed to the lines */
+.readout { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.readout .rd { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.readout .rd i { width: 10px; height: 3px; border-radius: 2px; flex: none; }
+.readout .rd b { font-weight: 600; }
+.readout .rd em { font-style: normal; color: var(--secondary); }

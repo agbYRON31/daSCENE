@@ -333,6 +333,7 @@ struct StockView: View {
         let ranges = ["1D", "1M", "6M", "YTD", "1Y", "5Y", "10Y"]
         var pts: [Pt] = [], band: [Band] = [], rsiPts: [Pt] = []
         var fibs: [(ratio: Double, price: Double)] = []
+        var readout: [(color: Color, name: String, value: String, note: String?)] = []
         let showStudies = range != "1D" && !vsBench && !studies.isEmpty
         if range == "1D" {
             pts = r.intraday.enumerated().map { Pt(id: $0.offset, x: Date(timeIntervalSince1970: $0.element.0), y: $0.element.1, series: r.symbol) }
@@ -359,21 +360,33 @@ struct StockView: View {
                     pts += idx.enumerated().compactMap { e in bm[r.bars[e.element].day].map { Pt(id: 100_000 + e.offset, x: F.day(r.bars[e.element].day), y: $0 / bb * 100, series: "S&P 500 (SPY)") } }
                 }
             } else {
-                let c = r.bars.map(\.close)
+                let c = r.bars.map(\.close), L = c.count - 1
                 pts = idx.enumerated().map { Pt(id: $0.offset, x: F.day(r.bars[$0.element].day), y: c[$0.element], series: r.symbol) }
+                func vs(_ a: Double) -> String { String(format: "price %@%.1f%% vs. average", c[L] >= a ? "+" : "−", abs((c[L] / a - 1) * 100)) }
+                readout.append((Color.wealthAccent, "Close", F.money(c[L]), nil))
                 func add(_ series: String, _ v: [Double?], _ base: Int) {
                     pts += idx.enumerated().compactMap { e in v[e.element].map { Pt(id: base + e.offset, x: F.day(r.bars[e.element].day), y: $0, series: series) } }
                 }
-                if studies.contains("ma50") { add("50-day average", ChartStudies.sma(c, 50), 200_000) }
-                if studies.contains("ma200") { add("200-day average", ChartStudies.sma(c, 200), 300_000) }
+                if studies.contains("ma50") {
+                    let m = ChartStudies.sma(c, 50); add("50-day average", m, 200_000)
+                    if let v = m[L] { readout.append((Color.orange, "50-day avg", F.money(v), vs(v))) }
+                }
+                if studies.contains("ma200") {
+                    let m = ChartStudies.sma(c, 200); add("200-day average", m, 300_000)
+                    if let v = m[L] { readout.append((Color.blue, "200-day avg", F.money(v), vs(v))) }
+                }
                 if studies.contains("bb") {
                     let b = ChartStudies.bollinger(c)
                     band = idx.enumerated().compactMap { e in
                         guard let lo = b.lo[e.element], let hi = b.up[e.element] else { return nil }
                         return Band(id: e.offset, x: F.day(r.bars[e.element].day), lo: lo, hi: hi)
                     }
+                    if let lo = b.lo[L], let hi = b.up[L] { readout.append((Color.secondary, "Bollinger", "\(F.money(lo)) – \(F.money(hi))", nil)) }
                 }
-                if studies.contains("fib") { fibs = ChartStudies.fibLevels(Array(c[i0...])) }
+                if studies.contains("fib") {
+                    fibs = ChartStudies.fibLevels(Array(c[i0...]))
+                    if let hi = fibs.first?.price, let lo = fibs.last?.price { readout.append((Color.secondary, "Range", "\(F.money(lo)) – \(F.money(hi))", "low – high of the period shown")) }
+                }
                 if studies.contains("rsi") {
                     let rv = ChartStudies.rsi(c)
                     rsiPts = idx.enumerated().compactMap { e in rv[e.element].map { Pt(id: e.offset, x: F.day(r.bars[e.element].day), y: $0, series: "RSI") } }
@@ -389,13 +402,30 @@ struct StockView: View {
                     ForEach(Self.studyList, id: \.key) { s in Toggle(s.label, isOn: studyBinding(s.key)).toggleStyle(.checkbox).font(.callout) }
                 }
             }
+            if !vsBench && range != "1D" && !readout.isEmpty {
+                // One line of plain numbers: today's close and the latest value of each study, keyed to the line colors.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 18, alignment: .topLeading)], alignment: .leading, spacing: 8) {
+                    ForEach(readout, id: \.name) { item in
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 6) {
+                                RoundedRectangle(cornerRadius: 1.5).fill(item.color).frame(width: 10, height: 3)
+                                Text(item.name).fontWeight(.semibold)
+                                Text(item.value).monospacedDigit()
+                            }
+                            .lineLimit(1)
+                            if let n = item.note { Text(n).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
+                        }
+                    }
+                }
+                .font(.callout)
+            }
             if pts.count < 2 {
                 Text(range == "1D" ? "No trading yet today." : "Not enough history.").foregroundStyle(.secondary)
             } else {
                 Chart {
                     ForEach(band) { b in
                         AreaMark(x: .value("Date", b.x), yStart: .value("Lower", b.lo), yEnd: .value("Upper", b.hi))
-                            .foregroundStyle(Color.secondary.opacity(0.14))
+                            .foregroundStyle(Color.secondary.opacity(0.09))
                     }
                     ForEach(pts) { p in
                         LineMark(x: .value("Date", p.x), y: .value("Value", p.y), series: .value("Series", p.series))
@@ -404,26 +434,30 @@ struct StockView: View {
                     }
                     ForEach(fibs, id: \.ratio) { f in
                         RuleMark(y: .value("Fibonacci", f.price))
-                            .foregroundStyle(Color.secondary.opacity(0.6))
+                            .foregroundStyle(Color.secondary.opacity(0.4))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                            .annotation(position: .top, alignment: .leading) {
-                                Text("\(String(format: "%g", f.ratio * 100))% · \(F.money(f.price))").font(.caption2).foregroundStyle(.secondary)
+                            .annotation(position: .trailing, alignment: .leading, spacing: 6) {
+                                Text("\(String(format: "%g", f.ratio * 100))%  \(F.money(f.price))").font(.caption2).foregroundStyle(.secondary).fixedSize()
                             }
                     }
                 }
                 .chartForegroundStyleScale(domain: Self.seriesNames(r.symbol, pts), range: Self.seriesNames(r.symbol, pts).map(Self.seriesColor(r.symbol)))
-                .chartLegend(range != "1D" && (vsBench || studies.contains("ma50") || studies.contains("ma200")) ? .visible : .hidden)
+                .chartLegend(range != "1D" && vsBench ? .visible : .hidden)
                 .chartYScale(domain: .automatic(includesZero: false))
+                .chartYAxis { AxisMarks(position: .leading) }
+                .chartPlotStyle { plot in plot.padding(.trailing, fibs.isEmpty ? 0 : 96) }
                 .frame(height: showStudies ? 320 : 240)
                 if !rsiPts.isEmpty {
-                    Text("RSI (14 days)").font(.caption).foregroundStyle(.secondary)
+                    Text("RSI (14 days): \(String(format: "%.0f", rsiPts.last?.y ?? 0)) now. Shaded band is 30 to 70.").font(.caption).foregroundStyle(.secondary)
                     Chart {
+                        RectangleMark(yStart: .value("30", 30), yEnd: .value("70", 70)).foregroundStyle(Color.secondary.opacity(0.08))
                         RuleMark(y: .value("70", 70)).foregroundStyle(Color.secondary.opacity(0.6)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         RuleMark(y: .value("30", 30)).foregroundStyle(Color.secondary.opacity(0.6)).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         ForEach(rsiPts) { p in LineMark(x: .value("Date", p.x), y: .value("RSI", p.y)).foregroundStyle(Color.wealthAccent) }
                     }
                     .chartYScale(domain: 0...100)
-                    .chartYAxis { AxisMarks(values: [0, 30, 50, 70, 100]) }
+                    .chartYAxis { AxisMarks(position: .leading, values: [0, 30, 50, 70, 100]) }
+                    .chartPlotStyle { plot in plot.padding(.trailing, fibs.isEmpty ? 0 : 96) }
                     .frame(height: 100)
                 }
             }
