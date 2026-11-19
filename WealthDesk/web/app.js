@@ -146,6 +146,12 @@ function modal(title, body, buttons) {
 function destroyCharts() { charts.forEach((c) => c.destroy()); charts = []; }
 const linesPlugin = {
   id: "wdlines",
+  beforeDatasetsDraw(chart, _a, opts) {
+    const b = opts?.band;
+    if (!b) return;
+    const { ctx, chartArea: A, scales } = chart, y1 = scales.y.getPixelForValue(b.to), y2 = scales.y.getPixelForValue(b.from);
+    ctx.save(); ctx.fillStyle = b.color; ctx.fillRect(A.left, y1, A.right - A.left, y2 - y1); ctx.restore();
+  },
   afterDatasetsDraw(chart, _a, opts) {
     const { ctx, chartArea: A, scales } = chart;
     ctx.save();
@@ -155,10 +161,9 @@ const linesPlugin = {
       ctx.strokeStyle = l.color; ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(A.left, y); ctx.lineTo(A.right, y); ctx.stroke();
       if (l.label) {
+        // Labels sit in the space to the right of the plot (the chart reserves it with padRight), clear of the data.
         ctx.setLineDash([]); ctx.font = "11px " + cssVar("--font");
-        const w = ctx.measureText(l.label).width + 8, x0 = A.left + 4;
-        ctx.globalAlpha = 0.85; ctx.fillStyle = cssVar("--control"); ctx.fillRect(x0, y - 8, w, 15); ctx.globalAlpha = 1;
-        ctx.fillStyle = cssVar("--secondary"); ctx.fillText(l.label, x0 + 4, y + 3.5);
+        ctx.fillStyle = cssVar("--secondary"); ctx.fillText(l.label, A.right + 6, y + 3.5);
       }
     }
     for (const l of opts?.x || []) {
@@ -196,10 +201,12 @@ function chart(type, chartData, o = {}) {
       type, data: chartData, plugins: [linesPlugin],
       options: {
         responsive: true, maintainAspectRatio: false, animation: false, indexAxis: o.indexAxis,
+        layout: { padding: { right: o.padRight || 0 } },
         interaction: { mode: "index", intersect: false },
         plugins: {
           legend: { display: o.legend !== false, labels: { color: muted, boxWidth: 10, boxHeight: 10, usePointStyle: true } },
-          tooltip: { callbacks: { label: o.tooltip || ((c) => `${c.dataset.label}: ${Format.currency(horizontal ? c.parsed.x : c.parsed.y)}`) } },
+          tooltip: { callbacks: { label: o.tooltip || ((c) => `${c.dataset.label}: ${Format.currency(horizontal ? c.parsed.x : c.parsed.y)}`),
+            ...(o.tooltipTitle ? { title: (items) => o.tooltipTitle(items[0].label) } : {}) } },
           wdlines: o.lines || {},
         },
         elements: { point: { radius: 0, hitRadius: 6 } },
@@ -209,7 +216,8 @@ function chart(type, chartData, o = {}) {
         } : {
           x: {
             type: o.xType || "category", stacked: o.stacked, grid: { color: grid },
-            ticks: { color: muted, precision: 0, autoSkip: true, maxTicksLimit: o.maxXTicks || 12, maxRotation: 0 },
+            ticks: { color: muted, precision: 0, autoSkip: true, maxTicksLimit: o.maxXTicks || 12, maxRotation: 0,
+              ...(o.xFormat ? { callback(v) { return o.xFormat(this.getLabelForValue(v)); } } : {}) },
             title: o.xTitle ? { display: true, text: o.xTitle, color: muted } : undefined,
           },
           y: { stacked: o.stacked, grid: { color: grid }, ticks: yTicks, beginAtZero: o.zero !== false, min: o.yMin, max: o.yMax },
@@ -1056,6 +1064,12 @@ const mult = (v) => (v === null || v === undefined ? "—" : `${v.toFixed(1)}×`
 const money2 = (v) => (v === null || v === undefined ? "—" : Format.plain(v, 2));
 const big = (v) => (v === null || v === undefined ? "—" : Math.abs(v) >= 1e12 ? `${v < 0 ? "−" : ""}$${(Math.abs(v) / 1e12).toFixed(2)}T` : Format.compact(v));
 const monthYear = (d) => (d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }) : "—");
+const shortDate = (d, withYear) => {
+  if (!d) return "";
+  const t = new Date(d + "T00:00:00Z");
+  return withYear ? `${t.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })} ’${String(t.getUTCFullYear()).slice(2)}`
+    : t.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+};
 const longDate = (d) => (d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : "—");
 
 function stockSearch() {
@@ -1093,8 +1107,8 @@ function priceChartCard(r) {
     const idx = days.slice(i0).map((_, j) => i0 + j);
     const step = Math.max(1, Math.floor(idx.length / 600));
     const pick = idx.filter((_, j) => j % step === 0 || j === idx.length - 1);
-    const labels = pick.map((i) => days[i]);
-    let datasets, o;
+    const labels = pick.map((i) => days[i]);  // ISO dates; shown short on the axis, in full in the tooltip
+    let datasets, o, readout = null;
     if (st.vsBench) {
       const bm = new Map(r.chart.bench);
       const base = r.chart.adj[pick[0]], bBase = bm.get(days[pick[0]]);
@@ -1106,28 +1120,41 @@ function priceChartCard(r) {
       const on = st.studies || {}, c = r.chart.close, at = (arr) => pick.map((i) => arr[i]);
       const study = (st._studyCache ||= {});
       const get = (k, f) => (study[k] ||= f());
-      datasets = [{ label: r.symbol, data: at(c), borderColor: A, backgroundColor: A, borderWidth: 2, order: 1 }];
+      datasets = [{ label: r.symbol, data: at(c), borderColor: A, backgroundColor: A, borderWidth: 2.2, order: 1 }];
       if (on.bb) {
         const bb = get("bb", () => bollinger(c, 20, 2)), N = cssVar("--neutral");
-        datasets.push({ label: "Bollinger upper (20, 2)", data: at(bb.up), borderColor: rgba(N, 0.8), borderWidth: 1, borderDash: [3, 3], order: 3 },
-          { label: "Bollinger lower (20, 2)", data: at(bb.lo), borderColor: rgba(N, 0.8), borderWidth: 1, borderDash: [3, 3], fill: "-1", backgroundColor: rgba(N, 0.08), order: 3 });
+        datasets.push({ label: "Bollinger bands", data: at(bb.up), borderColor: rgba(N, 0.45), backgroundColor: rgba(N, 0.45), borderWidth: 1, order: 3 },
+          { label: "Bollinger lower", data: at(bb.lo), borderColor: rgba(N, 0.45), borderWidth: 1, fill: "-1", backgroundColor: rgba(N, 0.07), order: 3 });
       }
       if (on.ma50) datasets.push({ label: "50-day average", data: at(get("ma50", () => sma(c, 50))), borderColor: cssVar("--orange"), backgroundColor: cssVar("--orange"), borderWidth: 1.5, order: 2 });
       if (on.ma200) datasets.push({ label: "200-day average", data: at(get("ma200", () => sma(c, 200))), borderColor: cssVar("--blue"), backgroundColor: cssVar("--blue"), borderWidth: 1.5, order: 2 });
       const fibs = on.fib ? fibLevels(idx.map((i) => c[i])) : [];
-      o = { money: false, zero: false, legend: datasets.length > 1, maxXTicks: 8, label: `${r.symbol} price`,
-        tooltip: (x) => `${x.dataset.label}: ${money2(x.parsed.y)}`,
-        lines: { y: fibs.map((f) => ({ value: f.price, color: rgba(cssVar("--neutral"), 0.7), label: `${(f.ratio * 100).toFixed(1).replace(".0", "")}% · ${money2(f.price)}` })) } };
+      o = { money: false, zero: false, legend: false, maxXTicks: 8, label: `${r.symbol} price`,
+        tooltip: (x) => (x.dataset.label === "Bollinger lower" ? `Bollinger lower: ${money2(x.parsed.y)}` : x.dataset.label === "Bollinger bands" ? `Bollinger upper: ${money2(x.parsed.y)}` : `${x.dataset.label}: ${money2(x.parsed.y)}`),
+        padRight: fibs.length ? 104 : 0,
+        lines: { y: fibs.map((f) => ({ value: f.price, color: rgba(cssVar("--neutral"), 0.45), label: `${(f.ratio * 100).toFixed(1).replace(".0", "")}%  ${money2(f.price)}` })) } };
+      // One line of plain numbers above the chart: today's close and the latest value of each study.
+      const L = c.length - 1, pct = (a, b) => `${a >= b ? "+" : "−"}${Math.abs((a / b - 1) * 100).toFixed(1)}%`;
+      const chip = (color, name, value, note) => h("span", { class: "rd" }, h("i", { style: `background:${color}` }), h("b", { text: name }), ` ${value}`, note ? h("em", { text: ` ${note}` }) : null);
+      readout = h("div", { class: "readout" },
+        chip(A, "Close", money2(c[L])),
+        on.ma50 && study.ma50[L] !== null ? chip(cssVar("--orange"), "50-day avg", money2(study.ma50[L]), `price ${pct(c[L], study.ma50[L])} vs. average`) : null,
+        on.ma200 && study.ma200[L] !== null ? chip(cssVar("--blue"), "200-day avg", money2(study.ma200[L]), `price ${pct(c[L], study.ma200[L])} vs. average`) : null,
+        on.bb && study.bb.lo[L] !== null ? chip(rgba(cssVar("--neutral"), 0.6), "Bollinger", `${money2(study.bb.lo[L])} – ${money2(study.bb.up[L])}`) : null,
+        on.fib && fibs.length ? chip(rgba(cssVar("--neutral"), 0.6), "Range", `${money2(fibs[fibs.length - 1].price)} – ${money2(fibs[0].price)}`, "low – high of the period shown") : null);
     }
     const anyStudy = !st.vsBench && Object.values(st.studies || {}).some(Boolean);
-    body = [chart("line", { labels: labels.map((d) => longDate(d)), datasets }, { ...o, size: anyStudy ? "h340" : undefined })];
+    const longSpan = idx.length > 400, xFormat = (d) => shortDate(d, longSpan);
+    body = [readout, chart("line", { labels, datasets }, { ...o, xFormat, tooltipTitle: longDate, size: anyStudy ? "h340" : undefined })];
     if (!st.vsBench && st.studies?.rsi) {
       const rv = (st._studyCache.rsi ||= rsi(r.chart.close, 14));
-      body.push(h("div", { class: "caption secondary", style: "margin-top:4px", text: "RSI (14 days)" }),
-        chart("line", { labels: labels.map((d) => longDate(d)), datasets: [{ label: "RSI (14)", data: pick.map((i) => rv[i]), borderColor: cssVar("--accent"), borderWidth: 1.5 }] },
+      body.push(h("div", { class: "caption secondary", style: "margin-top:4px", text: `RSI (14 days): ${rv[rv.length - 1] === null ? "—" : rv[rv.length - 1].toFixed(0)} now. Shaded band is 30 to 70.` }),
+        chart("line", { labels, datasets: [{ label: "RSI (14)", data: pick.map((i) => rv[i]), borderColor: cssVar("--accent"), borderWidth: 1.5 }] },
           { size: "h110", legend: false, money: false, zero: false, yMin: 0, yMax: 100, maxXTicks: 8, label: `${r.symbol} 14-day RSI`,
+            xFormat, tooltipTitle: longDate, padRight: o.padRight,
             yTicks: { color: cssVar("--secondary"), stepSize: 50 }, tooltip: (x) => `RSI: ${x.parsed.y.toFixed(1)}`,
-            lines: { y: [{ value: 70, color: rgba(cssVar("--neutral"), 0.7), label: "70" }, { value: 30, color: rgba(cssVar("--neutral"), 0.7), label: "30" }] } }));
+            lines: { band: { from: 30, to: 70, color: rgba(cssVar("--neutral"), 0.08) },
+              y: [{ value: 70, color: rgba(cssVar("--neutral"), 0.5), label: "70" }, { value: 30, color: rgba(cssVar("--neutral"), 0.5), label: "30" }] } }));
     }
   }
   const STUDIES = [["ma50", "50-day average"], ["ma200", "200-day average"], ["bb", "Bollinger bands"], ["fib", "Fibonacci levels"], ["rsi", "RSI"]];
