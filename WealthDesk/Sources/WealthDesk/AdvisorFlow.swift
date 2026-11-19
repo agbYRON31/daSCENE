@@ -49,7 +49,7 @@ struct MarketBriefView: View {
                     HomeTile(symbol: "person.2", title: "Client Mode", text: "Plain-language tools to show a client") { state.showClient(nil) }
                 }
                 Text("Educational calculations. Not investment, tax or legal advice. Independent application; not affiliated with or endorsed by Morgan Stanley.")
-                    .font(.caption).foregroundStyle(.tertiary)
+                    .font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
             .frame(maxWidth: 980, alignment: .leading)

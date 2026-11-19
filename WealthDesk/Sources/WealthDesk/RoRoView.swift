@@ -248,7 +248,7 @@ struct RoRoView: View {
             }
           }
             if !compact { Spacer() }
-            Text("Model output for discussion. Not investment advice.").font(.caption).foregroundStyle(.tertiary)
+            Text("Model output for discussion. Not investment advice.").font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .font(.callout)

@@ -261,7 +261,7 @@ struct ResultsCard: View {
                             }
                     }
                 }
-                Text("Click a result to copy it.").font(.caption).foregroundStyle(.tertiary)
+                Text("Click a result to copy it.").font(.caption).foregroundStyle(.secondary)
             } else if evaluation == nil && calc.projection != nil {
                 Text("Calculating…").foregroundStyle(.secondary)
             } else {
@@ -545,7 +545,7 @@ struct TaxDataPanel: View {
             }
         }
         Text("The check reads public IRS.gov release pages only; nothing about you is sent.")
-            .font(.caption2).foregroundStyle(.tertiary)
+            .font(.caption2).foregroundStyle(.secondary)
     }
 }
 
