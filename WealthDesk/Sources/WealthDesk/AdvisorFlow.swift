@@ -42,8 +42,7 @@ struct MarketBriefView: View {
                     Text("Where markets stand today, then the tools for the conversation.").foregroundStyle(.secondary)
                 }
                 brief
-                VStack(spacing: 0) {
-                    Divider()
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 14)], spacing: 14) {
                     HomeTile(symbol: "magnifyingglass", title: "Stock research", text: "Look up one company: price, risk, fundamentals, filings") { state.selection = .stock }
                     HomeTile(symbol: "square.grid.2x2", title: "Calculators", text: "\(state.calculators.count) calculators, most-used first") { state.selection = .calculators }
                     HomeTile(symbol: "person.2", title: "Client Mode", text: "Plain-language tools to show a client") { state.showClient(nil) }
