@@ -176,7 +176,8 @@ function chart(type, chartData, o = {}) {
   const canvas = h("canvas", { role: "img", "aria-label": o.label || "Chart" });
   const box = h("div", { class: "chartbox " + (o.size || "") }, canvas);
   box._make = () => {
-    if (!window.Chart) return;
+    if (!window.Chart || box._made) return;
+    box._made = true;
     const grid = cssVar("--fill-2"), muted = cssVar("--secondary");
     const money = { color: muted, callback: (v) => Format.compact(v) };
     const yTicks = o.yTicks || (o.money === false ? { color: muted } : money);
@@ -208,7 +209,24 @@ function chart(type, chartData, o = {}) {
   };
   return box;
 }
-function mountCharts(root) { root.querySelectorAll(".chartbox").forEach((b) => b._make && b._make()); }
+// Chart.js (about 200 KB) is fetched the first time a page actually shows a chart, not on every page.
+const CHART_JS = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js";
+let chartLib = null;
+function loadChartLib() {
+  return chartLib ||= new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = CHART_JS; s.async = true; s.onload = ok;
+    s.onerror = () => { chartLib = null; s.remove(); fail(); };   // let a later page try again
+    document.head.append(s);
+  });
+}
+function mountCharts(root) {
+  const boxes = root.querySelectorAll(".chartbox");
+  if (!boxes.length) return;
+  if (window.Chart) { boxes.forEach((b) => b._make && b._make()); return; }
+  // Once loaded, draw whatever charts are on screen by then (the page may have changed meanwhile).
+  loadChartLib().then(() => mountCharts(document), () => {});
+}
 
 function spark(values, color) {
   const v = values.filter((x) => Number.isFinite(x));
@@ -1931,7 +1949,6 @@ async function boot() {
   }
   window.addEventListener("hashchange", route);
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", route);
-  if (!window.Chart) document.querySelector('script[src*="Chart"]')?.addEventListener("load", route);
   route();
 }
 boot();
