@@ -291,6 +291,8 @@ private struct Evaluator {
         case "stategaintax": try need(4); return .number(try tax.stateGainTax(try n(0), try n(1), try n(2), try n(3)))
         case "bracketroom": try need(2); return .number(try tax.bracketRoom(try n(0), try n(1)))
         case "stddeduction": try need(1); return .number(try tax.standardDeduction(try n(0)))
+        case "amtexemption": try need(2); return .number(try tax.amtExemption(try n(0), try n(1)))
+        case "amttax": try need(2); return .number(try tax.amtTax(try n(0), try n(1)))
         case "ltcgtax": try need(3); return .number(try tax.ltcgTax(try n(0), try n(1), try n(2)))
         case "niitthreshold": try need(1); return .number(try tax.niitThreshold(try n(0)))
         case "niitrate": try need(0); return .number(tax.niitRate)
