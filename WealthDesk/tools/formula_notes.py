@@ -343,6 +343,16 @@ note("taxable_income",
      ("−", "What's left is federal taxable income."),
      ("state tax from AGI", "The state's own deduction and exemptions come off AGI, then its brackets apply."))
 
+note("amt",
+     "The alternative minimum tax is a second, flatter tax calculation with fewer deductions. You pay whichever is higher, so AMT only adds to your bill when the tentative minimum tax is above your regular tax. It usually comes from large state and local tax deductions or exercising incentive stock options.",
+     ("AMTI", "AMT income: regular taxable income with the disallowed deductions added back."),
+     ("deductions AMT disallows", "The standard deduction, or (if you itemized) the state and local taxes you deducted."),
+     ("other add-backs", "Items AMT taxes but regular tax doesn't, such as the spread on incentive stock options exercised and held."),
+     ("exemption", "A fixed amount of AMTI that isn't taxed, set by the IRS each year."),
+     ("reduced by 50%", "Every dollar of AMTI over the phase-out threshold cuts the exemption by 50 cents, until it's gone."),
+     ("26% then 28%", "The two AMT rates: 26% up to the year's breakpoint, 28% above it."),
+     ("tentative minimum tax − regular tax", "The AMT itself: zero when regular tax is already higher."))
+
 note("after_tax_return",
      "Taxes take a share of each year's return, so you keep the rest.",
      ("Return", "The pre-tax return."),

@@ -30,6 +30,13 @@
       },
       "niitThreshold": { "1": 200000, "2": 250000, "3": 200000 },
       "niitRate": 0.038,
+      "amt": {
+        "exemption": { "1": 90100, "2": 140200, "3": 90100 },
+        "phaseoutStart": { "1": 500000, "2": 1000000, "3": 500000 },
+        "phaseoutRate": 0.50,
+        "rateBreak": 244500,
+        "rates": [0.26, 0.28]
+      },
       "limits": {
         "deferral401k": 24500,
         "catchUp401k50": 8000,
@@ -52,16 +59,15 @@
     },
     {
       "taxYear": 2027,
-      "verifiedOn": "2026-11-10",
+      "verifiedOn": "2026-11-19",
       "sources": [
         { "title": "IRS Rev. Proc. 2026-35 (2027 inflation adjustments; IR-2026-133, Nov 5, 2026)", "url": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf" },
+        { "title": "IRS Notice 2026-66 (2027 retirement plan and IRA limits; IR-2026-136, Nov 12, 2026)", "url": "https://www.irs.gov/pub/irs-drop/n-26-66.pdf" },
         { "title": "IRS Publication 590-B, Appendix B (Uniform Lifetime Table)", "url": "https://www.irs.gov/publications/p590b" },
         { "title": "IRS • Net investment income tax (statutory thresholds)", "url": "https://www.irs.gov/individuals/net-investment-income-tax" }
       ],
-      "notes": [
-        "The IRS had not yet announced 2027 401(k) and IRA limits when this table was verified; 2026 limits are used until it does."
-      ],
-      "limitsYear": 2026,
+      "notes": [],
+      "limitsYear": 2027,
       "statuses": [
         { "value": 1, "label": "Single" },
         { "value": 2, "label": "Married filing jointly" },
@@ -80,10 +86,17 @@
       },
       "niitThreshold": { "1": 200000, "2": 250000, "3": 200000 },
       "niitRate": 0.038,
+      "amt": {
+        "exemption": { "1": 93000, "2": 144700, "3": 93000 },
+        "phaseoutStart": { "1": 515950, "2": 1031900, "3": 515950 },
+        "phaseoutRate": 0.50,
+        "rateBreak": 252500,
+        "rates": [0.26, 0.28]
+      },
       "limits": {
-        "deferral401k": 24500,
-        "catchUp401k50": 8000,
-        "catchUp401k60to63": 11250,
+        "deferral401k": 25500,
+        "catchUp401k50": 8500,
+        "catchUp401k60to63": 11750,
         "ira": 7500,
         "iraCatchUp50": 1100
       },

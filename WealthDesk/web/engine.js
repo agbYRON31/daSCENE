@@ -640,6 +640,14 @@ export class TaxTable {
     return 0.15 * in15 + 0.20 * in20;
   }
   niitThresholdFor(status) { return this.niitThreshold[this.key(status)]; }
+  amtExemption(amti, status) {
+    const a = this.amt, k = this.key(status);
+    return Math.max(0, a.exemption[k] - a.phaseoutRate * Math.max(0, amti - a.phaseoutStart[k]));
+  }
+  amtTax(amti, status) {
+    const a = this.amt, base = Math.max(0, amti - this.amtExemption(amti, status));
+    return a.rates[0] * Math.min(base, a.rateBreak) + a.rates[1] * Math.max(0, base - a.rateBreak);
+  }
   rmdFactor(age) {
     const f = this.uniformLifetime[String(trunc(age))];
     if (f === undefined) fail("The Uniform Lifetime Table covers ages 72 to 120.");
@@ -861,6 +869,8 @@ class Evaluator {
       case "stategaintax": need(4); return tax.stateGainTax(n(0), n(1), n(2), n(3));
       case "bracketroom": need(2); return tax.bracketRoom(n(0), n(1));
       case "stddeduction": need(1); return tax.standardDeductionFor(n(0));
+      case "amtexemption": need(2); return tax.amtExemption(n(0), n(1));
+      case "amttax": need(2); return tax.amtTax(n(0), n(1));
       case "ltcgtax": need(3); return tax.ltcgTax(n(0), n(1), n(2));
       case "niitthreshold": need(1); return tax.niitThresholdFor(n(0));
       case "niitrate": need(0); return tax.niitRate;
@@ -1150,7 +1160,7 @@ export const fieldKind = {
 
 const TAX_FUNCS = ["incometax(", "margrate(", "bracketroom(", "stddeduction(", "ltcgtax(", "niitthreshold(",
   "niitrate(", "rmdfactor(", "limit401k(", "limitira(", "giftexclusion(", "estateexemption(", "estaterate(",
-  "statetax(", "statemarg(", "stategaintax("];
+  "statetax(", "statemarg(", "stategaintax(", "amtexemption(", "amttax("];
 
 export function usesTaxTable(calc) {
   const text = [...calc.outputs.map((o) => o.expression), ...calc.rules.map((r) => r.left), ...calc.rules.map((r) => r.right)].join(" ");

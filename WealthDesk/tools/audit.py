@@ -532,6 +532,21 @@ def _(v):
     ti = max(0.0, v.g - ded)
     stx = st_tax(v.g, v.status, v.st)
     return [ded, ti, irs_tax(ti, v.status), stx, irs_tax(ti, v.status) + stx]
+# AMT: Rev. Proc. 2025-32 §2.10 printed amounts. The exemption is interpolated between the printed threshold and
+# complete-phaseout amounts; the tax uses Form 6251's printed shortcut (28% of the excess minus 2% of the breakpoint).
+AMT_2026 = {1: (90100, 500000, 680200), 2: (140200, 1000000, 1280400), 3: (90100, 500000, 680200)}  # exemption, threshold, complete
+@ind("amt", "Rev. Proc. 2025-32 printed exemption, threshold and complete-phaseout amounts; Form 6251 line 7 shortcut", cases=[
+    dict(ti=t, status=s, ded=d, salt=x, adj=a) for s in (1, 2, 3) for d in (0, 1)
+    for (t, x, a) in ((0.0, 0.0, 0.0), (90000.0, 10000.0, 0.0), (200000.0, 40000.0, 0.0), (300000.0, 40000.0, 250000.0),
+                      (480000.0, 40000.0, 0.0), (650000.0, 40000.0, 100000.0), (1200000.0, 40000.0, 300000.0), (3000000.0, 0.0, 0.0))])
+def _(v):
+    ex, thr, full = AMT_2026[int(v.status)]
+    amti = v.ti + (STD_2026[int(v.status)] if v.ded == 1 else v.salt) + v.adj
+    exemption = ex * min(1.0, max(0.0, (full - amti) / (full - thr)))
+    base = max(0.0, amti - exemption)
+    tmt = base * 0.26 if base <= 244500 else base * 0.28 - 4890
+    reg = irs_tax(v.ti, v.status)
+    return [amti, exemption, tmt, reg, max(0.0, tmt - reg), max(tmt, reg)]
 ind("after_tax_return", DEF)(lambda v: [v.r * (1 - v.t)])
 ind("tey", SOLVE)(lambda v: [bisect(lambda y: y * (1 - v.t) - v.y, -1, 100)])
 @ind("ltcg_tax", "Cumulative-schedule difference using IRS thresholds; state gain rules applied to each state's schedule", cases=[
@@ -986,8 +1001,8 @@ def main():
     doc += ["", "## What this audit does not cover", "",
             "- **Model risk.** A verified formula is still a simplification. Each calculator states its assumptions (for example, the stress test's",
             "  duration approximation, normally distributed Monte Carlo returns, federal-only tax). Those are documented, not removed.",
-            "- **Tax law beyond the implemented rules.** State tax, AMT, credits, phase-outs and payroll taxes are not modeled.",
-            "- **2027 retirement-plan limits.** The IRS had not published them when the tax table was last verified, so the 2027 table uses 2026 limits and says so.",
+            "- **Tax law beyond the implemented rules.** State tax is an estimate (no local taxes; see each state's notes). AMT covers ordinary",
+            "  income only (no capital-gain rates under AMT, no AMT credits). Credits, most phase-outs and payroll taxes are not modeled.",
             "- **Monte Carlo example values.** Seeded example outputs are checked for engine parity and statistical validity, not against a second random stream."]
     if failures:
         doc += ["", "## Failures", ""] + [f"- {f}" for f in failures]
