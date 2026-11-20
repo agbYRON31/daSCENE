@@ -293,13 +293,17 @@ const shell = { split: null, toolbar: null, detail: null };
 function refreshToolbar() {
   if (!current || !shell.toolbar) return;
   const t = shell.toolbar;
+  // Wordmark at top left, page actions and the Advisor / Client switch at top right. Each page
+  // carries its own heading, so the toolbar doesn't repeat the title.
+  const m = current.mode;
   fill(t,
-    current.mode === "advisor" ? h("button", { class: "iconbtn", title: "Show or hide the sidebar", "aria-label": "Toggle sidebar", onclick: toggleSidebar }, icon("sidebar")) : null,
+    m === "advisor" ? h("button", { class: "iconbtn", title: "Show or hide the sidebar", "aria-label": "Toggle sidebar", onclick: toggleSidebar }, icon("sidebar")) : null,
+    h("a", { class: "wordmark", href: m === "advisor" ? "#/advisor" : m === "client" ? "#/client" : "#/" }, "Wealth Desk",
+      m ? h("small", { text: m === "advisor" ? "Advisor" : "Client" }) : null),
     current.leading ? current.leading() : null,
-    current.mode ? modeSwitch(current.mode) : null,
-    h("div", { class: "tb-title" }, h("strong", { text: current.title }), current.subtitle ? h("span", { text: current.subtitle }) : null),
     h("div", { class: "tb-spacer" }),
-    h("div", { class: "tb-actions" }, current.actions ? current.actions() : []));
+    h("div", { class: "tb-actions" }, current.actions ? current.actions() : []),
+    m ? modeSwitch(m) : null);
   document.title = current.title === "Wealth Desk" ? "Wealth Desk" : `${current.title} · Wealth Desk`;
 }
 function toggleSidebar() {
@@ -476,52 +480,68 @@ const FREQUENT = ["retirement_timeline", "retirement_mc", "portfolio_stress", "f
 // Shown last and folded away on the Calculators page (still searchable).
 const TUCKED = ["Everyday math"];
 
+// A −100…+100 meter with the ±20 Offense / Defense lines; stretches to the page width.
+function scoreMeter(v) {
+  const x = (s) => ((Math.min(Math.max(s, -100), 100) + 100) / 200) * 1000;
+  const el = h("div", { class: "meter" });
+  el.innerHTML = `<svg viewBox="0 0 1000 26" preserveAspectRatio="none" role="img" aria-label="Score ${signed(v)} on a scale from −100 to +100">
+    <rect x="0" y="10" width="${x(-20)}" height="6" class="mz-neg"/><rect x="${x(-20)}" y="10" width="${x(20) - x(-20)}" height="6" class="mz-neu"/>
+    <rect x="${x(20)}" y="10" width="${1000 - x(20)}" height="6" class="mz-pos"/>
+    ${Number.isFinite(v) ? `<rect x="${Math.min(Math.max(x(v) - 2, 0), 996)}" y="0" width="4" height="26" class="mz-mark"/>` : ""}</svg>`;
+  el.append(h("div", { class: "meter-ticks" }, [-100, -50, -20, 0, 20, 50, 100].map((t) =>
+    h("span", { style: `left:${x(t) / 10}%`, class: t === -100 ? "first" : t === 100 ? "last" : null, text: t === 0 ? "0" : signed(t) }))));
+  return el;
+}
+const shortDay = (iso) => { const d = new Date(iso + "T12:00:00"); return Number.isNaN(+d) ? iso : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+
 function advisorHome() {
   if (data.roro === undefined) loadRoRo().then(() => { if (location.hash === "#/advisor" || location.hash === "#/advisor/") route(); });
   const m = data.roro;
-  const go = (href, ic, title, text) => h("a", { class: "tile", href }, icon(ic), h("div", {}, h("strong", { text: title }), h("span", { text })));
   let brief;
-  if (m === undefined) brief = card(null, null, h("div", { class: "secondary", text: "Loading the latest market reading…" }));
-  else if (!m?.horizons?.length) brief = card("Market Brief", null, h("p", { class: "secondary", text: "The RoRo reading isn't available right now. It is published each weekday after the US close." }),
-    h("a", { class: "callout", href: "#/advisor/markets", text: "Treasury yields & quotes" }));
+  if (m === undefined) brief = h("p", { class: "secondary", text: "Loading the latest market reading…" });
+  else if (!m?.horizons?.length) brief = [h("p", { class: "secondary", text: "The RoRo reading isn't available right now. It is published each weekday after the US close." }),
+    h("a", { class: "callout", href: "#/advisor/markets", text: "Treasury yields & quotes" })];
   else {
-    const p = m.posture || {}, st = roroStatus(m), band = p.band || "—";
-    const names = { Tactical: "Tactical · days to weeks", Intermediate: "Intermediate · 1–3 months", Strategic: "Strategic · 3–12 months" };
-    brief = h("section", { class: "card brief" },
-      h("div", { class: "brief-top" },
+    const p = m.posture || {}, st = roroStatus(m), band = p.band || "—", t = bandTone(band);
+    const spans = { Tactical: "days to weeks", Intermediate: "1–3 months", Strategic: "3–12 months" };
+    // The two buckets whose scores changed most since the previous reading (same window as the delta).
+    const movers = [...(m.buckets || [])].filter((b) => Number.isFinite(b.wow)).sort((a, b) => Math.abs(b.wow) - Math.abs(a.wow)).slice(0, 2);
+    const since = p.prev_date ? shortDay(p.prev_date) : "the last reading";
+    brief = [
+      h("section", { class: "score", "aria-label": "RoRo Composite" },
+        h("div", { class: "big c-" + t, text: signed(p.value) }),
         h("div", {},
-          h("div", { class: "caption secondary", text: "RoRo Composite · overall reading" }),
-          h("div", { style: "display:flex;align-items:baseline;gap:12px;flex-wrap:wrap" },
-            h("span", { class: "bigband c-" + bandTone(band), text: band }),
-            h("span", { class: "bignum", text: signed(p.value) }),
-            p.delta !== undefined ? h("span", { class: "caption secondary", text: `${signed(p.delta)} since ${p.prev_date || "the last run"}` }) : null)),
-        h("div", { style: "text-align:right" },
-          h("span", { class: "statuspill " + st.cls, style: "background:color-mix(in srgb, currentColor 16%, transparent)", text: st.label.toUpperCase() }),
-          h("div", { class: "caption secondary", style: "margin-top:6px", text: `As of ${m.asof}` }))),
-      scoreBar(p.value, true),
-      h("div", { class: "row3" }, m.horizons.map((z) => h("div", { class: "sptile" },
-        h("div", { class: "callout secondary", text: names[z.label] || z.label }),
-        h("div", { style: "display:flex;align-items:baseline;justify-content:space-between" },
-          h("span", { class: "v c-" + tone(z.value), text: signed(z.value) }), h("span", { class: "caption secondary", text: marketWordFor(z.value) })),
-        scoreBar(z.value)))),
-      h("div", { style: "display:flex;gap:16px;flex-wrap:wrap;align-items:center" },
-        h("a", { class: "btn", href: "#/advisor/roro", text: "Factors, history and methodology" }),
-        h("a", { class: "callout", href: "#/client/market", text: "Show the client version" }),
-        h("a", { class: "callout", href: "#/advisor/markets", text: "Treasury yields & quotes" })),
-      h("p", { class: "note", text: "Scale −100 (risk-off) to +100 (risk-on); Offense above +20, Defense below −20. A hand-calibrated model of current conditions, not a forecast of returns." }));
+          h("div", { class: "band c-" + t, text: band }),
+          p.delta !== undefined ? h("div", { class: "delta" }, h("strong", { text: signed(p.delta) }), ` since ${since}`, p.prev !== undefined ? ` (was ${signed(p.prev)})` : "") : null),
+        scoreMeter(p.value)),
+      h("section", { class: "horizons", "aria-label": "Horizons" }, m.horizons.map((z) => h("div", {},
+        h("div", { class: "h-name", text: z.label }), h("div", { class: "h-span", text: spans[z.label] || z.span || "" }),
+        h("div", { class: "h-val c-" + tone(z.value) }, signed(z.value), h("span", { text: marketWordFor(z.value) }))))),
+      h("div", { class: "brief-lower" },
+        h("section", { class: "movers" },
+          h("h2", { class: "eyebrow", text: "What moved the score" }),
+          movers.length ? h("ol", {}, movers.map((b) => h("li", {},
+            h("div", {}, h("strong", { text: b.name }), h("p", { text: `Bucket score ${b.wow < 0 ? "fell" : b.wow > 0 ? "rose" : "held"} to ${signed(b.score)} since ${since}.` })),
+            h("div", { class: "pts c-" + (b.wow > 0 ? "pos" : b.wow < 0 ? "neg" : ""), text: signed(b.wow) }))))
+            : h("p", { class: "secondary", text: "No bucket changes are available for this reading." }),
+          h("a", { class: "callout", href: "#/advisor/roro", text: "All factors, history and methodology" })),
+        h("section", { class: "for-client" },
+          h("h2", { class: "eyebrow", text: "For the client" }),
+          h("p", { text: "The same reading in plain language, without scores or jargon." }),
+          h("a", { class: "btn primary big", href: "#/client/market" }, "Show client version ", h("span", { "aria-hidden": "true", text: "→" })),
+          h("a", { class: "callout", href: "#/advisor/markets", text: "Treasury yields & quotes" }))),
+      h("p", { class: "note", text: `Scale −100 (risk-off) to +100 (risk-on); Offense above +20, Defense below −20. Bucket changes are the change in each bucket's own score; buckets are weighted differently in each horizon. A hand-calibrated model of current conditions, not a forecast of returns. ${st.detail}` }),
+    ];
   }
+  const st = m?.horizons?.length ? roroStatus(m) : null;
   return {
     title: "Market Brief", subtitle: "Advisor Mode",
     actions: () => [tbtn("refresh", "Reload", async () => { await loadRoRo(true); route(); toast("Reloaded the latest published reading."); }, { help: "Reload the latest published RoRo reading" })],
-    body: h("div", { class: "page wide" },
-      h("div", {}, h("h1", { class: "large", text: "Market Brief" }),
-        h("p", { class: "secondary", style: "margin:6px 0 0", text: "Where markets stand today, then the tools for the conversation." })),
+    body: h("div", { class: "page wide brief2" },
+      h("div", { class: "brief-head" }, h("h1", { class: "large", text: "Market Brief" }),
+        st ? h("div", { class: "asof" }, `RoRo Composite · as of ${m.asof}`, h("span", { class: "statuspill " + st.cls, text: st.label })) : null),
       brief,
-      h("div", { class: "tiles" },
-        go("#/advisor/stock", "search", "Stock research", "Look up one company: price, risk, fundamentals, filings"),
-        go("#/advisor/calculators", "table", "Calculators", `${engine.calculators.length} calculators, most-used first`),
-        go("#/client", "people", "Client Mode", "Plain-language tools to show a client")),
-      h("p", { class: "caption tertiary", text: "Educational calculations. Not investment, tax or legal advice. Independent application; not affiliated with or endorsed by Morgan Stanley." })),
+      h("p", { class: "disclosure", text: "Educational calculations. Not investment, tax or legal advice. Independent application; not affiliated with or endorsed by Morgan Stanley." })),
   };
 }
 const marketWordFor = (v) => (v === null || v === undefined || Number.isNaN(v) ? "" : v >= 20 ? "Offense" : v <= -20 ? "Defense" : "Neutral");
@@ -1546,12 +1566,12 @@ const Spec = {
 Spec.retirement = [...Spec.retirementYou, ...Spec.retirementAssumptions];
 
 const TOOLS = [
-  { id: "growth", title: "How does my money grow?", blurb: "See what regular saving and compound growth can add up to.", icon: "growth" },
-  { id: "retirement", title: "Am I on track for retirement?", blurb: "Project savings to and through retirement, and how long they could last.", icon: "walk" },
-  { id: "risk", title: "How much investment risk am I taking?", blurb: "See what a market drop or a rate change would do to a portfolio mix.", icon: "shield" },
-  { id: "decisions", title: "How do my decisions change my future?", blurb: "Compare two choices side by side: retire earlier, save more, spend less.", icon: "branch" },
-  { id: "taxes", title: "How do taxes and inflation affect my money?", blurb: "See what inflation does to buying power and what taxes take from growth.", icon: "percent" },
-  { id: "market", title: "What are market conditions right now?", blurb: "A plain summary of today's economic and market backdrop from public data.", icon: "gauge" },
+  { id: "growth", title: "How much could I save?" },
+  { id: "retirement", title: "Am I on track for retirement?" },
+  { id: "risk", title: "What if markets fall?" },
+  { id: "decisions", title: "Compare two plans" },
+  { id: "taxes", title: "Taxes & purchasing power" },
+  { id: "market", title: "Market brief" },
 ];
 
 const raw = (key, id) => S.client[key]?.[id] ?? "";
@@ -1627,17 +1647,19 @@ function howItWorks(calcs) {
 
 let clientCalcs = () => [];   // the calculators behind the open tool, for the PDF report check
 
+// Client home: six questions in two columns, separated by thin rules. No icons or blurbs, so the
+// questions themselves are what the client reads.
 function clientHome() {
   return {
     title: "Wealth Desk", subtitle: "Client Mode",
-    leading: () => tbtn("grid", "All tools", null, { disabled: true }),
-    actions: () => [tbtn("doc", "PDF report", null, { disabled: true }), tbtn("eraser", "Clear", clearSession, { help: "Erase everything typed this session" })],
-    body: h("div", { class: "home" },
-      h("div", {}, h("h1", { text: "What would you like to explore?" }), h("p", { class: "lede", text: "Pick a question, type in any numbers, and watch the picture change." })),
-      h("div", { class: "qcards" }, TOOLS.map((t) => h("a", { class: "qcard", href: `#/client/${t.id}` }, icon(t.icon), h("h2", { text: t.title }), h("p", { text: t.blurb })))),
+    body: h("div", { class: "ptools-page" },
+      h("h1", { text: "Planning tools" }),
+      h("nav", { class: "ptools", "aria-label": "Planning tools" }, TOOLS.map((t) => h("a", { href: `#/client/${t.id}` },
+        h("span", { class: "lbl", text: t.title }), h("span", { class: "arr", "aria-hidden": "true", text: "→" })))),
       footnote()),
   };
 }
+const crumb = () => h("a", { class: "crumb no-print", href: "#/client" }, h("span", { "aria-hidden": "true", text: "←" }), " Planning tools");
 
 function toolPage(tool, inputPanel, renderResults, calcsForReport) {
   const results = h("div", { class: "tool-out-inner" });
@@ -1647,12 +1669,11 @@ function toolPage(tool, inputPanel, renderResults, calcsForReport) {
     mountCharts(results);
   });
   const panel = h("aside", { class: "tool-in" });
-  const refill = () => fill(panel, inputPanel(refresh, refill));
+  const refill = () => fill(panel, crumb(), inputPanel(refresh, refill));
   refill();
   clientCalcs = calcsForReport;
   return {
     title: tool.title, subtitle: "Client Mode",
-    leading: () => h("a", { class: "tbtn", href: "#/client", title: "Back to all six questions" }, icon("grid"), h("span", { text: "All tools" })),
     actions: () => [
       tbtn("doc", "PDF report", () => { clientCalcs().some((c) => c?.ok) ? window.print() : toast("Nothing to report yet. Fill in the numbers first."); },
         { help: "Print, or choose Save as PDF in the print dialog" }),
@@ -1663,49 +1684,158 @@ function toolPage(tool, inputPanel, renderResults, calcsForReport) {
   };
 }
 
+// "How much could I save?": compact inputs on the left, one plain-sentence answer and a monthly
+// balance chart on the right. Totals come from the audited growth_schedule calculator; the chart
+// and the month the money runs out come from the same month-by-month rule (growth, then the
+// deposit, then the withdrawal, never below zero), cross-checked against the calculator's totals.
+let growthWdOpen = false;
+const GKEY = "client.growth";
+const YEAR_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const yearsWord = (n) => (n <= 10 ? YEAR_WORDS[n] : String(n)) + (n === 1 ? " year" : " years");
+const usd0 = (v) => (v < 0 ? "−" : "") + "$" + Math.round(Math.abs(v)).toLocaleString("en-US");
+
+function growthMonths(p, m, r, years, wd) {
+  const i = r / 12, n = years * 12, bal = [p];
+  let b = p, withdrawn = 0, shortfall = false, firstZero = null;
+  for (let k = 1; k <= n; k++) {
+    const avail = Math.max(0, b * (1 + i) + m);
+    const take = Math.min(wd, avail);
+    if (take < wd) shortfall = true;
+    withdrawn += take; b = avail - take;
+    if (wd > 0 && b <= 0.005 && firstZero === null) firstZero = k;
+    bal.push(b);
+  }
+  return { bal, end: b, withdrawn, months: n, runOut: shortfall ? firstZero : null };
+}
+
+// A $-amount box that keeps thousands separators while typing.
+function moneyBox(key, id, label, suffix, on, autofocus) {
+  const fid = `in-${key}-${id}`.replace(/\W/g, "_");
+  const fmt = (s) => {
+    const clean = s.replace(/[^0-9.]/g, ""), dot = clean.indexOf(".");
+    const intPart = (dot < 0 ? clean : clean.slice(0, dot)).replace(/^0+(?=\d)/, "");
+    const dec = dot < 0 ? "" : "." + clean.slice(dot + 1).replace(/\./g, "").slice(0, 2);
+    return (intPart ? Number(intPart).toLocaleString("en-US") : (dec ? "0" : "")) + dec;
+  };
+  const input = h("input", { type: "text", id: fid, inputmode: "decimal", autocomplete: "off", placeholder: "0", value: fmt(String(raw(key, id))),
+    oninput: () => {
+      const caretDigits = input.value.slice(0, input.selectionStart ?? input.value.length).replace(/[^0-9.]/g, "").length;
+      const v = fmt(input.value);
+      input.value = v; setRaw(key, id, v);
+      let pos = 0, seen = 0;
+      while (pos < v.length && seen < caretDigits) { if (/[0-9.]/.test(v[pos])) seen++; pos++; }
+      input.setSelectionRange(pos, pos);
+      on();
+    } });
+  if (autofocus) requestAnimationFrame(() => input.focus());
+  return h("div", { class: "gfield" }, h("label", { for: fid, text: label }),
+    h("div", { class: "moneybox" }, h("span", { text: "$" }), input, suffix ? h("em", { text: suffix }) : null));
+}
+// A slider with its value shown (and editable) beside the label.
+function sliderBox(key, field, unit, on) {
+  const fid = `in-${key}-${field.id}`.replace(/\W/g, "_");
+  const [lo, hi] = field.range;
+  const cur = () => { try { return Engine.parseNumber(raw(key, field.id), false); } catch { return NaN; } };
+  const val = h("input", { type: "text", class: "sval", inputmode: "decimal", autocomplete: "off", placeholder: "—", value: raw(key, field.id), "aria-label": field.label,
+    oninput: () => { setRaw(key, field.id, val.value); const v = cur(); if (Number.isFinite(v)) slider.value = Math.min(Math.max(v, lo), hi); on(); } });
+  const slider = h("input", { type: "range", id: fid, min: lo, max: hi, step: field.step, value: Number.isFinite(cur()) ? Math.min(Math.max(cur(), lo), hi) : lo,
+    oninput: () => { const s = Format.plain(Math.round(Number(slider.value) / field.step) * field.step, field.step < 1 ? 2 : 0); val.value = s; setRaw(key, field.id, s); on(); } });
+  return h("div", { class: "gfield" },
+    h("div", { class: "glab" }, h("label", { for: fid, text: field.label }), h("span", { class: "svalwrap" }, val, h("span", { text: unit }))),
+    slider, h("div", { class: "gscale" }, h("span", { text: `${lo}${unit === "%" ? "%" : ""}` }), h("span", { text: `${hi}${unit === "%" ? "%" : ""}` })));
+}
+
+function growthChartSVG(sim, W) {
+  const H = Math.round(Math.min(320, Math.max(220, W * 0.42)));
+  const pad = { l: 66, r: 24, t: 22, b: 42 }, iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+  const maxB = Math.max(...sim.bal, 1);
+  const niceStep = (range, target) => { const raw = range / target, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; };
+  const yStep = niceStep(maxB, 4), yMax = Math.ceil(maxB / yStep - 1e-9) * yStep || yStep;
+  const unit = yMax >= 1e6 ? [1e6, "M"] : yMax >= 1e4 ? [1e3, "k"] : [1, ""];
+  const dp = unit[0] === 1 ? 0 : Math.max(0, -Math.floor(Math.log10(yStep / unit[0]) + 1e-9));
+  const yLabel = (v) => (v === 0 ? "$0" : "$" + (v / unit[0]).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }) + unit[1]);
+  const inYears = sim.months > 36, per = inYears ? 12 : 1, span = sim.months / per;
+  const fit = Math.max(3, Math.floor(iw / 80));
+  const step = (inYears ? [1, 2, 5, 10, 25, 50] : [1, 2, 3, 6, 12]).find((s) => span / s <= fit) || (inYears ? 50 : 12);
+  const x = (k) => pad.l + (k / sim.months) * iw, y = (b) => pad.t + ih - (b / yMax) * ih;
+  const out = [];
+  for (let v = 0; v <= yMax + 1e-6; v += yStep) out.push(`<line x1="${pad.l}" x2="${pad.l + iw}" y1="${y(v)}" y2="${y(v)}" class="${v === 0 ? "gaxis" : "ggrid"}"/><text x="${pad.l - 10}" y="${y(v) + 4}" text-anchor="end" class="gtick">${yLabel(v)}</text>`);
+  for (let t = 0; t <= span + 1e-9; t += step) out.push(`<line x1="${x(t * per)}" x2="${x(t * per)}" y1="${pad.t + ih}" y2="${pad.t + ih + 5}" class="gaxis"/><text x="${x(t * per)}" y="${pad.t + ih + 20}" text-anchor="middle" class="gtick">${t}</text>`);
+  out.push(`<text x="${pad.l + iw}" y="${H - 2}" text-anchor="end" class="gtick small">${inYears ? "Years" : "Months"}</text>`);
+  const line = sim.bal.map((b, k) => `${k ? "L" : "M"}${x(k).toFixed(1)} ${y(b).toFixed(1)}`).join(" ");
+  out.push(`<path d="${line} L${x(sim.months).toFixed(1)} ${y(0)} L${x(0)} ${y(0)} Z" class="garea"/><path d="${line}" class="gline"/><circle cx="${x(0)}" cy="${y(sim.bal[0])}" r="3.5" class="gdot"/>`);
+  if (sim.runOut !== null) {
+    const k = sim.runOut, left = x(k) > pad.l + iw * 0.68;
+    const lbl = inYears ? `Reaches $0 in year ${Math.ceil(k / 12)}` : `Reaches $0 in month ${k}`;
+    out.push(`<line x1="${x(k)}" x2="${x(k)}" y1="${y(0)}" y2="${pad.t + 4}" class="gmark"/><circle cx="${x(k)}" cy="${y(0)}" r="5" class="gzero"/><text x="${x(k) + (left ? -8 : 8)}" y="${pad.t + 14}" text-anchor="${left ? "end" : "start"}" class="glabel">${lbl}</text>`);
+  } else {
+    const k = sim.months, b = sim.bal[k];
+    out.push(`<circle cx="${x(k)}" cy="${y(b)}" r="5" class="gdot"/><text x="${x(k) - 10}" y="${Math.max(y(b) - 12, 14)}" text-anchor="end" class="glabel">${usd0(b)}</text>`);
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Balance by ${inYears ? "year" : "month"}, from ${usd0(sim.bal[0])} to ${usd0(sim.bal[sim.months])}">${out.join("")}</svg>`;
+}
+function growthChart(sim) {
+  const box = h("div", { class: "gchart" });
+  let w = 0;
+  const draw = () => { const nw = Math.max(280, Math.round(box.clientWidth)); if (nw !== w) { w = nw; box.innerHTML = growthChartSVG(sim, w); } };
+  requestAnimationFrame(draw);
+  new ResizeObserver(draw).observe(box);
+  return box;
+}
+
 function growthTool(tool) {
-  const run = () => clientRun("client.growth", "growth_schedule", Spec.growth);
-  return toolPage(tool, (on) => [
-    group("Your numbers", "Leave “taken out” empty if nothing is withdrawn.", inputs("client.growth", "growth_schedule", Spec.growth.slice(0, 3), on)),
-    group("Assumptions", "These are yours to set. A return is an assumption, not a promise.", inputs("client.growth", "growth_schedule", Spec.growth.slice(3, 5), on)),
-    more("client.growth", Spec.growth.slice(5), "Inflation shows what the ending balance would buy in today's dollars.", inputs("client.growth", "growth_schedule", Spec.growth.slice(5), on)),
+  growthWdOpen = growthWdOpen || String(raw(GKEY, "wd")).trim() !== "";
+  const run = () => clientRun(GKEY, "growth_schedule", Spec.growth);
+  const f = Object.fromEntries(Spec.growth.map((x) => [x.id, x]));
+  return toolPage(tool, (on, refill) => [
+    h("div", { class: "ginputs" },
+      moneyBox(GKEY, "p", "Starting amount", null, on),
+      moneyBox(GKEY, "m", "Added each month", "/ mo", on),
+      sliderBox(GKEY, f.r, "%", on),
+      sliderBox(GKEY, f.y, "yrs", on),
+      growthWdOpen
+        ? [moneyBox(GKEY, "wd", "Taken out each month", "/ mo", on, !String(raw(GKEY, "wd")).trim()),
+          h("button", { class: "link quiet", text: "Remove withdrawal", onclick: () => { growthWdOpen = false; setRaw(GKEY, "wd", ""); refill(); on(); } })]
+        : h("button", { class: "link addwd", text: "+ Add a withdrawal", onclick: () => { growthWdOpen = true; refill(); } })),
+    more(GKEY, Spec.growth.slice(5), "Inflation shows what the ending balance would buy in today's dollars.", inputs(GKEY, "growth_schedule", Spec.growth.slice(5), on)),
   ], () => {
     const c = run();
-    if (!c?.ok || !c.ev.table) return needsInput(c);
-    const rows = c.ev.table.rows, years = rows.length ? rows[rows.length - 1][0] : 0, A = cssVar("--accent"), G = cssVar("--neutral"), O = cssVar("--orange");
-    const takesOut = c.v(4) > 0, runsOut = c.v(5) >= 0;
-    if (!takesOut) {
-      return [
-        headline(`After ${years} years this could grow to ${Format.currency(c.v(0))}.`, `${Format.currency(c.v(1))} is money put in; ${Format.currency(c.v(2))} is growth on top of it.`),
-        stats(stat("Ending balance", Format.currency(c.v(0))), stat("Money put in", Format.currency(c.v(1))),
-          stat("Growth earned", Format.currency(c.v(2)), null, c.v(2) < 0), stat("What it buys in today's dollars", Format.currency(c.v(3)), "After the inflation entered")),
-        chartCard("Year by year", "Growth compounds: each year's gains earn gains of their own.",
-          chart("line", { datasets: [
-            { label: "Money put in", data: rows.map((r) => ({ x: r[0], y: r[1] })), fill: "origin", stack: "a", backgroundColor: rgba(G, 0.45), borderColor: rgba(G, 0.8), borderWidth: 1 },
-            { label: "Growth", data: rows.map((r) => ({ x: r[0], y: Math.max(r[2], 0) })), fill: "-1", stack: "a", backgroundColor: rgba(A, 0.6), borderColor: A, borderWidth: 1 },
-            { label: "Balance in today's dollars", data: rows.map((r) => ({ x: r[0], y: r[4] })), stack: "b", borderColor: cssVar("--secondary"), borderDash: [4, 3], borderWidth: 1.5 },
-          ] }, { xType: "linear", stacked: true, xTitle: "Years from now", size: "h260" }),
-          h("div", { class: "caption secondary", text: "Dashed line: the balance in today's dollars." })),
-        howItWorks([c]),
-      ];
+    const eyebrow = h("div", { class: "eyebrow", text: tool.title });
+    if (!c?.ok || !c.ev.table) {
+      return [eyebrow, h("p", { class: "answer-head", text: "Type in your numbers to see the answer." }), needsInput(c),
+        h("button", { class: "btn no-print", text: "Use an example: $1,000, $100 a month, 0%, two years", onclick: () => {
+          Object.entries({ p: "1,000", m: "100", r: "0", y: "2" }).forEach(([k, v]) => setRaw(GKEY, k, v));
+          route();
+        } })];
+    }
+    const num = (id, pct) => { try { return Engine.parseNumber(c.inputs[id], pct); } catch { return 0; } };
+    const p = num("p"), m = num("m"), r = num("r", true), years = Math.trunc(num("y")), wd = num("wd");
+    const sim = growthMonths(p, m, r, years, wd);
+    // The chart must agree with the audited calculator; if it ever doesn't, say so rather than show it.
+    const agrees = Math.abs(sim.end - c.v(0)) < 0.01 && Math.abs(sim.withdrawn - c.v(4)) < 0.01;
+    const span = yearsWord(years), planned = wd * years * 12, hasInfl = String(raw(GKEY, "infl")).trim() !== "";
+    let head, sub;
+    if (wd > 0 && sim.runOut !== null) {
+      head = sim.months <= 36 ? `Your savings run out in month ${sim.runOut}.` : `Your savings run out in year ${Math.ceil(sim.runOut / 12)}.`;
+      sub = [`You could withdraw `, h("strong", { text: usd0(c.v(4)) }), ` of the `, h("strong", { text: usd0(planned) }), ` planned over ${span}.`];
+    } else if (wd > 0) {
+      head = `After ${span} you’d have ${usd0(c.v(0))}.`;
+      sub = [`That’s after withdrawing the full `, h("strong", { text: usd0(c.v(4)) }), ` you planned.`];
+    } else {
+      head = `In ${span} you could have ${usd0(c.v(0))}.`;
+      sub = [`Starting with `, h("strong", { text: usd0(p) }), ` and adding `, h("strong", { text: usd0(m) }), ` a month at a `, h("strong", { text: `${Format.plain(r * 100, 2)}%` }), ` annual return.`];
     }
     return [
-      runsOut
-        ? headline(`At this rate the money runs out in year ${Math.trunc(c.v(5))}.`,
-            `${Format.currency(c.v(4))} is taken out in total before the balance reaches zero. After that only new deposits can be taken out.`)
-        : headline(`After ${years} years, ${Format.currency(c.v(0))} would be left after taking out ${Format.currency(c.v(4))}.`,
-            `${Format.currency(c.v(1))} is money put in and ${Format.currency(c.v(2))} is growth earned along the way.`),
-      stats(stat(runsOut ? "Balance at the end" : "Ending balance", Format.currency(c.v(0)), null, runsOut),
-        stat("Total taken out", Format.currency(c.v(4))), stat("Money put in", Format.currency(c.v(1))),
-        stat("Growth earned", Format.currency(c.v(2)), null, c.v(2) < 0),
-        stat("Ending balance in today's dollars", Format.currency(c.v(3)), "After the inflation entered")),
-      chartCard("Year by year", "The balance after each year's deposits, withdrawals and growth, and the running total taken out.",
-        chart("line", { datasets: [
-          { label: "Balance", data: rows.map((r) => ({ x: r[0], y: r[3] })), fill: "origin", backgroundColor: rgba(A, 0.25), borderColor: A, borderWidth: 2 },
-          { label: "Taken out so far", data: rows.map((r) => ({ x: r[0], y: r[5] })), borderColor: O, borderWidth: 2 },
-          { label: "Balance in today's dollars", data: rows.map((r) => ({ x: r[0], y: r[4] })), borderColor: cssVar("--secondary"), borderDash: [4, 3], borderWidth: 1.5 },
-        ] }, { xType: "linear", xTitle: "Years from now", size: "h260" })),
-      howItWorks([c]),
+      eyebrow,
+      h("p", { class: "answer-head" }, head),
+      h("p", { class: "answer-sub" }, sub),
+      agrees ? growthChart(sim) : h("p", { class: "note", text: "The month-by-month chart is unavailable for these inputs." }),
+      h("details", { class: "gmore" }, h("summary", { text: "Breakdown and method" }),
+        h("dl", { class: "gmetrics" },
+          [["Starting amount", usd0(p)], ["Total added", usd0(m * years * 12)], ["Growth", usd0(c.v(2))], ["Total withdrawn", usd0(c.v(4))],
+            ...(hasInfl ? [["Ending balance in today's dollars", usd0(c.v(3))]] : [])].map(([k, v]) => h("div", {}, h("dt", { text: k }), h("dd", { text: v })))),
+        h("p", { class: "note", text: "Month by month: the balance grows at one twelfth of the annual return, then the monthly deposit is added, then the withdrawal is taken out. A withdrawal never takes more than the account holds. No taxes or fees are included. The return is an assumption you choose, not a forecast." }),
+        howItWorks([c])),
     ];
   }, () => [run()]);
 }
@@ -1948,52 +2078,50 @@ function marketTool(tool) {
   const sum = clientMarketSummary(m);
   let content;
   if (m === undefined) {
-    content = [h("div", { class: "secondary", text: "Loading the latest published market data…" })];
+    content = [h("p", { class: "secondary", text: "Loading the latest published market data…" })];
   } else if (!sum) {
-    content = [headline("Market data isn't available right now.", "It is published every weekday after the US market close. Try again later."),
+    content = [h("p", { class: "plain-lead", text: "Market data isn't available right now." }),
+      h("p", { class: "plain-sub", text: "It is published every weekday after the US market close. Try again later." }),
       h("div", {}, tbtn("refresh", "Try again", async () => { await loadRoRo(true); route(); }))];
   } else {
     const st = roroStatus(m);
     const A = cssVar("--accent");
+    const ov = sum.overall;
     content = [
-      h("div", { class: "statusbar", style: "padding:0" },
-        h("span", { class: "statuspill " + st.cls, style: "background:color-mix(in srgb, currentColor 16%, transparent)", text: st.label.toUpperCase() }),
-        h("span", { class: "callout secondary", style: "flex:1;min-width:200px", text: st.detail }),
-        h("button", { class: "btn no-print", text: "Reload", onclick: async () => { await loadRoRo(true); route(); toast("Reloaded the latest published market data."); } })),
-      headline(sum.headline, `This summarizes ${sum.indicators} public economic and market indicators on a scale from −100 (stressed) to +100 (supportive). It describes conditions today. It does not predict returns and is not advice about any portfolio.`),
-      h("div", { class: "row3" }, sum.horizons.map((z) => h("section", { class: "card", style: "gap:8px" },
-        h("div", { class: "callout secondary", text: z.name }),
-        h("div", { style: "display:flex;align-items:baseline;justify-content:space-between;gap:8px" },
-          h("span", { class: "mword c-" + marketTone(z.value), text: z.word }),
-          h("span", { class: "secondary tnum", text: signed(z.value) })),
-        scoreBar(z.value),
-        h("div", { class: "caption secondary", text: z.desc })))),
-      chartCard("What is behind it", "Each bar summarizes a group of indicators. Left of center is more stressed, right is more supportive.",
+      h("div", { class: "eyebrow" }, `Market conditions · ${sum.asof ?? ""}`, h("span", { class: "statuspill " + st.cls, text: st.label })),
+      h("p", { class: "plain-lead" }, "Market conditions look ", h("span", { class: "c-" + marketTone(ov.value), text: ov.word.toLowerCase() }), " right now."),
+      h("p", { class: "plain-sub" }, `Our gauge combines ${sum.indicators} public economic and market indicators. It reads `, h("strong", { text: signed(ov.value) }),
+        " on a scale from −100 (stressed) to +100 (supportive). It describes conditions today. It does not predict returns."),
+      h("dl", { class: "plain-rows" }, sum.horizons.map((z) => h("div", {},
+        h("dt", {}, z.name, h("small", { text: z.desc })),
+        h("dd", {}, h("span", { class: "c-" + marketTone(z.value), text: z.word }), h("span", { class: "secondary tnum", text: signed(z.value) }))))),
+      h("section", { class: "plain-section" }, h("h2", { class: "eyebrow", text: "What is behind it" }),
         h("div", { class: "cbuckets" }, sum.buckets.map((b) => h("div", { class: "cbrow" },
           h("span", { class: "lbl", text: b.label }), scoreBar(b.value),
-          h("span", { class: "wd c-" + marketTone(b.value), text: b.word }))))),
-      chartCard("The last two years", "The medium-term reading over time. Conditions change; today's reading says nothing certain about tomorrow's.",
+          h("span", { class: "wd c-" + marketTone(b.value), text: b.word })))),
+        h("p", { class: "note", text: "Each bar summarizes a group of indicators. Left of center is more stressed, right is more supportive." })),
+      h("section", { class: "plain-section" }, h("h2", { class: "eyebrow", text: "The last two years" }),
         chart("line", { labels: sum.history.map((p) => p.x), datasets: [
           { label: "Medium-term reading", data: sum.history.map((p) => p.y), borderColor: A, backgroundColor: A, borderWidth: 2 }] },
         { money: false, yMin: -100, yMax: 100, zero: false, maxXTicks: 8, legend: false, label: "Medium-term market reading over the last two years",
-          tooltip: (c) => `Reading: ${signed(c.parsed.y, 1)}`, lines: { y: [{ value: 0, color: rgba(cssVar("--neutral"), 0.6) }] } })),
-      h("div", { class: "no-print", style: "display:flex;gap:14px;flex-wrap:wrap;align-items:center" },
+          tooltip: (c) => `Reading: ${signed(c.parsed.y, 1)}`, lines: { y: [{ value: 0, color: rgba(cssVar("--neutral"), 0.6) }] } }),
+        h("p", { class: "note", text: "Conditions change; today's reading says nothing certain about tomorrow's." })),
+      h("div", { class: "no-print", style: "display:flex;gap:16px;flex-wrap:wrap;align-items:center" },
         h("a", { class: "btn", href: "#/client/risk", text: "Explore a what-if with the risk tool" }),
-        h("a", { class: "callout", href: "#/advisor/roro", text: "Full detail (Advisor Mode)" })),
+        h("a", { class: "callout", href: "#/advisor", text: "Back to the Advisor Market Brief" }),
+        h("button", { class: "link", text: "Reload", onclick: async () => { await loadRoRo(true); route(); toast("Reloaded the latest published market data."); } })),
       h("p", { class: "note", text: "Sources: Federal Reserve Economic Data (FRED) and delayed market prices from Yahoo Finance's unofficial feed, scored once each weekday after the US close by the same engine as the Mac app. Readings come from a hand-calibrated model that has not been validated as a predictor of returns. This is general market information, not investment advice or a recommendation." }),
     ];
   }
   clientCalcs = () => [];
   return {
     title: tool.title, subtitle: "Client Mode",
-    leading: () => h("a", { class: "tbtn", href: "#/client", title: "Back to all six questions" }, icon("grid"), h("span", { text: "All tools" })),
     actions: () => [
       tbtn("doc", "PDF report", () => { sum ? window.print() : toast("Market data hasn't loaded yet."); }, { help: "Print, or choose Save as PDF in the print dialog" }),
       tbtn("eraser", "Clear", clearSession, { help: "Erase everything typed this session" }),
     ],
-    body: h("div", { class: "page wide" },
-      printHead("Client illustration", tool.title),
-      h("h1", { class: "serif", style: "margin:0", text: tool.title }),
+    body: h("div", { class: "page wide plain-page" },
+      printHead("Client illustration", tool.title), crumb(),
       ...content, footnote()),
   };
 }
