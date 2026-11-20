@@ -638,9 +638,14 @@ enum Usd {
         var intPart = String(parts.first ?? "")
         while intPart.count > 1, intPart.hasPrefix("0") { intPart.removeFirst() }
         let dec = parts.count > 1 ? "." + String(parts[1].filter { $0 != "." }.prefix(2)) : ""
-        let f = NumberFormatter()
-        f.numberStyle = .decimal; f.locale = Locale(identifier: "en_US")
-        let grouped = intPart.isEmpty ? (dec.isEmpty ? "" : "0") : (Double(intPart).flatMap { f.string(from: NSNumber(value: $0)) } ?? intPart)
+        // Group the typed digits directly (never through a Double, which would change long numbers).
+        var grouped = ""
+        for (n, ch) in intPart.reversed().enumerated() {
+            if n > 0 && n % 3 == 0 { grouped.append(",") }
+            grouped.append(ch)
+        }
+        grouped = String(grouped.reversed())
+        if grouped.isEmpty && !dec.isEmpty { grouped = "0" }
         return grouped + dec
     }
 }
@@ -857,12 +862,14 @@ struct GrowthChart: View {
     let runOut: Int?
     struct Pt: Identifiable { let id: Int; let x: Double; let b: Double }
 
-    /// Axis labels that never round two ticks to the same text: whole dollars below $10k, then k / M.
+    /// Axis labels that never round two ticks to the same text: whole dollars below $10k, then k / M / B / T.
     static func tick(_ d: Double, _ maxB: Double) -> String {
         if d == 0 { return "$0" }
         if maxB < 10_000 { return Usd.whole(d) }
         if maxB < 1_000_000 { return "$" + Format.plain(d / 1e3, maxDecimals: 1) + "k" }
-        return "$" + Format.plain(d / 1e6, maxDecimals: 2) + "M"
+        if maxB < 1e9 { return "$" + Format.plain(d / 1e6, maxDecimals: 2) + "M" }
+        if maxB < 1e12 { return "$" + Format.plain(d / 1e9, maxDecimals: 2) + "B" }
+        return "$" + Format.plain(d / 1e12, maxDecimals: 2) + "T"
     }
 
     var body: some View {
