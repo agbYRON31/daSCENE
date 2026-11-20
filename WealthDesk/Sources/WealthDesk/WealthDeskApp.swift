@@ -14,16 +14,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
 
-/// The app's colors: the original emerald accent on system backgrounds. Names are shared by the views.
+/// The app's colors: warm paper, near-black ink and a forest-green accent in light mode; dark mode
+/// follows the system with matching tones. Mirrors the tokens in web/styles.css. Names are shared by the views.
 extension Color {
-    static let wealthAccent = Color(red: 0.11, green: 0.47, blue: 0.38)
+    /// Fills, bars, chart lines and tinted controls.
+    static let wealthAccent = Color.dynamic(light: 0x1E5A3E, dark: 0x2B8A66)
+    /// The accent for words (links, labels): shaded so it stays readable on paper in both modes.
+    static let wealthAccentText = Color.dynamic(light: 0x1E5A3E, dark: 0x3DB592)
     static let wealthGold = Color.secondary
-    static let wealthPaper = Color(nsColor: .windowBackgroundColor)
-    static let wealthCard = Color(nsColor: .controlBackgroundColor)
+    static let wealthPaper = Color.dynamic(light: 0xF7F6F2, dark: 0x1E1E1E)
+    static let wealthCard = Color.dynamic(light: 0xFFFFFF, dark: 0x2B2B2D)
+    static let wealthInk = Color.dynamic(light: 0x1B1B18, dark: 0xF2F2F2)
     static let wealthHair = Color.primary
-    static let wealthUp = Color.green
-    static let wealthDown = Color.red
-    static let wealthAmber = Color.orange
+    /// Thin rules between rows, and the stronger rule used under inputs.
+    static let wealthRule = Color(nsColor: NSColor(name: nil) { a in
+        a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor.white.withAlphaComponent(0.12) : NSColor(hex: 0xDCD9CF) })
+    static let wealthRuleStrong = Color(nsColor: NSColor(name: nil) { a in
+        a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor.white.withAlphaComponent(0.28) : NSColor(hex: 0xBFBBAE) })
+    static let wealthUp = Color.dynamic(light: 0x1E6A3A, dark: 0x32D74B)
+    static let wealthDown = Color.dynamic(light: 0xA32D26, dark: 0xFF5F57)
+    /// Neutral readings (between the ±20 lines).
+    static let wealthAmber = Color.dynamic(light: 0x9A6206, dark: 0xFF9F0A)
+
+    static func dynamic(light: UInt32, dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { a in NSColor(hex: a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light) })
+    }
 }
 
 extension NSColor {
@@ -35,6 +50,9 @@ extension NSColor {
 extension Font {
     /// Display type for titles and figures (the system font, so it reads like a native tool).
     static func wealthSerif(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight) }
+    /// The serif used for the wordmark and the one-sentence answers (New York, the system serif).
+    /// Source Serif 4 is used on the web; it isn't bundled here, so the Mac app uses the system serif.
+    static func wealthAnswer(_ size: CGFloat, _ weight: Font.Weight = .medium) -> Font { .system(size: size, weight: weight, design: .serif) }
 }
 
 @main
@@ -138,6 +156,8 @@ struct SettingsView: View {
 /// Command-line hooks used by the build's quality checks. They do nothing in normal use.
 ///   --qa-report <folder>   renders sample PDF reports from catalog example inputs, then exits
 ///   --qa-size <w>x<h>      asks for that window size after launch, to check small-window layouts
+///   --qa-screens <folder> [roro.json]  renders the redesigned screens in light and dark to PNGs
+///   --qa-appearance <light|dark>  forces the app's appearance, without changing the system setting
 @MainActor
 enum QAHooks {
     /// --qa-client <folder>: fills every Client Mode tool with sample numbers, renders each screen
@@ -192,8 +212,56 @@ enum QAHooks {
         exit(failures == 0 ? 0 : 1)
     }
 
+    /// --qa-screens <folder> [roro.json]: renders the redesigned screens (client home, Growth blank / example /
+    /// running out, Market Brief, client market view) to PNGs in light and dark mode, then exits.
+    /// The RoRo screens use the given model file (for example Tests/roro_expected.json).
+    static func runScreens(_ folder: URL, roroFile: URL?) {
+        let state = AppState(), roro = RoRoStore()
+        if let roroFile, let d = try? Data(contentsOf: roroFile), let o = try? JSONSerialization.jsonObject(with: d) { roro.model = .from(o) }
+        var failures = 0
+        func shot(_ name: String, _ view: AnyView, height: CGFloat = 900) {
+            for (mode, look) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+                let host = NSHostingView(rootView: view.environmentObject(state).environmentObject(roro)
+                    .frame(width: 1240, height: height).background(Color.wealthPaper))
+                host.frame = NSRect(x: 0, y: 0, width: 1240, height: height)
+                let win = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+                win.appearance = NSAppearance(named: look)
+                win.contentView = host
+                host.layoutSubtreeIfNeeded()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { failures += 1; continue }
+                host.cacheDisplay(in: host.bounds, to: rep)
+                guard let png = rep.representation(using: .png, properties: [:]) else { failures += 1; continue }
+                try? png.write(to: folder.appendingPathComponent("\(name)-\(mode).png"))
+            }
+        }
+        let g = GrowthTool.key
+        shot("client-home", AnyView(ClientHome()))
+        shot("growth-blank", AnyView(GrowthTool()))
+        for (k, v) in ["p": "1,000", "m": "100", "r": "0", "y": "2"] { state.setClient(g, k, v) }
+        shot("growth-example", AnyView(GrowthTool()))
+        for (k, v) in ["m": "0", "wd": "100"] { state.setClient(g, k, v) }
+        shot("growth-runout", AnyView(GrowthTool()))
+        for (k, v) in ["p": "250,000", "m": "0", "wd": "1,500", "r": "6", "y": "25"] { state.setClient(g, k, v) }
+        shot("growth-long", AnyView(GrowthTool()))
+        shot("market-brief", AnyView(MarketBriefView()), height: 1000)
+        shot("client-market", AnyView(ClientMarketView()), height: 1000)
+        shot("market-brief-narrow", AnyView(MarketBriefView().frame(width: 600)), height: 1300)
+        FileHandle.standardOutput.write((failures == 0 ? "screens: PASS\n" : "screens: \(failures) FAILURES\n").data(using: .utf8)!)
+        exit(failures == 0 ? 0 : 1)
+    }
+
     static func runIfRequested() {
         let args = CommandLine.arguments
+        if let i = args.firstIndex(of: "--qa-screens"), i + 1 < args.count {
+            let folder = URL(fileURLWithPath: args[i + 1])
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            runScreens(folder, roroFile: i + 2 < args.count ? URL(fileURLWithPath: args[i + 2]) : nil)
+        }
+        // --qa-appearance light|dark: forces the app's appearance, to check both modes without changing the system setting.
+        if let i = args.firstIndex(of: "--qa-appearance"), i + 1 < args.count {
+            NSApp.appearance = NSAppearance(named: args[i + 1] == "dark" ? .darkAqua : .aqua)
+        }
         // --qa-size <width>x<height>: asks for that window size shortly after launch (the minimum still applies).
         if let i = args.firstIndex(of: "--qa-size"), i + 1 < args.count {
             let p = args[i + 1].split(separator: "x").compactMap { Double($0) }
