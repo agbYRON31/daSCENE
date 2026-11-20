@@ -136,12 +136,12 @@ enum ClientSpec {
 
     static func title(_ t: ClientTool) -> String {
         switch t {
-        case .growth: return "How does my money grow?"
+        case .growth: return "How much could I save?"
         case .retirement: return "Am I on track for retirement?"
-        case .risk: return "How much investment risk am I taking?"
-        case .decisions: return "How do my decisions change my future?"
-        case .taxes: return "How do taxes and inflation affect my money?"
-        case .market: return "What are market conditions right now?"
+        case .risk: return "What if markets fall?"
+        case .decisions: return "Compare two plans"
+        case .taxes: return "Taxes & purchasing power"
+        case .market: return "Market brief"
         }
     }
 
@@ -192,15 +192,17 @@ struct ClientModeView: View {
             .navigationSubtitle("Client Mode")
             .toolbar {
                 ToolbarItem(placement: .navigation) {
-                    Button { state.clientTool = nil } label: { Label("All tools", systemImage: "square.grid.2x2") }
-                        .help("Back to all the questions")
-                        .disabled(state.clientTool == nil)
+                    if state.clientTool != nil {
+                        Button { state.clientTool = nil } label: { Label("Planning tools", systemImage: "chevron.left") }
+                            .help("Back to all the questions")
+                    }
                 }
                 ToolbarItem(placement: .navigation) { ModeSwitch() }
                 ToolbarItemGroup {
-                    Button { exportPDF() } label: { Label("PDF report", systemImage: "doc.richtext") }
-                        .help("Save a PDF of this illustration to a location you choose")
-                        .disabled(state.clientTool == nil || state.clientTool == .market)
+                    if let tool = state.clientTool, tool != .market {
+                        Button { exportPDF() } label: { Label("PDF report", systemImage: "doc.richtext") }
+                            .help("Save a PDF of this illustration to a location you choose")
+                    }
                     Button { state.clearSession() } label: { Label("Clear", systemImage: "eraser") }
                         .help("Erase everything typed this session")
                 }
@@ -252,49 +254,97 @@ enum ClientReports {
     }
 }
 
+/// Client home: six questions in two columns separated by thin rules. No icons or blurbs, so the
+/// questions themselves are what the client reads. Mirrors clientHome() in web/app.js.
 struct ClientHome: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 26) {
-                VStack(spacing: 8) {
-                    Text("What would you like to explore?").font(.system(size: 28, weight: .semibold))
-                    Text("Pick a question, type in any numbers, and watch the picture change.")
-                        .font(.title3).foregroundStyle(.secondary)
-                }
-                .padding(.top, 18)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 18)], spacing: 18) {
-                    ForEach(ClientTool.allCases) { tool in
-                        Button { state.clientTool = tool } label: {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Image(systemName: ClientSpec.symbol(tool)).font(.system(size: 24)).foregroundStyle(Color.wealthAccent)
-                                Text(ClientSpec.title(tool)).font(.title3.weight(.semibold)).multilineTextAlignment(.leading)
-                                Text(ClientSpec.blurb(tool)).foregroundStyle(.secondary).multilineTextAlignment(.leading)
-                                    .fixedSize(horizontal: false, vertical: true)
+        GeometryReader { geo in
+            ScrollView {
+                let one = geo.size.width < 640
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Planning tools").font(.system(size: 28, weight: .semibold)).foregroundStyle(Color.wealthInk)
+                    Rectangle().fill(Color.wealthInk).frame(height: 1).padding(.top, 26)
+                    let tools = ClientTool.allCases
+                    if one {
+                        VStack(spacing: 0) { ForEach(tools) { PlanningRow(tool: $0, compact: true) } }
+                    } else {
+                        Grid(horizontalSpacing: 56, verticalSpacing: 0) {
+                            ForEach(0..<(tools.count + 1) / 2, id: \.self) { r in
+                                GridRow {
+                                    PlanningRow(tool: tools[r * 2])
+                                    if r * 2 + 1 < tools.count { PlanningRow(tool: tools[r * 2 + 1]) } else { Color.clear }
+                                }
                             }
-                            .padding(22)
-                            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
-                            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
-                            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.primary.opacity(0.08)))
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
                     }
+                    ClientFootnote().padding(.top, 24)
                 }
-                .frame(maxWidth: 1000)
-                ClientFootnote()
+                .padding(.horizontal, one ? 16 : 32).padding(.top, one ? 24 : 36).padding(.bottom, 40)
+                .frame(maxWidth: 1040, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .padding(28)
-            .frame(maxWidth: .infinity)
         }
+    }
+}
+
+/// One question on the client home: the label and an arrow, with a thin rule underneath.
+struct PlanningRow: View {
+    @EnvironmentObject var state: AppState
+    let tool: ClientTool
+    var compact = false
+    @State private var hover = false
+
+    var body: some View {
+        Button { state.clientTool = tool } label: {
+            HStack(spacing: 16) {
+                Text(ClientSpec.title(tool)).font(.system(size: compact ? 19 : 21, weight: .medium))
+                    .foregroundStyle(hover ? Color.wealthAccentText : Color.wealthInk)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 8)
+                Text("→").font(.system(size: 20)).foregroundStyle(hover ? Color.wealthAccentText : Color.secondary)
+                    .offset(x: hover ? 3 : 0)
+            }
+            .padding(.vertical, compact ? 20 : 26).padding(.horizontal, compact ? 2 : 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .bottom) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { h in withAnimation(.easeOut(duration: 0.15)) { hover = h } }
+        .accessibilityLabel(ClientSpec.title(tool))
     }
 }
 
 struct ClientFootnote: View {
     var body: some View {
         Text("These are educational illustrations based only on the numbers typed in. They are not advice, a recommendation or a prediction. Nothing typed here is saved or sent; it is erased when Wealth Desk quits.")
-            .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 760)
+            .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: 680, alignment: .leading)
+            .padding(.top, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .top) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
+    }
+}
+
+/// "← Planning tools": the way back to the client home, at the top of a tool.
+struct PlanningCrumb: View {
+    @EnvironmentObject var state: AppState
+    var body: some View {
+        Button { state.clientTool = nil } label: {
+            HStack(spacing: 6) { Text("←"); Text("Planning tools") }
+                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.wealthAccentText)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Small uppercase label above an answer.
+struct Eyebrow: View {
+    let text: String
+    var body: some View {
+        Text(text.uppercased()).font(.system(size: 12, weight: .semibold)).tracking(0.9).foregroundStyle(.secondary)
     }
 }
 
@@ -302,15 +352,28 @@ struct ClientFootnote: View {
 
 struct ToolLayout<Inputs: View, Results: View>: View {
     let question: String
+    /// Show the question as a small eyebrow, for tools whose answer is the headline.
+    var eyebrow = false
     @ViewBuilder let inputs: Inputs
     @ViewBuilder let results: Results
 
     private var resultsColumn: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(question).font(.system(size: 26, weight: .semibold))
-                .fixedSize(horizontal: false, vertical: true)
+            if eyebrow {
+                Eyebrow(text: question)
+            } else {
+                Text(question).font(.system(size: 26, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             results
-            ClientFootnote().frame(maxWidth: .infinity)
+            ClientFootnote()
+        }
+    }
+
+    private var inputColumn: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PlanningCrumb()
+            inputs
         }
     }
 
@@ -320,26 +383,24 @@ struct ToolLayout<Inputs: View, Results: View>: View {
                 // Small window: inputs on top, results underneath, one scrolling column.
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        VStack(alignment: .leading, spacing: 16) { inputs }
+                        inputColumn
                             .padding(16)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.wealthCard)
-                        Divider()
+                        Rectangle().fill(Color.wealthRule).frame(height: 1)
                         resultsColumn.padding(16)
                     }
                 }
             } else {
                 HStack(alignment: .top, spacing: 0) {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 16) { inputs }
-                            .padding(20)
+                        inputColumn
+                            .padding(24)
                     }
-                    .frame(width: 380)
-                    .background(Color.wealthCard)
-                    Divider()
+                    .frame(width: 360)
+                    Rectangle().fill(Color.wealthRule).frame(width: 1)
                     ScrollView {
                         resultsColumn
-                            .padding(26)
+                            .padding(.horizontal, 36).padding(.vertical, 28)
                             .frame(maxWidth: 900, alignment: .leading)
                             .frame(maxWidth: .infinity)
                     }
@@ -533,101 +594,335 @@ private func moneyAxis() -> some AxisContent {
 
 // MARK: - 1. Growth
 
-struct GrowthTool: View {
+/// The month-by-month rule of the audited growth_schedule calculator: each month the balance grows
+/// by one twelfth of the annual return, then the deposit is added, then the withdrawal is taken out,
+/// never below zero. Used only to draw the chart and find the month the money runs out; the totals
+/// shown come from the calculator, and the chart is shown only when this agrees with them.
+/// Mirrors growthMonths() in web/app.js.
+struct GrowthMonths {
+    let bal: [Double]
+    let end: Double
+    let withdrawn: Double
+    let months: Int
+    /// First month the balance reaches $0 while a planned withdrawal could not be paid in full.
+    let runOut: Int?
+
+    init(p: Double, m: Double, r: Double, years: Int, wd: Double) {
+        let i = r / 12, n = max(years, 0) * 12
+        var b = p, out = 0.0, shortfall = false, firstZero: Int? = nil, list = [p]
+        if n > 0 {
+            for k in 1...n {
+                let avail = max(0, b * (1 + i) + m)
+                let take = min(wd, avail)
+                if take < wd { shortfall = true }
+                out += take; b = avail - take
+                if wd > 0, b <= 0.005, firstZero == nil { firstZero = k }
+                list.append(b)
+            }
+        }
+        bal = list; end = b; withdrawn = out; months = n; runOut = shortfall ? firstZero : nil
+    }
+}
+
+enum Usd {
+    /// Whole dollars with thousands separators: "$3,400".
+    static func whole(_ v: Double) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal; f.locale = Locale(identifier: "en_US"); f.maximumFractionDigits = 0
+        return (v < 0 ? "−" : "") + "$" + (f.string(from: NSNumber(value: abs(v).rounded())) ?? "0")
+    }
+    /// Keeps thousands separators while typing: "12500.5" → "12,500.5".
+    static func typing(_ s: String) -> String {
+        let clean = s.filter { $0.isNumber || $0 == "." }
+        let parts = clean.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+        var intPart = String(parts.first ?? "")
+        while intPart.count > 1, intPart.hasPrefix("0") { intPart.removeFirst() }
+        let dec = parts.count > 1 ? "." + String(parts[1].filter { $0 != "." }.prefix(2)) : ""
+        // Group the typed digits directly (never through a Double, which would change long numbers).
+        var grouped = ""
+        for (n, ch) in intPart.reversed().enumerated() {
+            if n > 0 && n % 3 == 0 { grouped.append(",") }
+            grouped.append(ch)
+        }
+        grouped = String(grouped.reversed())
+        if grouped.isEmpty && !dec.isEmpty { grouped = "0" }
+        return grouped + dec
+    }
+}
+
+/// A $-amount box that keeps thousands separators while typing.
+struct MoneyBox: View {
     @EnvironmentObject var state: AppState
-    struct Pt: Identifiable { let id = UUID(); let year: Double; let value: Double; let part: String }
+    let key: String
+    let id: String
+    let label: String
+    var suffix: String? = nil
+    @FocusState private var focused: Bool
 
     var body: some View {
-        let c = state.clientRun("client.growth", "growth_schedule", ClientSpec.growth)
-        ToolLayout(question: ClientSpec.title(.growth)) {
-            InputGroup(title: "Your numbers", note: "Leave “taken out” empty if nothing is withdrawn.") {
-                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.prefix(3)))
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Text("$").font(.system(size: 17)).foregroundStyle(.secondary)
+                TextField("0", text: Binding(get: { state.clientRaw(key, id) },
+                                             set: { state.setClient(key, id, Usd.typing($0)) }))
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 19, weight: .semibold)).monospacedDigit()
+                    .multilineTextAlignment(.trailing)
+                    .focused($focused)
+                    .accessibilityLabel(label)
+                if let suffix { Text(suffix).font(.system(size: 14)).foregroundStyle(.secondary).fixedSize() }
             }
-            InputGroup(title: "Assumptions", note: "These are yours to set. A return is an assumption, not a promise.") {
-                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.dropFirst(3).prefix(2)))
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(focused ? Color.wealthAccent : Color.wealthRuleStrong, lineWidth: 1))
+        }
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
+    }
+}
+
+/// A slider with its value shown (and editable) beside the label.
+struct SliderBox: View {
+    @EnvironmentObject var state: AppState
+    let key: String
+    let field: ClientField
+    let unit: String
+
+    private func scale(_ v: Double) -> String { Format.plain(v, maxDecimals: 2) + (unit == "%" ? "%" : "") }
+
+    var body: some View {
+        let r = field.range
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(field.label).font(.system(size: 14, weight: .semibold)).foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                TextField("—", text: Binding(get: { state.clientRaw(key, field.id) }, set: { state.setClient(key, field.id, $0) }))
+                    .textFieldStyle(.plain).multilineTextAlignment(.trailing)
+                    .font(.system(size: 17, weight: .semibold)).monospacedDigit()
+                    .frame(width: 60)
+                    .overlay(alignment: .bottom) { Rectangle().fill(Color.wealthRuleStrong).frame(height: 1).offset(y: 2) }
+                    .accessibilityLabel(field.label)
+                Text(unit).font(.system(size: 14)).foregroundStyle(.secondary)
             }
-            MoreAssumptions(key: "client.growth", ids: ClientSpec.growth.dropFirst(5).map(\.id), note: "Inflation shows what the ending balance would buy in today's dollars.") {
-                ClientInputs(key: "client.growth", calcID: "growth_schedule", fields: Array(ClientSpec.growth.dropFirst(5)))
+            Slider(value: Binding(get: {
+                let v = (try? Engine.parseNumber(state.clientRaw(key, field.id), percent: false)) ?? r.lowerBound
+                return min(max(v, r.lowerBound), r.upperBound)
+            }, set: { v in
+                state.setClient(key, field.id, Format.plain((v / field.step).rounded() * field.step, maxDecimals: field.step < 1 ? 2 : 0))
+            }), in: r)
+            .controlSize(.small)
+            .accessibilityLabel(field.label)
+            HStack {
+                Text(scale(r.lowerBound)); Spacer(); Text(scale(r.upperBound))
+            }
+            .font(.system(size: 12)).monospacedDigit().foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
+    }
+}
+
+/// "How much could I save?": compact inputs, one plain-sentence answer and a monthly balance chart.
+/// Mirrors growthTool() in web/app.js.
+struct GrowthTool: View {
+    @EnvironmentObject var state: AppState
+    @State private var wdOpen: Bool?
+    static let key = "client.growth"
+
+    private static let yearWords = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
+    static func yearsWord(_ n: Int) -> String {
+        (n >= 0 && n <= 10 ? yearWords[n] : String(n)) + (n == 1 ? " year" : " years")
+    }
+
+    private func field(_ id: String) -> ClientField { ClientSpec.growth.first { $0.id == id }! }
+
+    var body: some View {
+        let key = Self.key
+        let c = state.clientRun(key, "growth_schedule", ClientSpec.growth)
+        let hasWd = !state.clientRaw(key, "wd").trimmingCharacters(in: .whitespaces).isEmpty
+        let showWd = wdOpen ?? hasWd
+        ToolLayout(question: ClientSpec.title(.growth), eyebrow: true) {
+            VStack(alignment: .leading, spacing: 0) {
+                Rectangle().fill(Color.wealthInk).frame(height: 1)
+                MoneyBox(key: key, id: "p", label: "Starting amount")
+                MoneyBox(key: key, id: "m", label: "Added each month", suffix: "/ mo")
+                SliderBox(key: key, field: field("r"), unit: "%")
+                SliderBox(key: key, field: field("y"), unit: "yrs")
+                if showWd {
+                    MoneyBox(key: key, id: "wd", label: "Taken out each month", suffix: "/ mo")
+                    Button("Remove withdrawal") { wdOpen = false; state.setClient(key, "wd", "") }
+                        .buttonStyle(.plain).font(.system(size: 13)).foregroundStyle(.secondary).padding(.top, 8)
+                } else {
+                    Button("+ Add a withdrawal") { wdOpen = true }
+                        .buttonStyle(.plain).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.wealthAccentText)
+                        .padding(.vertical, 14)
+                }
+            }
+            MoreAssumptions(key: key, ids: ["infl"], note: "Inflation shows what the ending balance would buy in today's dollars.") {
+                ClientInputs(key: key, calcID: "growth_schedule", fields: [field("infl")])
             }
         } results: {
-            if let c, c.ok, let table = c.eval.table {
-                let years = Int(table.rows.last?[0] ?? 0)
-                if c.v(4) > 0 {
-                    withdrawals(c, table, years: years)
-                } else {
-                    Headline(text: "After \(years) years this could grow to \(Format.currency(c.v(0))).",
-                             caption: "\(Format.currency(c.v(1))) is money put in; \(Format.currency(c.v(2))) is growth on top of it.")
-                    StatGrid {
-                        StatTile(label: "Ending balance", value: Format.currency(c.v(0)))
-                        StatTile(label: "Money put in", value: Format.currency(c.v(1)))
-                        StatTile(label: "Growth earned", value: Format.currency(c.v(2)), negative: c.v(2) < 0)
-                        StatTile(label: "What it buys in today's dollars", value: Format.currency(c.v(3)), caption: "After the inflation entered")
-                    }
-                    ChartCard(title: "Year by year", note: "Growth compounds: each year's gains earn gains of their own.") {
-                        let pts = table.rows.flatMap { r in [Pt(year: r[0], value: r[1], part: "Money put in"), Pt(year: r[0], value: max(r[2], 0), part: "Growth")] }
-                        Chart {
-                            ForEach(pts) { p in
-                                AreaMark(x: .value("Year", p.year), y: .value("Balance", p.value), stacking: .standard)
-                                    .foregroundStyle(by: .value("Part", p.part))
-                            }
-                            ForEach(table.rows, id: \.self) { r in
-                                LineMark(x: .value("Year", r[0]), y: .value("Balance", r[4]), series: .value("Line", "today"))
-                                    .foregroundStyle(Color.primary.opacity(0.6))
-                                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                            }
-                        }
-                        .chartForegroundStyleScale(["Money put in": Color.gray.opacity(0.45), "Growth": Color.wealthAccent])
-                        .chartYAxis { moneyAxis() }
-                        .chartXAxisLabel("Years from now")
-                        .frame(height: 260)
-                        Text("Dashed line: the balance in today's dollars.").font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                HowItWorks(calcs: [c])
+            if let c, c.ok, c.eval.table != nil {
+                answer(c)
             } else {
+                Text("Type in your numbers to see the answer.").font(.wealthAnswer(40)).foregroundStyle(Color.wealthInk)
+                    .fixedSize(horizontal: false, vertical: true)
                 NeedsInput(calc: c)
+                Button("Use an example: $1,000, $100 a month, 0%, two years") {
+                    for (k, v) in ["p": "1,000", "m": "100", "r": "0", "y": "2"] { state.setClient(key, k, v) }
+                }
             }
         }
     }
 
-    /// Results when money is being taken out: the balance can shrink, so show it with the running total withdrawn.
-    @ViewBuilder
-    private func withdrawals(_ c: ClientCalc, _ table: TableResult, years: Int) -> some View {
-        let runsOut = c.v(5) >= 0
-        if runsOut {
-            Headline(text: "At this rate the money runs out in year \(Int(c.v(5))).",
-                     caption: "\(Format.currency(c.v(4))) is taken out in total before the balance reaches zero. After that only new deposits can be taken out.")
-        } else {
-            Headline(text: "After \(years) years, \(Format.currency(c.v(0))) would be left after taking out \(Format.currency(c.v(4))).",
-                     caption: "\(Format.currency(c.v(1))) is money put in and \(Format.currency(c.v(2))) is growth earned along the way.")
-        }
-        StatGrid {
-            StatTile(label: runsOut ? "Balance at the end" : "Ending balance", value: Format.currency(c.v(0)), negative: runsOut)
-            StatTile(label: "Total taken out", value: Format.currency(c.v(4)))
-            StatTile(label: "Money put in", value: Format.currency(c.v(1)))
-            StatTile(label: "Growth earned", value: Format.currency(c.v(2)), negative: c.v(2) < 0)
-            StatTile(label: "Ending balance in today's dollars", value: Format.currency(c.v(3)), caption: "After the inflation entered")
-        }
-        ChartCard(title: "Year by year", note: "The balance after each year's deposits, withdrawals and growth, and the running total taken out.") {
-            let pts = table.rows.flatMap { r in [Pt(year: r[0], value: r[3], part: "Balance"), Pt(year: r[0], value: r[5], part: "Taken out so far"),
-                                                 Pt(year: r[0], value: r[4], part: "Balance in today's dollars")] }
-            Chart {
-                ForEach(table.rows, id: \.self) { r in
-                    AreaMark(x: .value("Year", r[0]), y: .value("Balance", r[3]))
-                        .foregroundStyle(Color.wealthAccent.opacity(0.22))
-                }
-                ForEach(pts) { p in
-                    LineMark(x: .value("Year", p.year), y: .value("Amount", p.value), series: .value("Line", p.part))
-                        .foregroundStyle(by: .value("Line", p.part))
-                        .lineStyle(StrokeStyle(lineWidth: p.part == "Balance in today's dollars" ? 1.5 : 2,
-                                               dash: p.part == "Balance in today's dollars" ? [4, 3] : []))
-                }
+    @ViewBuilder private func answer(_ c: ClientCalc) -> some View {
+        let num = { (id: String, pct: Bool) -> Double in (try? Engine.parseNumber(c.inputs[id] ?? "", percent: pct)) ?? 0 }
+        let p = num("p", false), m = num("m", false), r = num("r", true), years = Int(num("y", false)), wd = num("wd", false)
+        let sim = GrowthMonths(p: p, m: m, r: r, years: years, wd: wd)
+        // The chart must agree with the audited calculator; if it ever doesn't, say so rather than show it.
+        let agrees = abs(sim.end - c.v(0)) < 0.01 && abs(sim.withdrawn - c.v(4)) < 0.01
+        let span = Self.yearsWord(years)
+        let hasInfl = !state.clientRaw(Self.key, "infl").trimmingCharacters(in: .whitespaces).isEmpty
+        let runOutMonth = agrees ? sim.runOut : nil
+        let runsOut = wd > 0 && (runOutMonth != nil || (!agrees && c.v(5) >= 0))
+        let head: String = {
+            if runsOut {
+                if let k = runOutMonth { return sim.months <= 36 ? "Your savings run out in month \(k)." : "Your savings run out in year \((k + 11) / 12)." }
+                return "Your savings run out in year \(Int(c.v(5)))."
             }
-            .chartForegroundStyleScale(["Balance": Color.wealthAccent, "Taken out so far": Color.orange, "Balance in today's dollars": Color.secondary])
-            .chartYAxis { moneyAxis() }
-            .chartXAxisLabel("Years from now")
-            .frame(height: 260)
+            if wd > 0 { return "After \(span) you’d have \(Usd.whole(c.v(0)))." }
+            return "In \(span) you could have \(Usd.whole(c.v(0)))."
+        }()
+        let bold = { (s: String) in Text(s).fontWeight(.semibold).foregroundColor(Color.wealthInk) }
+        let sub: Text = {
+            if runsOut {
+                return Text("You could withdraw ") + bold(Usd.whole(c.v(4))) + Text(" of the ") + bold(Usd.whole(wd * Double(years * 12))) + Text(" planned over \(span).")
+            }
+            if wd > 0 { return Text("That’s after withdrawing the full ") + bold(Usd.whole(c.v(4))) + Text(" you planned.") }
+            return Text("Starting with ") + bold(Usd.whole(p)) + Text(" and adding ") + bold(Usd.whole(m)) + Text(" a month at a ")
+                + bold(Format.plain(r * 100, maxDecimals: 2) + "%") + Text(" annual return.")
+        }()
+        VStack(alignment: .leading, spacing: 6) {
+            Text(head).font(.wealthAnswer(40)).foregroundStyle(Color.wealthInk).fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            sub.font(.system(size: 18)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 560, alignment: .leading)
         }
+        if agrees {
+            GrowthChart(sim: sim, runOut: runOutMonth)
+        } else {
+            Text("The month-by-month chart is unavailable for these inputs.").font(.callout).foregroundStyle(.secondary)
+        }
+        GrowthBreakdown(c: c, p: p, hasInfl: hasInfl)
+    }
+}
+
+/// "Breakdown and method", folded away under the chart.
+struct GrowthBreakdown: View {
+    let c: ClientCalc
+    let p: Double
+    let hasInfl: Bool
+    @State private var open = false
+
+    var body: some View {
+        var items: [(String, Double)] = [("Starting amount", p), ("Total put in", c.v(1)), ("Growth", c.v(2)), ("Total withdrawn", c.v(4))]
+        if hasInfl { items.append(("Ending balance in today's dollars", c.v(3))) }
+        return DisclosureGroup(isExpanded: $open) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.offset) { i, item in
+                        HStack(spacing: 0) {
+                            if i > 0 { Rectangle().fill(Color.wealthRule).frame(width: 1).padding(.trailing, 16) }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.0).font(.system(size: 13)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                                Text(Usd.whole(item.1)).font(.system(size: 18, weight: .semibold)).monospacedDigit()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.trailing, 16)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Text("“Total put in” includes the starting amount. Month by month: the balance grows at one twelfth of the annual return, then the monthly deposit is added, then the withdrawal is taken out. A withdrawal never takes more than the account holds. No taxes or fees are included. The return is an assumption you choose, not a forecast.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                HowItWorks(calcs: [c])
+            }
+            .padding(.top, 8)
+        } label: {
+            Text("Breakdown and method").font(.system(size: 14, weight: .semibold)).foregroundStyle(.secondary)
+        }
+        .padding(.top, 10)
+        .overlay(alignment: .top) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
+    }
+}
+
+/// The monthly balance, with the point where it reaches $0 marked (or the ending balance labelled).
+struct GrowthChart: View {
+    let sim: GrowthMonths
+    let runOut: Int?
+    struct Pt: Identifiable { let id: Int; let x: Double; let b: Double }
+
+    /// Axis labels that never round two ticks to the same text: whole dollars below $10k, then k / M / B / T.
+    static func tick(_ d: Double, _ maxB: Double) -> String {
+        if d == 0 { return "$0" }
+        if maxB < 10_000 { return Usd.whole(d) }
+        if maxB < 1_000_000 { return "$" + Format.plain(d / 1e3, maxDecimals: 1) + "k" }
+        if maxB < 1e9 { return "$" + Format.plain(d / 1e6, maxDecimals: 2) + "M" }
+        if maxB < 1e12 { return "$" + Format.plain(d / 1e9, maxDecimals: 2) + "B" }
+        return "$" + Format.plain(d / 1e12, maxDecimals: 2) + "T"
+    }
+
+    var body: some View {
+        let inYears = sim.months > 36, per = inYears ? 12.0 : 1.0
+        let pts = sim.bal.enumerated().map { Pt(id: $0.offset, x: Double($0.offset) / per, b: $0.element) }
+        let maxB = max(sim.bal.max() ?? 1, 1)
+        let endX = Double(sim.months) / per
+        Chart {
+            ForEach(pts) { p in
+                AreaMark(x: .value(inYears ? "Year" : "Month", p.x), y: .value("Balance", p.b))
+                    .foregroundStyle(Color.wealthAccent.opacity(0.12))
+                LineMark(x: .value(inYears ? "Year" : "Month", p.x), y: .value("Balance", p.b))
+                    .foregroundStyle(Color.wealthAccent).lineStyle(StrokeStyle(lineWidth: 2.25, lineJoin: .round))
+            }
+            PointMark(x: .value("Start", 0.0), y: .value("Balance", sim.bal[0]))
+                .foregroundStyle(Color.wealthAccent).symbolSize(40)
+            if let k = runOut {
+                let x = Double(k) / per
+                let label = inYears ? "Reaches $0 in year \((k + 11) / 12)" : "Reaches $0 in month \(k)"
+                RuleMark(x: .value("Reaches $0", x))
+                    .foregroundStyle(Color.wealthInk.opacity(0.8)).lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 3]))
+                    .annotation(position: .top, alignment: x > endX * 0.68 ? .trailing : .leading, spacing: 4) {
+                        Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.wealthInk)
+                    }
+                PointMark(x: .value("Reaches $0", x), y: .value("Balance", 0.0))
+                    .symbol { Circle().strokeBorder(Color.wealthInk, lineWidth: 2).background(Circle().fill(Color.wealthPaper)).frame(width: 11, height: 11) }
+            } else {
+                PointMark(x: .value("End", endX), y: .value("Balance", sim.end))
+                    .foregroundStyle(Color.wealthAccent).symbolSize(70)
+                    .annotation(position: .top, alignment: .trailing, spacing: 6) {
+                        Text(Usd.whole(sim.end)).font(.system(size: 14, weight: .semibold)).monospacedDigit().foregroundStyle(Color.wealthInk)
+                    }
+            }
+        }
+        .chartXScale(domain: 0...max(endX, 1))
+        .chartYScale(domain: 0...(maxB * 1.12))
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { v in
+                AxisGridLine().foregroundStyle(Color.wealthRule)
+                AxisValueLabel { if let d = v.as(Double.self) { Text(Self.tick(d, maxB)).font(.system(size: 13)).monospacedDigit() } }
+            }
+        }
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 8)) { v in
+                AxisTick().foregroundStyle(Color.wealthRuleStrong)
+                AxisValueLabel { if let d = v.as(Double.self) { Text(Format.plain(d, maxDecimals: 0)).font(.system(size: 13)).monospacedDigit() } }
+            }
+        }
+        .chartXAxisLabel(inYears ? "Years" : "Months", alignment: .trailing)
+        .frame(height: 280)
+        .padding(.top, 14)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Balance by \(inYears ? "year" : "month"), from \(Usd.whole(sim.bal[0])) to \(Usd.whole(sim.end))")
     }
 }
 
@@ -1101,45 +1396,59 @@ struct ClientMarketView: View {
         "CROSS": "Risk appetite across markets",
     ]
 
+    static let horizonPlain: [(name: String, desc: String)] = [
+        ("Fast-moving signals", "Weighted toward market prices and volatility"),
+        ("Medium-term signals", "A balance of market and economic data"),
+        ("Slow-moving signals", "Weighted toward the economy and interest rates"),
+    ]
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text(ClientSpec.title(.market)).font(.system(size: 26, weight: .semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                if let m = roro.model {
+                PlanningCrumb()
+                if let m = roro.model, !(m["horizons"]?.items ?? []).isEmpty {
                     let s = roro.status
                     HStack(spacing: 10) {
+                        Eyebrow(text: "Market conditions · \(m["asof"]?.str ?? "")")
                         Text(s.label.uppercased()).font(.caption.weight(.bold))
                             .padding(.horizontal, 8).padding(.vertical, 3)
-                            .background(s.color.opacity(0.18), in: Capsule()).foregroundStyle(s.color)
-                        Text(s.detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            .background(s.color.opacity(0.14), in: Capsule()).foregroundStyle(s.color)
+                            .help(s.detail)
                         Spacer()
                         Button { roro.refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(roro.running)
                     }
-                    let mid = m["horizons"]?[1]?["value"]?.num ?? .nan
-                    Headline(text: "Overall, the indicators read “\(Self.word(mid).lowercased())” right now.",
-                             caption: "This summarizes \(Int(m["n_live"]?.num ?? 0)) public economic and market indicators on a scale from −100 (stressed) to +100 (supportive). It describes conditions today. It does not predict returns and is not advice about any portfolio.")
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 12, alignment: .top)], spacing: 12) {
-                        ForEach(Array((m["horizons"]?.items ?? []).enumerated()), id: \.offset) { i, h in
+                    // The overall reading is the medium-term dial, the one the model's own posture follows.
+                    let horizons = m["horizons"]?.items ?? []
+                    let mid = (horizons.count > 1 ? horizons[1] : horizons[0])["value"]?.num ?? .nan
+                    (Text("Market conditions look ") + Text(Self.word(mid).lowercased()).foregroundColor(RoRoStyle.color(mid)) + Text(" right now."))
+                        .font(.wealthAnswer(44)).foregroundStyle(Color.wealthInk).fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    (Text("Our gauge combines \(Int(m["n_live"]?.num ?? 0)) public economic and market indicators. It reads ")
+                     + Text(RoRoStyle.signed(mid)).fontWeight(.semibold).foregroundColor(Color.wealthInk)
+                     + Text(" on a scale from −100 (stressed) to +100 (supportive). It describes conditions today. It does not predict returns."))
+                        .font(.system(size: 19)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 640, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(horizons.enumerated()), id: \.offset) { i, h in
                             let v = h["value"]?.num ?? .nan
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(["Fast-moving signals", "Medium-term signals", "Slow-moving signals"][min(i, 2)]).font(.callout).foregroundStyle(.secondary)
-                                HStack(alignment: .firstTextBaseline) {
-                                    Text(Self.word(v)).font(.wealthSerif(22)).foregroundStyle(RoRoStyle.color(v))
-                                    Spacer()
-                                    Text(RoRoStyle.signed(v)).monospacedDigit().foregroundStyle(.secondary)
+                            let plain: (name: String, desc: String) = i < Self.horizonPlain.count ? Self.horizonPlain[i] : (h["label"]?.str ?? "", "")
+                            HStack(alignment: .firstTextBaseline, spacing: 24) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(plain.name).font(.system(size: 17, weight: .medium))
+                                    Text(plain.desc).font(.system(size: 14)).foregroundStyle(.secondary)
                                 }
-                                ScoreBar(value: v)
-                                Text(["Weighted toward market prices and volatility", "A balance of market and economic data", "Weighted toward the economy and interest rates"][min(i, 2)])
-                                    .font(.caption).foregroundStyle(.secondary)
+                                Spacer(minLength: 8)
+                                Text(Self.word(v)).font(.system(size: 21, weight: .semibold)).foregroundStyle(RoRoStyle.color(v))
+                                Text(RoRoStyle.signed(v)).font(.system(size: 15, weight: .medium)).monospacedDigit().foregroundStyle(.secondary)
+                                    .frame(minWidth: 36, alignment: .trailing)
                             }
-                            .padding(14)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.08)))
+                            .padding(.vertical, 16)
+                            .overlay(alignment: .bottom) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
                         }
                     }
-                    ChartCard(title: "What is behind it", note: "Each bar summarizes a group of indicators. Left of center is more stressed, right is more supportive.") {
+                    .overlay(alignment: .top) { Rectangle().fill(Color.wealthInk).frame(height: 1) }
+                    .padding(.top, 4)
+                    PlainSection(title: "What is behind it", note: "Each bar summarizes a group of indicators. Left of center is more stressed, right is more supportive.") {
                         Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 10) {
                             ForEach(Array((m["buckets"]?.items ?? []).enumerated()), id: \.offset) { _, b in
                                 let v = b["score"]?.num ?? .nan
@@ -1151,7 +1460,7 @@ struct ClientMarketView: View {
                             }
                         }
                     }
-                    ChartCard(title: "The last two years", note: "The medium-term reading over time. Conditions change; today's reading says nothing certain about tomorrow's.") {
+                    PlainSection(title: "The last two years", note: "The medium-term reading over time. Conditions change; today's reading says nothing certain about tomorrow's.") {
                         let dates = m["history"]?["dates"]?.items.compactMap { DayMath.parse($0.str).map(DayMath.date) } ?? []
                         let pts = zip(dates, m["history"]?["intermediate"]?.items ?? []).compactMap { d, v in v.double.map { Pt(date: d, value: $0) } }
                         Chart {
@@ -1166,22 +1475,41 @@ struct ClientMarketView: View {
                     }
                     HStack(spacing: 14) {
                         Button("Explore a what-if with the risk tool") { state.clientTool = .risk }
-                        Button("Full detail (Advisor Mode)") { state.enter(.advisor); state.selection = .roro }.buttonStyle(.plain).foregroundStyle(Color.wealthAccent)
+                        Button("Full detail (Advisor Mode)") { state.enter(.advisor); state.selection = .roro }.buttonStyle(.plain).foregroundStyle(Color.wealthAccentText)
                     }
                     Text("Sources: Federal Reserve Economic Data (FRED) and delayed market prices from Yahoo Finance's unofficial feed. Readings come from a hand-calibrated model that has not been validated as a predictor of returns. This is general market information, not investment advice or a recommendation.")
-                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                } else if roro.running {
-                    ProgressView("Downloading public market and economic data…").frame(maxWidth: .infinity).padding(40)
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                } else if roro.model != nil || !roro.running {
+                    Text("Market data isn't available right now.").font(.wealthAnswer(44)).fixedSize(horizontal: false, vertical: true)
+                    Text(roro.error ?? "It is published every weekday after the US market close. Press Refresh to download it.")
+                        .font(.system(size: 19)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Button { roro.refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }.disabled(roro.running)
                 } else {
-                    Headline(text: "Market data isn't available right now.", caption: roro.error ?? "Press Refresh to download it.")
-                    Button { roro.refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                    ProgressView("Downloading public market and economic data…").frame(maxWidth: .infinity).padding(40)
                 }
-                ClientFootnote().frame(maxWidth: .infinity)
+                ClientFootnote()
             }
-            .padding(26)
-            .frame(maxWidth: 960, alignment: .leading)
+            .padding(.horizontal, 32).padding(.vertical, 28)
+            .frame(maxWidth: 1000, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
         .onAppear { roro.refreshIfStale() }
+    }
+}
+
+/// A titled section separated by a thin rule, for the plain-language pages (no card).
+struct PlainSection<Content: View>: View {
+    let title: String
+    var note: String? = nil
+    @ViewBuilder let content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Eyebrow(text: title)
+            content
+            if let note { Text(note).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+        }
+        .padding(.top, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .top) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
     }
 }
