@@ -14,16 +14,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
 
-/// The app's colors: the original emerald accent on system backgrounds. Names are shared by the views.
+/// The app's colors: warm paper, near-black ink and a forest-green accent in light mode; dark mode
+/// follows the system with matching tones. Mirrors the tokens in web/styles.css. Names are shared by the views.
 extension Color {
-    static let wealthAccent = Color(red: 0.11, green: 0.47, blue: 0.38)
+    /// Fills, bars, chart lines and tinted controls.
+    static let wealthAccent = Color.dynamic(light: 0x1E5A3E, dark: 0x2B8A66)
+    /// The accent for words (links, labels): shaded so it stays readable on paper in both modes.
+    static let wealthAccentText = Color.dynamic(light: 0x1E5A3E, dark: 0x3DB592)
     static let wealthGold = Color.secondary
-    static let wealthPaper = Color(nsColor: .windowBackgroundColor)
-    static let wealthCard = Color(nsColor: .controlBackgroundColor)
+    static let wealthPaper = Color.dynamic(light: 0xF7F6F2, dark: 0x1E1E1E)
+    static let wealthCard = Color.dynamic(light: 0xFFFFFF, dark: 0x2B2B2D)
+    static let wealthInk = Color.dynamic(light: 0x1B1B18, dark: 0xF2F2F2)
     static let wealthHair = Color.primary
-    static let wealthUp = Color.green
-    static let wealthDown = Color.red
-    static let wealthAmber = Color.orange
+    /// Thin rules between rows, and the stronger rule used under inputs.
+    static let wealthRule = Color(nsColor: NSColor(name: nil) { a in
+        a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor.white.withAlphaComponent(0.12) : NSColor(hex: 0xDCD9CF) })
+    static let wealthRuleStrong = Color(nsColor: NSColor(name: nil) { a in
+        a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor.white.withAlphaComponent(0.28) : NSColor(hex: 0xBFBBAE) })
+    static let wealthUp = Color.dynamic(light: 0x1E6A3A, dark: 0x32D74B)
+    static let wealthDown = Color.dynamic(light: 0xA32D26, dark: 0xFF5F57)
+    /// Neutral readings (between the ±20 lines).
+    static let wealthAmber = Color.dynamic(light: 0x9A6206, dark: 0xFF9F0A)
+
+    static func dynamic(light: UInt32, dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { a in NSColor(hex: a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light) })
+    }
 }
 
 extension NSColor {
@@ -35,6 +50,9 @@ extension NSColor {
 extension Font {
     /// Display type for titles and figures (the system font, so it reads like a native tool).
     static func wealthSerif(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight) }
+    /// The serif used for the wordmark and the one-sentence answers (New York, the system serif).
+    /// Source Serif 4 is used on the web; it isn't bundled here, so the Mac app uses the system serif.
+    static func wealthAnswer(_ size: CGFloat, _ weight: Font.Weight = .medium) -> Font { .system(size: size, weight: weight, design: .serif) }
 }
 
 @main
@@ -138,6 +156,9 @@ struct SettingsView: View {
 /// Command-line hooks used by the build's quality checks. They do nothing in normal use.
 ///   --qa-report <folder>   renders sample PDF reports from catalog example inputs, then exits
 ///   --qa-size <w>x<h>      asks for that window size after launch, to check small-window layouts
+///   --qa-screens <folder> [roro.json]  renders the redesigned screens in light and dark to PNGs
+///   --qa-growth-stress     checks the Growth chart rule against growth_schedule over random and edge inputs
+///   --qa-appearance <light|dark>  forces the app's appearance, without changing the system setting
 @MainActor
 enum QAHooks {
     /// --qa-client <folder>: fills every Client Mode tool with sample numbers, renders each screen
@@ -192,8 +213,136 @@ enum QAHooks {
         exit(failures == 0 ? 0 : 1)
     }
 
+    /// --qa-screens <folder> [roro.json]: renders the redesigned screens (client home, Growth blank / example /
+    /// running out, Market Brief, client market view) to PNGs in light and dark mode, then exits.
+    /// The RoRo screens use the given model file (for example Tests/roro_expected.json).
+    static func runScreens(_ folder: URL, roroFile: URL?) {
+        let state = AppState(), roro = RoRoStore()
+        if let roroFile, let d = try? Data(contentsOf: roroFile), let o = try? JSONSerialization.jsonObject(with: d) { roro.model = .from(o) }
+        var failures = 0
+        func shot(_ name: String, _ view: AnyView, width: CGFloat = 1240, height: CGFloat = 900) {
+            for (mode, look) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+                let host = NSHostingView(rootView: view.environmentObject(state).environmentObject(roro)
+                    .frame(width: width, height: height).background(Color.wealthPaper).tint(.wealthAccent))
+                host.frame = NSRect(x: 0, y: 0, width: width, height: height)
+                let win = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+                win.appearance = NSAppearance(named: look)
+                win.contentView = host
+                host.layoutSubtreeIfNeeded()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+                guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { failures += 1; continue }
+                host.cacheDisplay(in: host.bounds, to: rep)
+                guard let png = rep.representation(using: .png, properties: [:]) else { failures += 1; continue }
+                try? png.write(to: folder.appendingPathComponent("\(name)-\(mode).png"))
+            }
+        }
+        let g = GrowthTool.key
+        shot("client-home", AnyView(ClientHome()))
+        shot("growth-blank", AnyView(GrowthTool()))
+        for (k, v) in ["p": "1,000", "m": "100", "r": "0", "y": "2"] { state.setClient(g, k, v) }
+        shot("growth-example", AnyView(GrowthTool()))
+        for (k, v) in ["m": "0", "wd": "100"] { state.setClient(g, k, v) }
+        shot("growth-runout", AnyView(GrowthTool()))
+        for (k, v) in ["p": "250,000", "m": "0", "wd": "1,500", "r": "6", "y": "25"] { state.setClient(g, k, v) }
+        shot("growth-long", AnyView(GrowthTool()))
+        shot("market-brief", AnyView(MarketBriefView()), height: 1000)
+        shot("client-market", AnyView(ClientMarketView()), height: 1000)
+        shot("market-brief-narrow", AnyView(MarketBriefView().frame(width: 600)), height: 1300)
+        // Stress: the smallest window and extreme numbers.
+        shot("min-client-home", AnyView(ClientHome()), width: 600, height: 440)
+        shot("min-client-market", AnyView(ClientMarketView()), width: 600, height: 440)
+        shot("min-market-brief", AnyView(MarketBriefView()), width: 600, height: 440)
+        for (k, v) in ["p": "999,999,999,999", "m": "250,000", "wd": "", "r": "12", "y": "50"] { state.setClient(g, k, v) }
+        shot("stress-huge", AnyView(GrowthTool()))
+        shot("min-growth-huge", AnyView(GrowthTool()), width: 600, height: 1400)
+        for (k, v) in ["p": "2,000,000", "m": "0", "wd": "9,000", "r": "3", "y": "50"] { state.setClient(g, k, v) }
+        shot("stress-late-runout", AnyView(GrowthTool()))
+        for (k, v) in ["p": "100", "m": "0", "wd": "100", "r": "0", "y": "1"] { state.setClient(g, k, v) }
+        shot("stress-month1", AnyView(GrowthTool()))
+        for (k, v) in ["p": "500,000", "m": "0", "wd": "", "r": "-50", "y": "40"] { state.setClient(g, k, v) }
+        shot("stress-negative", AnyView(GrowthTool()))
+        FileHandle.standardOutput.write((failures == 0 ? "screens: PASS\n" : "screens: \(failures) FAILURES\n").data(using: .utf8)!)
+        exit(failures == 0 ? 0 : 1)
+    }
+
+    /// --qa-growth-stress: compares the Growth chart's month-by-month rule with the audited growth_schedule
+    /// calculator over thousands of random and edge-case inputs, and checks the money-box formatting. Exits 1 on any mismatch.
+    static func runGrowthStress() {
+        let state = AppState(), key = GrowthTool.key
+        var failures = 0, cases = 0, hidden = 0, runOuts = 0
+        func say(_ s: String) { FileHandle.standardOutput.write((s + "\n").data(using: .utf8)!) }
+        var rng = SystemRandomNumberGenerator()
+        func pick(_ xs: [String]) -> String { xs.randomElement(using: &rng)! }
+        var inputs: [[String: String]] = [
+            ["p": "1,000", "m": "100", "r": "0", "y": "2", "wd": ""],
+            ["p": "1,000", "m": "0", "r": "0", "y": "2", "wd": "100"],
+            ["p": "0", "m": "0", "r": "5", "y": "1", "wd": "100"],
+            ["p": "1,200", "m": "0", "r": "0", "y": "1", "wd": "100"],          // reaches $0 exactly at the end
+            ["p": "1,000", "m": "50", "r": "0", "y": "3", "wd": "100"],         // deposits keep paying part of it
+            ["p": "999,999,999,999", "m": "0", "r": "12", "y": "50", "wd": ""],
+            ["p": "250,000", "m": "0", "r": "-50", "y": "50", "wd": "1,500"],
+            ["p": "0.01", "m": "0.01", "r": "0.25", "y": "100", "wd": "0.02"],
+            ["p": "500,000", "m": "2,000", "r": "7", "y": "30", "wd": "5,000"],
+        ]
+        for _ in 0..<4000 {
+            inputs.append(["p": pick(["0", "1", "1,000", "25,000", "250,000", "1,000,000", String(Int.random(in: 0...3_000_000))]),
+                           "m": pick(["0", "", "50", "100", "1,000", String(Int.random(in: 0...20_000))]),
+                           "r": pick(["0", "-10", "3", "6", "7.25", "12", "-50", String(format: "%.2f", Double.random(in: -20...20))]),
+                           "y": String(Int.random(in: 1...60)),
+                           "wd": pick(["", "0", "100", "1,500", "10,000", String(Int.random(in: 0...30_000))])])
+        }
+        for inp in inputs {
+            for (k, v) in inp { state.setClient(key, k, v) }
+            guard let c = state.clientRun(key, "growth_schedule", ClientSpec.growth), c.ok else {
+                failures += 1; say("not computed: \(inp)"); continue
+            }
+            cases += 1
+            let num = { (id: String, pct: Bool) -> Double in (try? Engine.parseNumber(c.inputs[id] ?? "", percent: pct)) ?? 0 }
+            let sim = GrowthMonths(p: num("p", false), m: num("m", false), r: num("r", true), years: Int(num("y", false)), wd: num("wd", false))
+            let tol = max(0.01, abs(c.v(0)) * 1e-12)
+            if abs(sim.end - c.v(0)) >= tol || abs(sim.withdrawn - c.v(4)) >= max(0.01, abs(c.v(4)) * 1e-12) {
+                hidden += 1; say("chart would be hidden: \(inp) sim \(sim.end)/\(sim.withdrawn) calc \(c.v(0))/\(c.v(4))")
+            }
+            // The month the balance reaches $0 must fall in or before the calculator's first short year.
+            let calcYear = c.v(5)
+            if let k = sim.runOut {
+                runOuts += 1
+                if calcYear < 0 || Double((k + 11) / 12) > calcYear { failures += 1; say("run-out mismatch: \(inp) month \(k) vs year \(calcYear)") }
+            } else if calcYear >= 0 {
+                failures += 1; say("calculator runs out but chart does not: \(inp) year \(calcYear)")
+            }
+            if sim.bal.contains(where: { $0 < 0 || !$0.isFinite }) { failures += 1; say("negative or non-finite balance: \(inp)") }
+            if sim.bal.count != sim.months + 1 { failures += 1; say("wrong month count: \(inp)") }
+        }
+        // Money-box formatting keeps every typed digit and reads back as the same number.
+        for _ in 0..<3000 {
+            let digits = String((0..<Int.random(in: 1...22)).map { _ in "0123456789".randomElement()! })
+            let dec = Bool.random() ? "." + String((0..<Int.random(in: 0...3)).map { _ in "0123456789".randomElement()! }) : ""
+            let typed = Usd.typing(digits + dec)
+            let back = typed.filter { $0 != "," }
+            var want = String(digits.drop(while: { $0 == "0" })); if want.isEmpty { want = "0" }
+            if !back.hasPrefix(want) { failures += 1; say("typing changed digits: \(digits + dec) → \(typed)") }
+        }
+        for (raw, want) in [("", ""), ("0", "0"), ("000123", "123"), ("1234567", "1,234,567"), ("1,2,3,4", "1,234"), (".5", "0.5"),
+                            ("12.345", "12.34"), ("1.2.3", "1.23"), ("abc", ""), ("$2,500", "2,500"), ("12345678901234567890", "12,345,678,901,234,567,890")] {
+            if Usd.typing(raw) != want { failures += 1; say("typing \(raw) → \(Usd.typing(raw)), expected \(want)") }
+        }
+        say("growth stress: \(cases) cases, \(runOuts) run out, \(hidden) would hide the chart, \(failures) failures")
+        exit(failures == 0 && hidden == 0 ? 0 : 1)
+    }
+
     static func runIfRequested() {
         let args = CommandLine.arguments
+        if args.contains("--qa-growth-stress") { runGrowthStress() }
+        if let i = args.firstIndex(of: "--qa-screens"), i + 1 < args.count {
+            let folder = URL(fileURLWithPath: args[i + 1])
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            runScreens(folder, roroFile: i + 2 < args.count ? URL(fileURLWithPath: args[i + 2]) : nil)
+        }
+        // --qa-appearance light|dark: forces the app's appearance, to check both modes without changing the system setting.
+        if let i = args.firstIndex(of: "--qa-appearance"), i + 1 < args.count {
+            NSApp.appearance = NSAppearance(named: args[i + 1] == "dark" ? .darkAqua : .aqua)
+        }
         // --qa-size <width>x<height>: asks for that window size shortly after launch (the minimum still applies).
         if let i = args.firstIndex(of: "--qa-size"), i + 1 < args.count {
             let p = args[i + 1].split(separator: "x").compactMap { Double($0) }
