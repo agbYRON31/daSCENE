@@ -2180,7 +2180,7 @@
   "aliases": "rmd required minimum distribution ira uniform lifetime",
   "acronym": "RMD",
   "assumptions": "Uses the Uniform Lifetime Table. A spouse more than 10 years younger and sole beneficiary uses the Joint Life table instead. Inherited accounts follow different rules.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax and AMT (each has its own calculator), credits, phase-outs and payroll taxes.",
   "excelNotes": "Excel needs the IRS Uniform Lifetime Table on a sheet named UniformTable (age in column A, factor in column B).",
   "rules": [],
   "common": true,
@@ -2275,7 +2275,7 @@
   "aliases": "401k 403b ira catch up max out limits",
   "acronym": "",
   "assumptions": "Employee deferral limits only; excludes employer contributions, the overall annual-additions limit, Roth IRA income phase-outs, and the Roth catch-up requirement for higher earners.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax and AMT (each has its own calculator), credits, phase-outs and payroll taxes.",
   "excelNotes": "Limits come from the app's dated tax table; there is no Excel formula.",
   "rules": [],
   "common": false,
@@ -3924,7 +3924,7 @@
   "aliases": "brackets marginal effective tax rate state income tax combined",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
   "excelNotes": "Bracket math needs a bracket table in Excel; the app uses its dated tax table.",
   "rules": [],
   "common": true,
@@ -4275,7 +4275,7 @@
   "aliases": "standard deduction itemize state",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI. Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI. Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -4307,6 +4307,181 @@
     {
      "term": "state tax from AGI",
      "meaning": "The state's own deduction and exemptions come off AGI, then its brackets apply."
+    }
+   ]
+  }
+ },
+ {
+  "id": "amt",
+  "name": "Alternative minimum tax (AMT)",
+  "category": "Tax",
+  "fields": [
+   {
+    "id": "ti",
+    "label": "Regular taxable income",
+    "unit": "$",
+    "example": "450000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   },
+   {
+    "id": "ded",
+    "label": "Deduction you took",
+    "unit": "choice",
+    "example": "0",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 0,
+      "label": "Itemized deductions"
+     },
+     {
+      "value": 1,
+      "label": "Standard deduction"
+     }
+    ]
+   },
+   {
+    "id": "salt",
+    "label": "State and local taxes deducted",
+    "unit": "$",
+    "example": "40000",
+    "hint": "Only counts if you itemized: AMT doesn't allow the state and local tax deduction. Enter 0 otherwise.",
+    "min": 0
+   },
+   {
+    "id": "adj",
+    "label": "Other AMT add-backs",
+    "unit": "$",
+    "example": "120000",
+    "hint": "For example the spread on incentive stock options exercised and held, or private-activity bond interest. Enter 0 if none.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "AMT income (AMTI)",
+    "expression": "(ti+if(ded==1,stddeduction(status),salt)+adj)",
+    "format": "currency",
+    "excel": null,
+    "expected": 610000.0
+   },
+   {
+    "id": "1",
+    "label": "AMT exemption after phase-out",
+    "expression": "amtexemption((ti+if(ded==1,stddeduction(status),salt)+adj),status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 140200.0
+   },
+   {
+    "id": "2",
+    "label": "Tentative minimum tax",
+    "expression": "amttax((ti+if(ded==1,stddeduction(status),salt)+adj),status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 126654.0
+   },
+   {
+    "id": "3",
+    "label": "Regular federal income tax",
+    "expression": "incometax(ti,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 96912.0
+   },
+   {
+    "id": "4",
+    "label": "AMT owed (on top of regular tax)",
+    "expression": "max(0,amttax((ti+if(ded==1,stddeduction(status),salt)+adj),status)-incometax(ti,status))",
+    "format": "currency",
+    "excel": null,
+    "expected": 29742.0
+   },
+   {
+    "id": "5",
+    "label": "Total federal income tax",
+    "expression": "max(amttax((ti+if(ded==1,stddeduction(status),salt)+adj),status),incometax(ti,status))",
+    "format": "currency",
+    "excel": null,
+    "expected": 126654.0
+   }
+  ],
+  "math": "AMTI = taxable income + deductions AMT disallows + other add-backs; exemption, reduced by 50% of AMTI over the phase-out threshold; 26% then 28% of the rest; AMT = tentative minimum tax − regular tax",
+  "summary": "Whether the alternative minimum tax applies, and how much it adds to regular federal income tax.",
+  "aliases": "AMT alternative minimum tax ISO incentive stock options exemption phase-out Form 6251 SALT",
+  "acronym": "AMT",
+  "assumptions": "Ordinary income only: no qualified dividends or long-term capital gains (under AMT those keep their 0/15/20% rates, Form 6251 Part III, which isn't modeled). No AMT foreign tax credit and no minimum tax credit carried from earlier years. Head of household uses the unmarried amounts, as the IRS does.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (exemption, phase-out threshold and 28% breakpoint from the revenue procedure). An estimate: credits, capital gains and state AMT are excluded.",
+  "excelNotes": "The exemption, phase-out and 28% breakpoint change every year; the app uses its dated IRS table.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • About Form 6251, Alternative Minimum Tax: Individuals",
+    "url": "https://www.irs.gov/forms-pubs/about-form-6251"
+   },
+   {
+    "title": "IRS • Federal income tax rates and brackets",
+    "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"
+   }
+  ],
+  "explain": {
+   "why": "The alternative minimum tax is a second, flatter tax calculation with fewer deductions. You pay whichever is higher, so AMT only adds to your bill when the tentative minimum tax is above your regular tax. It usually comes from large state and local tax deductions or exercising incentive stock options.",
+   "parts": [
+    {
+     "term": "AMTI",
+     "meaning": "AMT income: regular taxable income with the disallowed deductions added back."
+    },
+    {
+     "term": "deductions AMT disallows",
+     "meaning": "The standard deduction, or (if you itemized) the state and local taxes you deducted."
+    },
+    {
+     "term": "other add-backs",
+     "meaning": "Items AMT taxes but regular tax doesn't, such as the spread on incentive stock options exercised and held."
+    },
+    {
+     "term": "exemption",
+     "meaning": "A fixed amount of AMTI that isn't taxed, set by the IRS each year."
+    },
+    {
+     "term": "reduced by 50%",
+     "meaning": "Every dollar of AMTI over the phase-out threshold cuts the exemption by 50 cents, until it's gone."
+    },
+    {
+     "term": "26% then 28%",
+     "meaning": "The two AMT rates: 26% up to the year's breakpoint, 28% above it."
+    },
+    {
+     "term": "tentative minimum tax − regular tax",
+     "meaning": "The AMT itself: zero when regular tax is already higher."
     }
    ]
   }
@@ -4728,7 +4903,7 @@
   "aliases": "capital gains qualified dividends 15% 20% state",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. NIIT is a separate calculator. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes. Most states tax gains as ordinary income; this follows each state's own treatment where it differs (exclusions in Arizona, Arkansas, New Mexico, North Dakota, South Carolina and Wisconsin; Hawaii's 7.25% cap; Montana's lower rates; no tax in Missouri; Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax).",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. NIIT is a separate calculator. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes. Most states tax gains as ordinary income; this follows each state's own treatment where it differs (exclusions in Arizona, Arkansas, New Mexico, North Dakota, South Carolina and Wisconsin; Hawaii's 7.25% cap; Montana's lower rates; no tax in Missouri; Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax).",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -4832,7 +5007,7 @@
   "aliases": "3.8% surtax medicare investment",
   "acronym": "NIIT",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax and AMT (each has its own calculator), credits, phase-outs and payroll taxes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -5281,7 +5456,7 @@
   "aliases": "fill the bracket conversion state",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -11709,7 +11884,7 @@
   "aliases": "estate tax exemption gift portability",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax, AMT, credits, phase-outs and payroll taxes. Uses the top 40% rate as an approximation; state estate taxes are excluded.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes state tax and AMT (each has its own calculator), credits, phase-outs and payroll taxes. Uses the top 40% rate as an approximation; state estate taxes are excluded.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,

@@ -157,6 +157,20 @@ def stddeduction(status):
     return TAX["standardDeduction"][str(int(status))]
 
 
+# ── Alternative minimum tax (IRC §55; Rev. Proc. figures in taxdata.json "amt") ──────
+def amtexemption(amti, status):
+    """Exemption after the phase-out: reduced by phaseoutRate of AMTI above the threshold."""
+    a, k = TAX["amt"], str(int(status))
+    return max(0.0, a["exemption"][k] - a["phaseoutRate"] * max(0.0, amti - a["phaseoutStart"][k]))
+
+
+def amttax(amti, status):
+    """Tentative minimum tax: 26% of the excess over the exemption up to rateBreak, 28% above."""
+    a = TAX["amt"]
+    base = max(0.0, amti - amtexemption(amti, status))
+    return a["rates"][0] * min(base, a["rateBreak"]) + a["rates"][1] * max(0.0, base - a["rateBreak"])
+
+
 # ── State income tax (see tools/state_tax_data.py for the model and sources) ─────────
 def _state(st):
     st = int(st)
@@ -594,7 +608,7 @@ FUNCS = {
     "fv": fv, "pv": pv, "rate": rate, "pmt": pmt, "nper": nper, "npv": npv, "irr": irr,
     "incometax": incometax, "margrate": margrate, "bracketroom": bracketroom,
     "statetax": statetax, "statemarg": statemarg, "stategaintax": stategaintax,
-    "stddeduction": stddeduction, "ltcgtax": ltcgtax, "niitthreshold": niitthreshold,
+    "stddeduction": stddeduction, "amtexemption": amtexemption, "amttax": amttax, "ltcgtax": ltcgtax, "niitthreshold": niitthreshold,
     "rmdfactor": rmdfactor, "limit401k": limit401k, "limitira": limitira,
     "giftexclusion": lambda: TAX["giftAnnualExclusion"],
     "estateexemption": lambda: TAX["estateExemption"],
@@ -883,7 +897,9 @@ DEFAULT_INTERP = ("This is a mathematical result under the stated assumptions, n
 EXCEL_NOTES = ("Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, "
                "so some formulas carry a minus sign to show a positive result.")
 TAX_INTERP = ("Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). "
-              "Excludes state tax, AMT, credits, phase-outs and payroll taxes.")
+              "Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes.")
+# For federal-only calculators (no state input).
+TAX_INTERP_FED = TAX_INTERP.replace("Excludes AMT (it has its own calculator)", "Excludes state tax and AMT (each has its own calculator)")
 
 HINTS = {
     "$": "Dollar amount; k and m suffixes work (250k, 1.2m).",
@@ -902,6 +918,7 @@ SRC = {
     "brackets": {"title": "IRS • Federal income tax rates and brackets", "url": "https://www.irs.gov/filing/federal-income-tax-rates-and-brackets"},
     "capgains": {"title": "IRS • Topic 409, Capital gains and losses", "url": "https://www.irs.gov/taxtopics/tc409"},
     "states": {"title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)", "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"},
+    "amt": {"title": "IRS • About Form 6251, Alternative Minimum Tax: Individuals", "url": "https://www.irs.gov/forms-pubs/about-form-6251"},
     "niit": {"title": "IRS • Net investment income tax", "url": "https://www.irs.gov/individuals/net-investment-income-tax"},
     "rmd": {"title": "IRS • Publication 590-B (distributions from IRAs)", "url": "https://www.irs.gov/publications/p590b"},
     "401k": {"title": "IRS • 401(k) contribution limits", "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-401k-and-profit-sharing-plan-contribution-limits"},
@@ -1216,7 +1233,7 @@ calc("rmd", "Required minimum distribution", RET,
      "Minimum withdrawal from IRAs and similar accounts using the IRS Uniform Lifetime Table.",
      "rmd required minimum distribution ira uniform lifetime", acronym="RMD",
      assumptions="Uses the Uniform Lifetime Table. A spouse more than 10 years younger and sole beneficiary uses the Joint Life table instead. Inherited accounts follow different rules.",
-     interpretation=TAX_INTERP, sources=["rmd"], common=True,
+     interpretation=TAX_INTERP_FED, sources=["rmd"], common=True,
      excelNotes="Excel needs the IRS Uniform Lifetime Table on a sheet named UniformTable (age in column A, factor in column B).")
 
 calc("contrib_limits", "Contribution limits (401(k) and IRA)", RET,
@@ -1230,7 +1247,7 @@ calc("contrib_limits", "Contribution limits (401(k) and IRA)", RET,
      "Employee 401(k)/403(b) deferral and IRA limits for the tax year, including catch-up contributions.",
      "401k 403b ira catch up max out limits",
      assumptions="Employee deferral limits only; excludes employer contributions, the overall annual-additions limit, Roth IRA income phase-outs, and the Roth catch-up requirement for higher earners.",
-     interpretation=TAX_INTERP, sources=["401k", "ira"],
+     interpretation=TAX_INTERP_FED, sources=["401k", "ira"],
      excelNotes="Limits come from the app's dated tax table; there is no Excel formula.")
 
 calc("employer_match", "Employer match", RET,
@@ -1396,6 +1413,31 @@ calc("taxable_income", "Taxable income from gross income", TX,
      "standard deduction itemize state", interpretation=TAX_INTERP + STATE_NOTE.replace(" (estimated as taxable income plus the federal standard deduction)", ""),
      sources=["brackets", "states"])
 
+A_MTI = "(ti+if(ded==1,stddeduction(status),salt)+adj)"   # AMT income (Form 6251, simplified)
+calc("amt", "Alternative minimum tax (AMT)", TX,
+     [F("ti", "Regular taxable income", "$", "450000"), STATUS(),
+      F("ded", "Deduction you took", "choice", "0", options=[{"value": 0, "label": "Itemized deductions"}, {"value": 1, "label": "Standard deduction"}]),
+      F("salt", "State and local taxes deducted", "$", "40000",
+        hint="Only counts if you itemized: AMT doesn't allow the state and local tax deduction. Enter 0 otherwise."),
+      F("adj", "Other AMT add-backs", "$", "120000",
+        hint="For example the spread on incentive stock options exercised and held, or private-activity bond interest. Enter 0 if none.")],
+     [O("0", "AMT income (AMTI)", A_MTI, "currency"),
+      O("1", "AMT exemption after phase-out", f"amtexemption({A_MTI},status)", "currency"),
+      O("2", "Tentative minimum tax", f"amttax({A_MTI},status)", "currency"),
+      O("3", "Regular federal income tax", "incometax(ti,status)", "currency"),
+      O("4", "AMT owed (on top of regular tax)", f"max(0,amttax({A_MTI},status)-incometax(ti,status))", "currency"),
+      O("5", "Total federal income tax", f"max(amttax({A_MTI},status),incometax(ti,status))", "currency")],
+     "AMTI = taxable income + deductions AMT disallows + other add-backs; exemption, reduced by 50% of AMTI over the phase-out threshold; 26% then 28% of the rest; AMT = tentative minimum tax − regular tax",
+     "Whether the alternative minimum tax applies, and how much it adds to regular federal income tax.",
+     "AMT alternative minimum tax ISO incentive stock options exemption phase-out Form 6251 SALT", acronym="AMT",
+     assumptions=("Ordinary income only: no qualified dividends or long-term capital gains (under AMT those keep their 0/15/20% rates, "
+                  "Form 6251 Part III, which isn't modeled). No AMT foreign tax credit and no minimum tax credit carried from earlier years. "
+                  "Head of household uses the unmarried amounts, as the IRS does."),
+     interpretation=("Uses the IRS figures for the tax year selected in the app (exemption, phase-out threshold and 28% breakpoint from the "
+                     "revenue procedure). An estimate: credits, capital gains and state AMT are excluded."),
+     sources=["amt", "brackets"],
+     excelNotes="The exemption, phase-out and 28% breakpoint change every year; the app uses its dated IRS table.")
+
 calc("after_tax_return", "After-tax return", TX,
      [F("r", "Pre-tax return", "%", "6", min=-0.99), F("t", "Tax rate on the return", "%", "32", max=1, hint=RATE_HINT)],
      [O("0", "After-tax return", "r*(1-t)", "percent", "={r}*(1-{t})")],
@@ -1428,7 +1470,7 @@ calc("niit", "Net investment income tax", TX,
       O("1", "Amount over the threshold", "max(0,magi-niitthreshold(status))", "currency")],
      "3.8% × lesser of investment income or MAGI over the threshold",
      "Medicare surtax on investment income for higher earners.",
-     "3.8% surtax medicare investment", acronym="NIIT", interpretation=TAX_INTERP, sources=["niit"])
+     "3.8% surtax medicare investment", acronym="NIIT", interpretation=TAX_INTERP_FED, sources=["niit"])
 
 calc("roth_vs_trad", "Roth vs. traditional contribution", TX,
      [F("c", "Pre-tax dollars available", "$", "10000"), F("tn", "Tax rate today", "%", "32", max=1, hint=RATE_HINT),
@@ -2186,7 +2228,7 @@ calc("estate_exposure", "Estate tax exposure", PL,
       O("2", "Approximate federal estate tax", "estaterate()*max(0,e-max(0,estateexemption()*m-g))", "currency"),
       O("3", "Annual gift exclusion per recipient", "giftexclusion()", "currency")],
      "Top rate × (estate − remaining exemption)", "Rough federal estate tax exposure using the current exemption.",
-     "estate tax exemption gift portability", interpretation=TAX_INTERP + " Uses the top 40% rate as an approximation; state estate taxes are excluded.",
+     "estate tax exemption gift portability", interpretation=TAX_INTERP_FED + " Uses the top 40% rate as an approximation; state estate taxes are excluded.",
      sources=["estate", "gift"])
 
 calc("debt_vs_invest", "Pay down debt or invest", PL,

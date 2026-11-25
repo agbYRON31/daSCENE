@@ -10,6 +10,15 @@ public struct TaxTable: Codable {
         public let iraCatchUp50: Double
     }
 
+    /// Alternative minimum tax figures (IRC §55) from the IRS revenue procedure.
+    public struct AMT: Codable {
+        public let exemption: [String: Double]
+        public let phaseoutStart: [String: Double]
+        public let phaseoutRate: Double
+        public let rateBreak: Double
+        public let rates: [Double]
+    }
+
     public let taxYear: Int
     /// Date (YYYY-MM-DD) these figures were checked against the IRS sources.
     public let verifiedOn: String
@@ -24,6 +33,7 @@ public struct TaxTable: Codable {
     public let ltcgThresholds: [String: [Double]]
     public let niitThreshold: [String: Double]
     public let niitRate: Double
+    public let amt: AMT
     public let limits: Limits
     public let giftAnnualExclusion: Double
     public let estateExemption: Double
@@ -88,6 +98,18 @@ public struct TaxTable: Codable {
     }
 
     public func niitThreshold(_ status: Double) throws -> Double { niitThreshold[try key(status)]! }
+
+    /// AMT exemption after the phase-out (same rule as amtexemption in tools/build_catalog.py).
+    public func amtExemption(_ amti: Double, _ status: Double) throws -> Double {
+        let k = try key(status)
+        return Swift.max(0, amt.exemption[k]! - amt.phaseoutRate * Swift.max(0, amti - amt.phaseoutStart[k]!))
+    }
+
+    /// Tentative minimum tax: lower rate up to rateBreak of the excess over the exemption, higher rate above.
+    public func amtTax(_ amti: Double, _ status: Double) throws -> Double {
+        let base = Swift.max(0, amti - (try amtExemption(amti, status)))
+        return amt.rates[0] * Swift.min(base, amt.rateBreak) + amt.rates[1] * Swift.max(0, base - amt.rateBreak)
+    }
 
     public func rmdFactor(_ age: Double) throws -> Double {
         guard let f = uniformLifetime[String(Int(age))] else {

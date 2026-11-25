@@ -175,6 +175,24 @@ for (year, byStatus) in irsBase.sorted(by: { $0.key < $1.key }) {
     }
     expect(!table.sources.isEmpty && table.verifiedOn.count == 10, "\(year) table cites IRS sources and a verification date")
 }
+// AMT vs. the revenue procedures (2026: Rev. Proc. 2025-32 §2.10; 2027: Rev. Proc. 2026-35 §3.11): full exemption at the
+// printed threshold, none at the printed complete-phaseout amount, and Form 6251's 28% shortcut above the breakpoint.
+let irsAMT: [Int: (breakpoint: Double, rows: [Int: (exemption: Double, threshold: Double, complete: Double)])] = [
+    2026: (244_500, [1: (90_100, 500_000, 680_200), 2: (140_200, 1_000_000, 1_280_400), 3: (90_100, 500_000, 680_200)]),
+    2027: (252_500, [1: (93_000, 515_950, 701_950), 2: (144_700, 1_031_900, 1_321_300), 3: (93_000, 515_950, 701_950)]),
+]
+for (year, irs) in irsAMT.sorted(by: { $0.key < $1.key }) {
+    guard let table = taxData.table(for: year) else { continue }
+    for (status, r) in irs.rows.sorted(by: { $0.key < $1.key }) {
+        let st = Double(status)
+        let ok = (try? table.amtExemption(r.threshold, st)) == r.exemption && (try? table.amtExemption(r.complete, st)) == 0
+            && (try? table.amtExemption(r.complete - 2, st)) == 1
+        expect(ok, "\(year) status \(status) AMT exemption phases out between the IRS's printed amounts")
+        let amti = r.complete + 400_000   // no exemption left; well above the breakpoint
+        expect(abs(((try? table.amtTax(amti, st)) ?? 0) - (amti * 0.28 - irs.breakpoint * 0.02)) < 0.005,
+               "\(year) status \(status) tentative minimum tax matches Form 6251's 28% shortcut")
+    }
+}
 // Selecting a tax year changes the figures; unknown years are refused.
 let switcher = Engine(calculators: [], taxData: taxData, year: 2026)
 expect(switcher.tax.standardDeduction["2"] == 32_200, "2026 MFJ standard deduction")
@@ -184,12 +202,12 @@ expect(taxData.defaultYear(today: ISO8601DateFormatter().date(from: "2026-11-10T
 expect(taxData.defaultYear(today: ISO8601DateFormatter().date(from: "2031-03-01T12:00:00Z")!) == taxData.latestYear, "default year falls back to newest")
 
 // IRS.gov launch check
-let newsroom = "<li><a href=\"/x\">IRS releases tax inflation adjustments for tax year 2027; taxpayers continue to benefit</a></li><li>IR-2025-111, 401(k) limit increases to $24,500 for 2026, IRA limit increases to $7,500</li><li>IRS provides tax inflation adjustments for tax year 2024</li>"
+let newsroom = "<li><a href=\"/x\">IRS releases tax inflation adjustments for tax year 2027; taxpayers continue to benefit</a></li><li>IR-2026-136, 401(k) limit increases to $25,500 for 2027, IRA limit remains $7,500</li><li>IRS provides tax inflation adjustments for tax year 2024</li>"
 let pub = IRSCheck.parse(html: newsroom)
-expect(pub == IRSCheck.Published(taxYear: 2027, limitsYear: 2026), "IRS page parse: newest tax and limits years (\(pub))")
+expect(pub == IRSCheck.Published(taxYear: 2027, limitsYear: 2027), "IRS page parse: newest tax and limits years (\(pub))")
 expect(IRSCheck.compare(pub, data: taxData) == [.upToDate], "loaded data is current against that page")
-let future = IRSCheck.Published(taxYear: 2028, limitsYear: 2027)
-expect(IRSCheck.compare(future, data: taxData) == [.newerTaxYear(published: 2028, loaded: 2027), .newerLimits(published: 2027, loaded: 2026)],
+let future = IRSCheck.Published(taxYear: 2028, limitsYear: 2028)
+expect(IRSCheck.compare(future, data: taxData) == [.newerTaxYear(published: 2028, loaded: 2027), .newerLimits(published: 2028, loaded: 2027)],
        "newer IRS releases are flagged")
 expect(IRSCheck.parse(html: "<p>nothing here</p>") == IRSCheck.Published(), "page without releases parses to nothing")
 

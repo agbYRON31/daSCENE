@@ -37,12 +37,20 @@ Fixed in follow-up: offline detection no longer retries every series; age axes o
 - Results that were "not a number" could display as "n/a"; they now show an explanation.
 - Chart axes for projections started at zero.
 
+## Follow-up (2026-11-19)
+
+| Area | How | Result |
+| --- | --- | --- |
+| Full check run on `main` | `wdcheck`, `web/build.sh --full` (web self-test, parity, scenario interop, stock screen, live RoRo and Markets) | 614 + 431 checks pass; 30,368 values identical across engines; live RoRo built |
+| 2027 retirement limits | Read IR-2026-136 / Notice 2026-66 (Nov 12, 2026); 2027 table now carries its own limits | Pass |
+| AMT calculator (new) | `tools/audit.py`: 48 cases against the Rev. Proc. 2025-32 printed amounts and Form 6251's shortcut; `wdcheck`: both years' exemption phase-out and 28% breakpoint vs. the printed amounts; web parity | Pass |
+
 ## Not tested, or limitations
 - **Not notarized, no Developer ID.** No Apple Developer credentials were available, so the app is ad-hoc signed. Other Macs will show a Gatekeeper warning; firm-managed Macs will likely block it. `build_app.sh` signs and notarizes when credentials are supplied.
 - **Not tested on a clean Mac** or on macOS 13/14; it was built and run on one Mac (macOS 15.7, Apple silicon). The Intel build passed its self-tests under Rosetta but its UI was not exercised.
 - **Not exercised by hand:** the password-protected scenario save/open dialogs (the encryption itself is unit-tested) and the Intel build's UI.
 - **Yahoo Finance is an unofficial, unlicensed feed** (see `docs/DATA_SOURCES.md`).
-- **Tax scope:** federal only; no state tax, AMT, credits or phase-outs. 2027 retirement-plan limits were unpublished and use 2026 values (flagged in the app).
+- **Tax scope:** federal brackets, AMT (ordinary income only; capital gains under AMT and AMT credits aren't modeled) and state income tax estimates (no local taxes; each state's notes list what's left out). No credits, most phase-outs or payroll taxes.
 - **RoRo** is a hand-calibrated model, not validated as a return predictor. The app never converts its scores into return estimates.
 - **Removed on purpose:** automatic saving of inputs/history/scenarios, the "export/import saved work" commands (replaced by explicit scenario files), and the always-running menu-bar icon (closing the window now quits and clears the session).
 - **No compliance approval.** Nothing here has been reviewed by Morgan Stanley. Real client information should not be entered until the firm approves the tool.

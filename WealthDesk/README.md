@@ -3,7 +3,7 @@
 A native macOS app for financial education and illustration. Independent software: not affiliated with, endorsed by, or approved by Morgan Stanley or any other firm.
 
 - **Client Mode:** five plain-language tools with sliders and charts (growth, retirement, risk, decisions, taxes and inflation).
-- **Advisor Mode:** four destinations. **Market Brief** (the landing page: the RoRo Composite's overall reading, as-of date and three horizon scores, with factors, history and methodology one click deeper), **Stock research** (one ticker: overview, financials, valuation and filings tabs), **Calculators** (109 calculators with formulas, assumptions, Excel equivalents and sources; most-used first, everyday math folded away, all searchable) and **Client Mode**. Retirement, portfolio stress and growth calculators have **Present to client**, which opens the matching Client Mode tool with the same numbers. Tools: Treasury yields and quotes, a scientific calculator, session scenarios and history.
+- **Advisor Mode:** four destinations. **Market Brief** (the landing page: the RoRo Composite's overall reading, as-of date and three horizon scores, with factors, history and methodology one click deeper), **Stock research** (one ticker: overview, financials, valuation and filings tabs), **Calculators** (110 calculators with formulas, assumptions, Excel equivalents and sources; most-used first, everyday math folded away, all searchable) and **Client Mode**. Retirement, portfolio stress and growth calculators have **Present to client**, which opens the matching Client Mode tool with the same numbers. Tools: Treasury yields and quotes, a scientific calculator, session scenarios and history.
 - **Privacy by design:** calculators open blank. Typed numbers live in memory only and are erased on quit. Nothing typed is ever transmitted. Scenario files (optionally AES-256 password-protected) and PDF reports are written only when the user chooses, where they choose. The app is sandboxed: network client access and user-selected files only.
 - **Accuracy:** every calculator is independently audited (`docs/ACCURACY_AUDIT.md`), and the shipped engine is checked against the reference on every build (`wdcheck`).
 
@@ -22,14 +22,14 @@ During development: `swift run WealthDesk` (app) and `swift run wdcheck` (self-t
 
 ## Web version (Windows, Linux, phones)
 
-`web/` is a browser version for people without a Mac, laid out like the app: the start screen, Advisor Mode (sidebar, all 109 calculators, Calculator, Markets, RoRo Composite, session scenarios and history) and Client Mode. It reads the same `catalog.json` and `taxdata.json`, and `web/engine.js` is a line-by-line port of `Sources/WealthCore`.
+`web/` is a browser version for people without a Mac, laid out like the app: the start screen, Advisor Mode (sidebar, all 110 calculators, Calculator, Markets, RoRo Composite, session scenarios and history) and Client Mode. It reads the same `catalog.json` and `taxdata.json`, and `web/engine.js` is a line-by-line port of `Sources/WealthCore`.
 
 How it's checked:
 
 | Check | What it proves |
 | --- | --- |
 | `web/check.mjs` | The web `wdcheck`: every catalog example matches its Python-computed expected value (Monte Carlo included: same SplitMix64 stream), plus parser and IRS bracket checks. |
-| `web/parity.mjs` | Thousands of generated inputs per run across all 109 calculators (variations, every input style, invalid and edge-case entries) give the same field errors, rule errors, outputs and tables as the Swift engine (`swift run wdparity`). |
+| `web/parity.mjs` | Thousands of generated inputs per run across all 110 calculators (variations, every input style, invalid and edge-case entries) give the same field errors, rule errors, outputs and tables as the Swift engine (`swift run wdparity`). |
 | `web/scenario-check.mjs` | Scenario files, plain and password-protected, open both ways between the web and the app. |
 
 Browsers can't reach Yahoo, FRED or Treasury.gov directly, so RoRo and Markets on the web come from a scheduled build: each weekday after the US close, GitHub Actions runs the app's own engine (`roro fetch/build/meta/markets`) on a Mac runner and publishes the results with the site. The Mac app still fetches live and lets you add watchlist symbols. PDF reports use the browser's print dialog. Preferences (favorites, tax year, calculator mode) are kept in the browser; calculator inputs are memory-only and gone when the tab closes.
@@ -82,14 +82,16 @@ python3 -m venv .venv && .venv/bin/pip install pandas numpy
 Every figure in `taxdata.json` was checked against the IRS documents listed in its `sources` on its `verifiedOn` date:
 
 - **2026:** Rev. Proc. 2025-32, Notice 2025-67, Pub. 590-B App. B, and the IRS NIIT page.
-- **2027:** Rev. Proc. 2026-35 (IR-2026-133, Nov 5, 2026). The IRS hadn't announced 2027 401(k)/IRA limits as of Nov 10, 2026, so the 2027 table uses the 2026 limits and says so in the app.
+- **2027:** Rev. Proc. 2026-35 (IR-2026-133, Nov 5, 2026) and Notice 2026-66 (IR-2026-136, Nov 12, 2026: 401(k) $25,500, catch-up $8,500, ages 60–63 $11,750; IRA $7,500, catch-up $1,100).
 
-`wdcheck` checks the bracket tables against the IRS's printed base amounts ("$206,583.50 plus 37%…") for every year and filing status.
+Each year also carries the AMT exemption, phase-out threshold (50% phase-out rate) and 28% breakpoint from its Rev. Proc.
+
+`wdcheck` checks the bracket tables against the IRS's printed base amounts ("$206,583.50 plus 37%…") for every year and filing status, and the AMT figures against the printed threshold and complete-phaseout amounts.
 
 **At launch** (at most once a day, toggle in Settings) the app reads the IRS.gov newsroom and inflation-adjustment pages. If the IRS has published a newer tax year or newer 401(k)/IRA limits than `taxdata.json` contains, it warns on every tax calculator and in Settings. To update:
 
 1. Add a table for the new year from the new Rev. Proc. and retirement-limit notice, with `sources` and `verifiedOn`.
-2. Add that year's base amounts to the IRS check in `Sources/wdcheck/main.swift`.
+2. Add that year's base amounts and AMT amounts to the IRS checks in `Sources/wdcheck/main.swift`.
 3. Run `./build_app.sh`.
 
 The tax year defaults to the current calendar year. You can pick another year on any tax calculator or in Settings.
@@ -99,7 +101,7 @@ The tax year defaults to the current calendar year. You can pick another year on
 1. Add a `calc(...)` entry in `tools/build_catalog.py` (example inputs are required: they become the self-test).
 2. `./build_app.sh`. If the Swift and Python implementations disagree, the build stops.
 
-Formula language: `+ - * / ^`, comparisons, `if(c,a,b)`, element-wise list math, and `fv pv pmt nper rate npv irr bondprice bondytm macdur bondconvexity min max abs sqrt ln exp floor ceil sum count avg sumproduct topsum median var sd cov corr dw normcdf norminv tcdf tinv fcdf binompmf binomcdf nan pi`, plus the scientific functions above plus tax-table lookups (`incometax margrate bracketroom stddeduction ltcgtax niitthreshold niitrate rmdfactor limit401k limitira giftexclusion estateexemption estaterate`).
+Formula language: `+ - * / ^`, comparisons, `if(c,a,b)`, element-wise list math, and `fv pv pmt nper rate npv irr bondprice bondytm macdur bondconvexity min max abs sqrt ln exp floor ceil sum count avg sumproduct topsum median var sd cov corr dw normcdf norminv tcdf tinv fcdf binompmf binomcdf nan pi`, plus the scientific functions above plus tax-table lookups (`incometax margrate bracketroom stddeduction amtexemption amttax ltcgtax niitthreshold niitrate rmdfactor limit401k limitira giftexclusion estateexemption estaterate statetax statemarg stategaintax`).
 
 ## Data and privacy
 
