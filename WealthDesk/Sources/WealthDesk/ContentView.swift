@@ -255,6 +255,13 @@ struct SidebarView: View {
                 let results = CatalogLoader.search(state.search, in: state.calculators)
                 let pages = Self.pages.filter { ($0.title + " " + $0.words).localizedCaseInsensitiveContains(state.search.trimmingCharacters(in: .whitespaces)) }
                 Section("Results") {
+                    if !results.isEmpty {
+                        Button {
+                            state.calcQuery = state.search.trimmingCharacters(in: .whitespaces)
+                            state.selection = .calculators
+                        } label: { Label("Show \(results.count) formula\(results.count == 1 ? "" : "s")", systemImage: "function") }
+                        .buttonStyle(.plain)
+                    }
                     if results.isEmpty && pages.isEmpty {
                         Text("No matches").foregroundStyle(.secondary)
                     }

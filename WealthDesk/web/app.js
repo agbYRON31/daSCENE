@@ -28,6 +28,7 @@ let S = freshSession();
 let engine = null;
 const data = { roro: undefined, meta: null, markets: undefined, tickers: undefined };
 let searchText = "";
+let calcQuery = "";          // the Calculators page search, kept while moving between pages
 
 const app = document.getElementById("app");
 let charts = [];
@@ -342,7 +343,9 @@ function sidebar(selected) {
       const ql = q.toLowerCase();
       const pages = [...SIDE, ...SIDE_TOOLS.map(([id, label, ic]) => [id, label, ic, `#/advisor/${id}`])]
         .filter(([id, label]) => (label + " " + (PAGE_WORDS[id] || "")).toLowerCase().includes(ql));
-      fill(list, h("div", { class: "sb-sec", text: "Results" }),
+      fill(list, hits.length ? h("a", { class: "sb-row big", href: "#/advisor/calculators", onclick: () => { calcQuery = q; } },
+          icon("table"), h("span", { class: "grow", text: `Show ${hits.length} formula${hits.length === 1 ? "" : "s"}` })) : null,
+        h("div", { class: "sb-sec", text: "Results" }),
         pages.map(([id, label, ic, href]) => h("a", { class: "sb-row", href }, icon(ic), h("span", { class: "grow", text: label }))),
         hits.map(row), !hits.length && !pages.length ? h("div", { class: "sb-row secondary", text: "No matches" }) : null);
       return;
@@ -546,15 +549,35 @@ function advisorHome() {
 }
 const marketWordFor = (v) => (v === null || v === undefined || Number.isNaN(v) ? "" : v >= 20 ? "Offense" : v <= -20 ? "Defense" : "Neutral");
 
+// Every calculator matching a keyword, grouped by category, each with its formula, so a word like
+// "medicare" or "tax" pulls up the equations themselves. Click one to open it.
+function formulaList(q) {
+  const hits = search(q, engine.calculators);
+  if (!hits.length) return h("p", { class: "secondary", text: "No calculator matches that. Try a shorter word." });
+  const groups = [];
+  for (const c of hits) {
+    let g = groups.find((x) => x.cat === c.category);
+    if (!g) groups.push(g = { cat: c.category, list: [] });
+    g.list.push(c);
+  }
+  return h("div", { class: "formulas" },
+    h("p", { class: "secondary", text: `${hits.length} formula${hits.length === 1 ? "" : "s"} for “${q}”` }),
+    groups.map((g) => h("section", { class: "fgroup" },
+      h("h2", { class: "eyebrow", text: `${g.cat} · ${g.list.length}` }),
+      g.list.map((c) => h("a", { class: "frow", href: `#/advisor/${c.id}` },
+        h("div", { class: "fhead" }, h("strong", { text: c.name }), c.acronym ? h("span", { class: "acr", text: c.acronym }) : null),
+        h("code", { class: "fmath", text: c.math }),
+        h("span", { class: "fsum", text: c.summary }))))));
+}
+
 function calculatorsPage() {
   const link = (c) => h("a", { href: `#/advisor/${c.id}`, title: c.summary }, h("span", { class: "grow", text: c.name }),
     PRESENT[c.id] ? h("span", { class: "tertiary", title: "Has a Client Mode view", style: "display:inline-flex" }, icon("people")) : null, icon("chevron"));
   const results = h("div");
   const paint = (q) => {
+    calcQuery = q;
     if (q.trim()) {
-      const hits = search(q.trim(), engine.calculators);
-      fill(results, h("div", { class: "cat" }, h("h2", { text: `${hits.length} match${hits.length === 1 ? "" : "es"}` }),
-        hits.length ? h("div", { class: "catgrid" }, hits.map(link)) : h("p", { class: "secondary", text: "No calculator matches that. Try a shorter word." })));
+      fill(results, formulaList(q.trim()));
       return;
     }
     const frequent = FREQUENT.map((id) => engine.calculator(id)).filter(Boolean);
@@ -568,8 +591,9 @@ function calculatorsPage() {
       cats.filter((c) => TUCKED.includes(c)).map((cat) => h("details", { class: "cat tucked" }, h("summary", {}, h("h2", { text: `${cat} (${engine.calculators.filter((c) => c.category === cat).length})` })),
         h("div", { class: "catgrid" }, engine.calculators.filter((c) => c.category === cat).map(link)))));
   };
-  const input = h("input", { type: "search", placeholder: `Search all ${engine.calculators.length} calculators`, "aria-label": "Search calculators", oninput: () => paint(input.value) });
-  paint("");
+  const input = h("input", { type: "search", placeholder: `Type a keyword (medicare, tax, bond…) to list its formulas`, "aria-label": "Search calculators and formulas",
+    value: calcQuery, oninput: () => paint(input.value) });
+  paint(calcQuery);
   return {
     title: "Calculators", subtitle: "Advisor Mode",
     body: h("div", { class: "page wide" },

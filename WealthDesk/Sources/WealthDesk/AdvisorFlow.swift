@@ -262,7 +262,6 @@ struct ScoreMeter: View {
 
 struct CalculatorsView: View {
     @EnvironmentObject var state: AppState
-    @State private var query = ""
 
     var body: some View {
         ScrollView {
@@ -274,18 +273,16 @@ struct CalculatorsView: View {
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Search all \(state.calculators.count) calculators", text: $query).textFieldStyle(.plain)
+                    TextField("Type a keyword (medicare, tax, bond…) to list its formulas", text: $state.calcQuery).textFieldStyle(.plain)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7)
                 .background(Color.wealthCard, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.12)))
                 .frame(maxWidth: 520)
 
-                let q = query.trimmingCharacters(in: .whitespaces)
+                let q = state.calcQuery.trimmingCharacters(in: .whitespaces)
                 if !q.isEmpty {
-                    let hits = CatalogLoader.search(q, in: state.calculators)
-                    section(hits.count == 1 ? "1 match" : "\(hits.count) matches", hits)
-                    if hits.isEmpty { Text("No calculator matches that. Try a shorter word.").foregroundStyle(.secondary) }
+                    FormulaList(query: q)
                 } else {
                     section("Frequently used", AdvisorFlow.frequent.compactMap { state.calculator($0) })
                     let favs = state.prefs.favorites.compactMap { state.calculator($0) }
@@ -354,6 +351,52 @@ struct MoreAssumptions<Content: View>: View {
             }.padding(.top, 8)
         } label: {
             Text("More assumptions").font(.subheadline.weight(.semibold))
+        }
+    }
+}
+
+/// Every calculator matching a keyword, grouped by category, each with its formula, so a word like
+/// "medicare" or "tax" pulls up the equations themselves. Mirrors formulaList() in web/app.js.
+struct FormulaList: View {
+    @EnvironmentObject var state: AppState
+    let query: String
+
+    var body: some View {
+        let hits = CatalogLoader.search(query, in: state.calculators)
+        var groups: [(String, [Calculator])] = []
+        for c in hits {
+            if let i = groups.firstIndex(where: { $0.0 == c.category }) { groups[i].1.append(c) } else { groups.append((c.category, [c])) }
+        }
+        return VStack(alignment: .leading, spacing: 18) {
+            if hits.isEmpty {
+                Text("No calculator matches that. Try a shorter word.").foregroundStyle(.secondary)
+            } else {
+                Text("\(hits.count) formula\(hits.count == 1 ? "" : "s") for “\(query)”").foregroundStyle(.secondary)
+                ForEach(groups, id: \.0) { cat, list in
+                    VStack(alignment: .leading, spacing: 0) {
+                        Eyebrow(text: "\(cat) · \(list.count)").padding(.top, 10).padding(.bottom, 4)
+                        ForEach(list) { c in
+                            Button { state.selection = .calc(c.id) } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                        Text(c.name).font(.system(size: 16, weight: .semibold))
+                                        if !c.acronym.isEmpty { Text(c.acronym).font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary) }
+                                    }
+                                    Text(c.math).font(.system(size: 13.5, design: .monospaced)).fixedSize(horizontal: false, vertical: true)
+                                        .textSelection(.enabled)
+                                    Text(c.summary).font(.system(size: 13.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.vertical, 12).padding(.horizontal, 4)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .overlay(alignment: .bottom) { Rectangle().fill(Color.wealthRule).frame(height: 1) }
+                        }
+                    }
+                    .overlay(alignment: .top) { Rectangle().fill(Color.wealthInk).frame(height: 1) }
+                }
+            }
         }
     }
 }

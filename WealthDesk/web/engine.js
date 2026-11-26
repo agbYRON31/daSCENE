@@ -1358,17 +1358,26 @@ export function categories(calcs) {
   return seen;
 }
 
+/** A search word and its singular forms ("taxes" also finds "tax", "bonds" finds "bond"). Mirrors CatalogLoader.wordForms. */
+export function wordForms(w) {
+  const out = [w];
+  if (w.length > 3 && w.endsWith("es")) out.push(w.slice(0, -2));
+  if (w.length > 3 && w.endsWith("s")) out.push(w.slice(0, -1));
+  return out;
+}
+
 export function search(query, calcs) {
   const words = query.toLowerCase().split(/[^\p{L}\p{N}%]+/u).filter(Boolean);
   if (!words.length) return [];
   const scored = [];
   for (const c of calcs) {
     const text = [c.name, c.category, c.summary, c.aliases, c.acronym, c.math].join(" ").toLowerCase();
-    if (!words.every((w) => text.includes(w))) continue;
-    const name = c.name.toLowerCase();
+    if (!words.every((w) => wordForms(w).some((f) => text.includes(f)))) continue;
+    const name = c.name.toLowerCase(), cat = c.category.toLowerCase();
     let score = 0;
     for (const w of words) {
       if (c.acronym.toLowerCase() === w) score += 50;
+      if (wordForms(w).some((f) => cat.includes(f))) score += 15;
       if (name.startsWith(w)) score += 20;
       if (name.includes(w)) score += 10;
       if (c.aliases.toLowerCase().includes(w)) score += 3;
