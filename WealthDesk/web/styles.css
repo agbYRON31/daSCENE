@@ -735,3 +735,16 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
 .plain-rows.facts dd { font-size: 16px; font-weight: 400; display: block; color: var(--text); }
 @media (max-width: 620px) { .plain-rows.facts > div { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
 .ginputs .seg .on { background: var(--ink); color: var(--content); box-shadow: none; }
+
+/* Keyword search: every matching formula, grouped by category */
+.formulas { display: flex; flex-direction: column; gap: 18px; }
+.fgroup { display: flex; flex-direction: column; border-top: 1px solid var(--ink); padding-top: 10px; }
+.fgroup .eyebrow { margin-bottom: 4px; }
+.frow { display: grid; gap: 4px; padding: 12px 4px; border-bottom: 1px solid var(--sep); color: var(--text); }
+.frow:hover { text-decoration: none; background: var(--fill); }
+.frow:hover strong { color: var(--accent-text); }
+.fhead { display: flex; gap: 10px; align-items: baseline; }
+.fhead strong { font-size: 16px; font-weight: 600; }
+.fhead .acr { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--secondary); }
+.fmath { font-family: var(--mono); font-size: 13.5px; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fsum { font-size: 13.5px; color: var(--secondary); }

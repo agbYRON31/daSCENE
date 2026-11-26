@@ -108,6 +108,8 @@ final class AppState: ObservableObject {
     @Published var selection: SidebarItem? = .home
     @Published var clientTool: ClientTool? = nil
     @Published var search = ""
+    /// The Calculators page's keyword search (formulas list), kept while moving between pages.
+    @Published var calcQuery = ""
     @Published var toast: String?
     @Published var irsChecking = false
     @Published var irsError: String?
