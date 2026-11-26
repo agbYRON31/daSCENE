@@ -1572,14 +1572,15 @@ MED = "Medicare"
 MED_YEAR_NOTE = ("Uses CMS's premium and IRMAA tables for the year selected in the app (the tax-year switch also sets the premium year). "
                  "IRMAA is set from the tax return two years before the premium year (2026 premiums use 2024 income); after a qualifying "
                  "life-changing event, Social Security can use a more recent year (form SSA-44). Head of household uses the individual tiers.")
-MAGI_HINT = ("Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year. "
-             "Excludes Medicaid, state programs and people with Medicare through a Medicare Savings Program.")
+MAGI_HINT = ("Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year "
+             "(for 2026 premiums, the 2024 return).")
+TWO_RULE = R("if(status==2,1,n)", "<=", "1", "Two people share one income tier only on a joint return. For two single filers, check each one separately.")
 PREM = lambda m: f"(partbpremium({m},status)+partdirmaa({m},status))"   # monthly Part B premium + Part D surcharge, per person
 
 calc("medicare_premiums", "Medicare premiums and IRMAA", MED,
      [F("magi", "Modified AGI (from two years earlier)", "$", "240000", hint=MAGI_HINT), STATUS(),
       F("n", "People on Medicare", "count", "2", min=1, max=2, hint="1 or 2. On a joint return both spouses' premiums use the joint income."),
-      F("plan", "Part D plan premium per person (monthly)", "$", "45", hint="The drug plan's own premium; 0 for a plan with no premium or no drug plan.")],
+      F("plan", "Part D plan premium per person (monthly)", "$", "45", hint="The drug plan's own premium; 0 for a $0-premium plan.")],
      [O("0", "Income tier (0 = no surcharge, 5 = highest)", "irmaatier(magi,status)", "number"),
       O("1", "Part B premium per person, monthly", "partbpremium(magi,status)", "currency"),
       O("2", "Part D income surcharge per person, monthly", "partdirmaa(magi,status)", "currency"),
@@ -1591,9 +1592,11 @@ calc("medicare_premiums", "Medicare premiums and IRMAA", MED,
      "What Part B and Part D cost each month at a given income, including the income-related surcharge (IRMAA).",
      "IRMAA income-related monthly adjustment amount Part B Part D premium surcharge cliff tier going on Medicare", acronym="IRMAA",
      assumptions=("Standard Part B coverage (not the immunosuppressive-drug-only premium). Part A is assumed premium-free (true for about 99% of "
-                  "people). Excludes Medicare Advantage premiums, Medigap and out-of-pocket costs. Married filing separately is not modeled."),
+                  "people). Assumes drug coverage through a Part D plan or a Medicare Advantage plan with drugs; the income surcharge applies to "
+                  "either. Excludes Medicare Advantage premiums, Medigap and out-of-pocket costs, and married filing separately. People whose "
+                  "premiums are paid by Medicaid or a Medicare Savings Program don't pay these amounts."),
      interpretation=MED_YEAR_NOTE + " One dollar over a tier threshold raises the premium for the whole year.",
-     sources=["cms_premiums", "irmaa_ssa"], rules=[R("n", "<=", "2", "Enter 1 or 2 people.")],
+     sources=["cms_premiums", "irmaa_ssa"], rules=[R("n", "<=", "2", "Enter 1 or 2 people."), TWO_RULE],
      excelNotes="The tier thresholds and amounts change every year; the app uses its dated CMS table.")
 
 calc("irmaa_spike", "IRMAA check for a Roth conversion or sale", MED,
@@ -1609,7 +1612,7 @@ calc("irmaa_spike", "IRMAA check for a Roth conversion or sale", MED,
      "IRMAA cliff Roth conversion capital gain one-time income Medicare premium two years later tier", acronym="IRMAA",
      assumptions="Today's tier table is used as a stand-in for the premium year two years out, which CMS publishes each fall; thresholds usually rise with inflation. " +
                  "The one-time income affects one premium year only.",
-     interpretation=MED_YEAR_NOTE, sources=["cms_premiums", "irmaa_ssa"], rules=[R("n", "<=", "2", "Enter 1 or 2 people.")],
+     interpretation=MED_YEAR_NOTE, sources=["cms_premiums", "irmaa_ssa"], rules=[R("n", "<=", "2", "Enter 1 or 2 people."), TWO_RULE],
      excelNotes="The tier thresholds and amounts change every year; the app uses its dated CMS table.")
 
 calc("medicare_penalty", "Medicare late-enrollment penalties", MED,
@@ -1656,17 +1659,20 @@ calc("hsa_medicare", "HSA contributions when Medicare starts", MED,
 
 calc("addl_medicare_tax", "Additional Medicare tax (0.9%)", MED,
      [F("w", "Medicare wages", "$", "320000", hint="Box 5 of your W-2 forms, both spouses together on a joint return."),
+      F("ow", "Wages over $200,000 at any one employer", "$", "120000",
+        hint="Each employer withholds the 0.9% only on what it pays you above $200,000. Add that excess up across jobs (and spouses); 0 if no one job paid over $200,000."),
       F("se", "Self-employment income (Schedule SE)", "$", "0", hint="Net earnings from self-employment after the 92.35% adjustment; 0 if none."),
       STATUS()],
      [O("0", "Threshold for your filing status", "addlmedthreshold(status)", "currency"),
       O("1", "Additional Medicare tax", "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))", "currency"),
-      O("2", "Withheld by one employer (wages over $200,000)", "addlmedrate()*max(0,w-200000)", "currency"),
+      O("2", "Withheld by employers", "addlmedrate()*ow", "currency"),
       O("3", "Still owed with the return (negative = refund)",
-        "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))-addlmedrate()*max(0,w-200000)", "currency")],
+        "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))-addlmedrate()*ow", "currency")],
      "0.9% × (wages over the threshold + self-employment income over the threshold left after wages)",
      "The 0.9% Medicare tax on high wages and self-employment income, and how it compares to what an employer withholds.",
      "additional medicare tax 0.9% Form 8959 wages self-employment withholding payroll",
-     assumptions=("Wages from one employer per person (each employer withholds separately over $200,000). Railroad (RRTA) compensation and "
+     rules=[R("ow", "<=", "w", "Wages over $200,000 at one employer can't be more than total wages.")],
+     assumptions=("Railroad (RRTA) compensation and "
                   "married filing separately aren't modeled. The thresholds are set by law and not adjusted for inflation."),
      interpretation="This is the Form 8959 calculation, a payroll-type tax separate from income tax and from the 3.8% net investment income tax.",
      sources=["form8959"], excelNotes="=0.009*(MAX(0,{w}-T)+MAX(0,{se}-MAX(0,T-{w}))) with T = 200,000 / 250,000 by filing status.")

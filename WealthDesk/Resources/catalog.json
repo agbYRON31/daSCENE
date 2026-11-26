@@ -5702,7 +5702,7 @@
     "label": "Modified AGI (from two years earlier)",
     "unit": "$",
     "example": "240000",
-    "hint": "Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year. Excludes Medicaid, state programs and people with Medicare through a Medicare Savings Program.",
+    "hint": "Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year (for 2026 premiums, the 2024 return).",
     "min": 0
    },
    {
@@ -5743,7 +5743,7 @@
     "label": "Part D plan premium per person (monthly)",
     "unit": "$",
     "example": "45",
-    "hint": "The drug plan's own premium; 0 for a plan with no premium or no drug plan.",
+    "hint": "The drug plan's own premium; 0 for a $0-premium plan.",
     "min": 0
    }
   ],
@@ -5809,7 +5809,7 @@
   "summary": "What Part B and Part D cost each month at a given income, including the income-related surcharge (IRMAA).",
   "aliases": "IRMAA income-related monthly adjustment amount Part B Part D premium surcharge cliff tier going on Medicare",
   "acronym": "IRMAA",
-  "assumptions": "Standard Part B coverage (not the immunosuppressive-drug-only premium). Part A is assumed premium-free (true for about 99% of people). Excludes Medicare Advantage premiums, Medigap and out-of-pocket costs. Married filing separately is not modeled.",
+  "assumptions": "Standard Part B coverage (not the immunosuppressive-drug-only premium). Part A is assumed premium-free (true for about 99% of people). Assumes drug coverage through a Part D plan or a Medicare Advantage plan with drugs; the income surcharge applies to either. Excludes Medicare Advantage premiums, Medigap and out-of-pocket costs, and married filing separately. People whose premiums are paid by Medicaid or a Medicare Savings Program don't pay these amounts.",
   "interpretation": "Uses CMS's premium and IRMAA tables for the year selected in the app (the tax-year switch also sets the premium year). IRMAA is set from the tax return two years before the premium year (2026 premiums use 2024 income); after a qualifying life-changing event, Social Security can use a more recent year (form SSA-44). Head of household uses the individual tiers. One dollar over a tier threshold raises the premium for the whole year.",
   "excelNotes": "The tier thresholds and amounts change every year; the app uses its dated CMS table.",
   "rules": [
@@ -5818,6 +5818,12 @@
     "relation": "<=",
     "right": "2",
     "message": "Enter 1 or 2 people."
+   },
+   {
+    "left": "if(status==2,1,n)",
+    "relation": "<=",
+    "right": "1",
+    "message": "Two people share one income tier only on a joint return. For two single filers, check each one separately."
    }
   ],
   "common": false,
@@ -5867,7 +5873,7 @@
     "label": "Modified AGI without it",
     "unit": "$",
     "example": "200000",
-    "hint": "Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year. Excludes Medicaid, state programs and people with Medicare through a Medicare Savings Program.",
+    "hint": "Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year (for 2026 premiums, the 2024 return).",
     "min": 0
    },
    {
@@ -5967,6 +5973,12 @@
     "relation": "<=",
     "right": "2",
     "message": "Enter 1 or 2 people."
+   },
+   {
+    "left": "if(status==2,1,n)",
+    "relation": "<=",
+    "right": "1",
+    "message": "Two people share one income tier only on a joint return. For two single filers, check each one separately."
    }
   ],
   "common": false,
@@ -6266,6 +6278,14 @@
     "min": 0
    },
    {
+    "id": "ow",
+    "label": "Wages over $200,000 at any one employer",
+    "unit": "$",
+    "example": "120000",
+    "hint": "Each employer withholds the 0.9% only on what it pays you above $200,000. Add that excess up across jobs (and spouses); 0 if no one job paid over $200,000.",
+    "min": 0
+   },
+   {
     "id": "se",
     "label": "Self-employment income (Schedule SE)",
     "unit": "$",
@@ -6316,8 +6336,8 @@
    },
    {
     "id": "2",
-    "label": "Withheld by one employer (wages over $200,000)",
-    "expression": "addlmedrate()*max(0,w-200000)",
+    "label": "Withheld by employers",
+    "expression": "addlmedrate()*ow",
     "format": "currency",
     "excel": null,
     "expected": 1080.0
@@ -6325,7 +6345,7 @@
    {
     "id": "3",
     "label": "Still owed with the return (negative = refund)",
-    "expression": "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))-addlmedrate()*max(0,w-200000)",
+    "expression": "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))-addlmedrate()*ow",
     "format": "currency",
     "excel": null,
     "expected": -450.0
@@ -6335,10 +6355,17 @@
   "summary": "The 0.9% Medicare tax on high wages and self-employment income, and how it compares to what an employer withholds.",
   "aliases": "additional medicare tax 0.9% Form 8959 wages self-employment withholding payroll",
   "acronym": "",
-  "assumptions": "Wages from one employer per person (each employer withholds separately over $200,000). Railroad (RRTA) compensation and married filing separately aren't modeled. The thresholds are set by law and not adjusted for inflation.",
+  "assumptions": "Railroad (RRTA) compensation and married filing separately aren't modeled. The thresholds are set by law and not adjusted for inflation.",
   "interpretation": "This is the Form 8959 calculation, a payroll-type tax separate from income tax and from the 3.8% net investment income tax.",
   "excelNotes": "=0.009*(MAX(0,{w}-T)+MAX(0,{se}-MAX(0,T-{w}))) with T = 200,000 / 250,000 by filing status.",
-  "rules": [],
+  "rules": [
+   {
+    "left": "ow",
+    "relation": "<=",
+    "right": "w",
+    "message": "Wages over $200,000 at one employer can't be more than total wages."
+   }
+  ],
   "common": false,
   "sources": [
    {

@@ -78,7 +78,7 @@ struct MedicareTool: View {
         let bold = { (s: String) in Text(s).fontWeight(.semibold).foregroundColor(Color.wealthInk) }
         let head = n == 2 ? "Medicare would cost about \(money(monthly)) a month for the two of you." : "Medicare would cost about \(money(monthly)) a month."
         let sub: Text = {
-            var s = bold(Usd.whole(yearly)) + Text(" a year for Part B and drug coverage")
+            var s = bold(Usd.whole(yearly)) + Text(" a year for Part B and drug coverage, before supplemental coverage and out-of-pocket costs")
             s = surcharge > 0 ? s + Text(", including an income-related surcharge of ") + bold(money(surcharge)) + Text(" a month per person.")
                               : s + Text(". No income-related surcharge at this income.")
             if pens > 0 { s = s + Text(" That includes late-enrollment penalties of ") + bold(money(pens)) + Text(" a month per person.") }
@@ -142,6 +142,8 @@ struct MedicareTool: View {
         } else if state.clientRaw(Self.key, "_added") == spend {
             Text("Added to retirement spending.").font(.callout).foregroundStyle(.secondary)
         } else {
+            Text("This uses today's income tier. Income often drops in retirement, which can mean a lower tier.")
+                .font(.callout).foregroundStyle(.secondary)
             Button("Add \(Usd.whole(yearly)) a year to retirement spending") {
                 let cur = (try? Engine.parseNumber(spend, percent: false)) ?? 0
                 let next = Format.plain((cur + yearly).rounded(), maxDecimals: 0)

@@ -572,14 +572,14 @@ def tenth(x):   # Medicare rounds monthly penalties to the nearest $0.10
 MED_EDGES = [0.0, 109000.0, 109000.01, 137000.0, 171000.5, 205000.0, 205000.01, 499999.0, 500000.0, 218000.0, 218001.0, 409999.0,
              749999.99, 750000.0, 2e6]
 @ind("medicare_premiums", "CMS 2026 fact sheet's printed Part B totals and Part D adjustments, matched by its printed income bounds", cases=[
-    dict(magi=m, status=s, n=n, plan=p) for m in MED_EDGES for s in (1, 2, 3) for n, p in ((1, 0.0), (2, 45.0))])
+    dict(magi=m, status=s, n=n, plan=p) for m in MED_EDGES for s in (1, 2, 3) for n, p in ((1, 0.0), (2, 45.0)) if n == 1 or s == 2])
 def _(v):
     i, b, d, hi = cms_row(v.magi, v.status)
     per = b + d + v.plan
     return [float(i), b, d, per, 12 * v.n * per, 12 * v.n * (b + d - 202.90), 0.0 if hi is None else max(0.0, hi - v.magi)]
 @ind("irmaa_spike", "CMS 2026 printed rows before and after the extra income", cases=[
     dict(magi=m, x=x, status=s, n=n) for m in (100000.0, 136000.0, 200000.0, 409000.0, 740000.0) for x in (0.0, 1000.0, 60000.0, 600000.0)
-    for s in (1, 2) for n in (1, 2)])
+    for s in (1, 2) for n in (1, 2) if n == 1 or s == 2])
 def _(v):
     i0, b0, d0, hi = cms_row(v.magi, v.status)
     i1, b1, d1, _ = cms_row(v.magi + v.x, v.status)
@@ -606,13 +606,14 @@ def _(v):
     excess = max(0.0, v.paid - limit)
     return [float(start), float(months), limit, excess, 0.06 * excess]
 @ind("addl_medicare_tax", "Form 8959 line by line (Parts I and II)", cases=[
-    dict(w=w, se=se, status=s) for w in (0.0, 150000.0, 200000.0, 260000.0, 900000.0) for se in (0.0, 80000.0, 300000.0) for s in (1, 2, 3)])
+    dict(w=w, ow=o, se=se, status=s) for w, o in ((0.0, 0.0), (150000.0, 0.0), (200000.0, 0.0), (260000.0, 60000.0), (300000.0, 0.0), (900000.0, 700000.0))
+    for se in (0.0, 80000.0, 300000.0) for s in (1, 2, 3)])
 def _(v):
     thr = {1: 200000, 2: 250000, 3: 200000}[int(v.status)]
     line7 = 0.009 * max(0.0, v.w - thr)                       # Part I: wages over the threshold
     line11 = max(0.0, thr - v.w)                              # Part II: threshold reduced by wages
     line13 = 0.009 * max(0.0, v.se - line11)
-    withheld = 0.009 * max(0.0, v.w - 200000)
+    withheld = 0.009 * v.ow                                   # each employer withholds only on its own pay over $200,000
     return [float(thr), line7 + line13, withheld, line7 + line13 - withheld]
 @ind("ltcg_tax", "Cumulative-schedule difference using IRS thresholds; state gain rules applied to each state's schedule", cases=[
     dict(ord=0.0, gain=50000.0), dict(ord=0.0, gain=98900.0), dict(ord=50000.0, gain=100000.0), dict(ord=600000.0, gain=100000.0),

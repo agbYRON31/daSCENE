@@ -2107,7 +2107,7 @@ function medicareTool(tool) {
     const status = Number(raw(MKEY, "status"));
     const bounds = t.irmaaThresholds[String(status)], tier = c.v(0);
     const head = n === 2 ? `Medicare would cost about ${money(monthly)} a month for the two of you.` : `Medicare would cost about ${money(monthly)} a month.`;
-    const sub = [h("strong", { text: usd0(yearly) }), " a year for Part B and drug coverage",
+    const sub = [h("strong", { text: usd0(yearly) }), " a year for Part B and drug coverage, before supplemental coverage and out-of-pocket costs",
       surcharge > 0 ? [", including an income-related surcharge of ", h("strong", { text: money(surcharge) }), " a month per person."] : ". No income-related surcharge at this income.",
       pens > 0 ? [" That includes late-enrollment penalties of ", h("strong", { text: money(pens) }), " a month per person."] : null];
     const k$ = (v) => "$" + Math.round(v).toLocaleString("en-US");
@@ -2117,13 +2117,15 @@ function medicareTool(tool) {
     const addBtn = () => {
       if (!spend) return h("p", { class: "note", text: `In “Am I on track for retirement?”, include about ${usd0(yearly)} a year for Medicare in retirement spending.` });
       if (raw(MKEY, "_added") === spend) return h("p", { class: "note", text: "Added to retirement spending." });
-      return h("button", { class: "btn no-print", text: `Add ${usd0(yearly)} a year to retirement spending`, onclick: () => {
+      return h("div", { style: "display:flex;flex-direction:column;gap:6px;align-items:flex-start" },
+        h("p", { class: "note", text: "This uses today's income tier. Income often drops in retirement, which can mean a lower tier." }),
+        h("button", { class: "btn no-print", text: `Add ${usd0(yearly)} a year to retirement spending`, onclick: () => {
         let cur = 0;
         try { cur = Engine.parseNumber(spend, false); } catch { /* leave spending as typed */ }
         const next = Format.plain(Math.round(cur + yearly), 0);
         setRaw("client.retirement", "spend", next); setRaw(MKEY, "_added", next);
         toast(`Retirement spending is now ${usd0(cur + yearly)} a year.`); route();
-      } });
+      } }));
     };
     return [
       eyebrow,
