@@ -343,7 +343,7 @@ function sidebar(selected) {
       const ql = q.toLowerCase();
       const pages = [...SIDE, ...SIDE_TOOLS.map(([id, label, ic]) => [id, label, ic, `#/advisor/${id}`])]
         .filter(([id, label]) => (label + " " + (PAGE_WORDS[id] || "")).toLowerCase().includes(ql));
-      fill(list, hits.length ? h("a", { class: "sb-row big", href: "#/advisor/calculators", onclick: () => { calcQuery = q; } },
+      fill(list, hits.length ? h("a", { class: "sb-row big", href: "#/advisor/calculators", onclick: () => { calcQuery = q; if (location.hash === "#/advisor/calculators") route(); } },
           icon("table"), h("span", { class: "grow", text: `Show ${hits.length} formula${hits.length === 1 ? "" : "s"}` })) : null,
         h("div", { class: "sb-sec", text: "Results" }),
         pages.map(([id, label, ic, href]) => h("a", { class: "sb-row", href }, icon(ic), h("span", { class: "grow", text: label }))),
