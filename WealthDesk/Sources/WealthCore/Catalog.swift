@@ -136,7 +136,6 @@ public enum CatalogLoader {
         return seen
     }
 
-    /// Simple ranked search: every query word must match; name and acronym hits rank higher.
     /// A search word and its singular forms ("taxes" also finds "tax", "bonds" finds "bond"). Mirrors wordForms in web/engine.js.
     public static func wordForms(_ w: String) -> [String] {
         var out = [w]
@@ -145,6 +144,7 @@ public enum CatalogLoader {
         return out
     }
 
+    /// Simple ranked search: every query word must match; name and acronym hits rank higher.
     public static func search(_ query: String, in calcs: [Calculator]) -> [Calculator] {
         let words = query.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "%" }).map(String.init)
         guard !words.isEmpty else { return [] }
