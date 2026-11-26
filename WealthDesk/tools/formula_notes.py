@@ -591,3 +591,33 @@ note("loan_payment",
      ("i", "The monthly interest rate (annual rate ÷ 12)."),
      ("Principal × i", "One month's interest on the full loan."),
      ("÷ (1 − (1+i)^−n)", "Spreads repayment evenly across n monthly payments."))
+
+# ── Medicare ───────────────────────────────────────────────────────────────────
+note("medicare_premiums",
+     "Everyone on Part B pays the standard premium. People with higher income pay an extra amount on top (IRMAA), for Part B and for drug coverage, set by which income tier they fall in. The tiers are steps, not a gradual rate, so a dollar over a threshold costs the whole step for the year.",
+     ("standard premium", "The Part B premium most people pay, set by CMS each year."),
+     ("IRMAA", "The income-related monthly adjustment amount: an extra monthly charge for each tier above the first."),
+     ("income tier", "Which band your modified AGI from two years earlier falls in; joint returns have bands twice as wide."),
+     ("Part D surcharge", "The drug-coverage IRMAA, added to whatever your drug plan charges."),
+     ("12 × people × monthly", "Turns the monthly cost per person into a yearly household cost."))
+note("irmaa_spike",
+     "Medicare premiums are set from your income two years earlier. A one-time bump, such as a Roth conversion or a large capital gain, can move you into a higher tier for one premium year, and the cost is the difference between the two tiers' premiums.",
+     ("premiums at (MAGI + extra)", "What Part B and the Part D surcharge cost with the extra income included."),
+     ("− premiums at MAGI", "Takes away what you'd pay anyway, leaving only the cost of the extra income."),
+     ("two years after", "The premium year that the income affects, because Social Security uses the return from two years before."))
+note("medicare_penalty",
+     "Signing up late for Part B or for drug coverage adds a permanent percentage to the premium. Part B counts whole years late; Part D counts months without creditable coverage.",
+     ("10% … per full 12 months", "Part B's penalty grows by 10% of the standard premium for each complete year you could have had it."),
+     ("1% of the national base beneficiary premium", "Part D's penalty grows by 1% of a national figure CMS sets each year, for each month without coverage."),
+     ("rounded to the nearest $0.10", "Medicare rounds each monthly amount to the nearest ten cents."))
+note("hsa_medicare",
+     "You can't contribute to an HSA in any month you're on Medicare. When you sign up at 65 or later, Part A is backdated up to six months, so those months stop counting for the HSA too, and the year's limit shrinks to the months that are left.",
+     ("application month − 6", "Part A's backdated start when you apply after you're eligible."),
+     ("not before the month you turn 65", "Coverage can't start before you're eligible for Medicare."),
+     ("(annual limit + catch-up)", "The year's full HSA limit for your coverage, plus $1,000 if you're 55 or older."),
+     ("× eligible months ÷ 12", "Keeps only the share of the year before Medicare starts."))
+note("addl_medicare_tax",
+     "On top of the regular 1.45% Medicare tax, wages and self-employment income above a threshold pay another 0.9%. The threshold depends on filing status, but employers start withholding at $200,000 regardless, so the return settles the difference.",
+     ("0.9%", "The additional Medicare tax rate."),
+     ("wages over the threshold", "Medicare wages above $200,000 (single, head of household) or $250,000 (joint)."),
+     ("threshold left after wages", "Self-employment income only counts above whatever part of the threshold your wages didn't use."))

@@ -2,7 +2,7 @@ import Charts
 import SwiftUI
 import WealthCore
 
-// Client Mode: five plain-language tools. Every number shown comes from the same audited
+// Client Mode: seven plain-language tools. Every number shown comes from the same audited
 // catalog calculators Advisor Mode uses; this file only chooses which inputs to show, how to
 // label them, and how to draw the result. Nothing is pre-filled: amounts start empty.
 
@@ -142,6 +142,7 @@ enum ClientSpec {
         case .decisions: return "Compare two plans"
         case .taxes: return "Taxes & purchasing power"
         case .market: return "Market brief"
+        case .medicare: return "Going on Medicare"
         }
     }
 
@@ -153,6 +154,7 @@ enum ClientSpec {
         case .decisions: return "Compare two choices side by side: retire earlier, save more, spend less."
         case .taxes: return "See what inflation does to buying power and what taxes take from growth."
         case .market: return "A plain summary of today's economic and market backdrop from public data."
+        case .medicare: return "What Part B and drug coverage cost at your income, and the rules to know."
         }
     }
 
@@ -164,6 +166,7 @@ enum ClientSpec {
         case .decisions: return "arrow.triangle.branch"
         case .taxes: return "percent"
         case .market: return "gauge.medium"
+        case .medicare: return "cross.case"
         }
     }
 }
@@ -184,6 +187,7 @@ struct ClientModeView: View {
                 case .decisions?: DecisionsTool()
                 case .taxes?: TaxesTool()
                 case .market?: ClientMarketView()
+                case .medicare?: MedicareTool()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -245,6 +249,12 @@ enum ClientReports {
                    ("Option B", DecisionsTool.optionB(state))]
         case .market:
             out = []
+        case .medicare:
+            // The penalty calculator is complete even when empty (its inputs default to 0), so it only joins the
+            // report once the premium inputs are filled in.
+            let prem = state.clientRun(MedicareTool.key, "medicare_premiums", MedicareTool.fields)
+            out = [("Medicare premiums and IRMAA", prem)]
+            if prem?.ok == true { out.append(("Late-enrollment penalties", state.clientRun(MedicareTool.key, "medicare_penalty", MedicareTool.penaltyFields))) }
         case .taxes:
             out = [("Inflation and buying power", state.clientRun("client.inflation", "inflation_cost", ClientSpec.inflation)),
                    ("Taxes on investment growth", state.clientRun("client.taxdrag", "tax_deferral", ClientSpec.taxDrag)),

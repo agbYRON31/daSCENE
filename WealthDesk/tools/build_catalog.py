@@ -171,6 +171,40 @@ def amttax(amti, status):
     return a["rates"][0] * min(base, a["rateBreak"]) + a["rates"][1] * max(0.0, base - a["rateBreak"])
 
 
+# ── Medicare (CMS premium and IRMAA tables in taxdata.json "medicare"; the table's year is the premium year) ──
+def irmaatier(magi, status):
+    """0–5. The first four thresholds are crossed by income *above* them, the top one by income at or above it (CMS tables)."""
+    t = TAX["medicare"]["irmaaThresholds"][str(int(status))]
+    return float(sum(1 for x in t[:4] if magi > x) + (1 if magi >= t[4] else 0))
+
+
+def partbpremium(magi, status):
+    """Monthly Part B premium including the income-related adjustment."""
+    m = TAX["medicare"]
+    return m["partB"] + m["partBAdjust"][int(irmaatier(magi, status))]
+
+
+def partdirmaa(magi, status):
+    """Monthly Part D income-related adjustment, paid on top of the plan's premium."""
+    return TAX["medicare"]["partDAdjust"][int(irmaatier(magi, status))]
+
+
+def irmaaroom(magi, status):
+    """Income that can be added before the next tier's threshold (0 in the top tier)."""
+    t = TAX["medicare"]["irmaaThresholds"][str(int(status))]
+    k = int(irmaatier(magi, status))
+    return 0.0 if k >= 5 else max(0.0, t[k] - magi)
+
+
+def addlmedthreshold(status):
+    return TAX["addlMedicare"]["threshold"][str(int(status))]
+
+
+def hsalimit(cov):
+    """HSA contribution limit: 1 = self-only coverage, 2 = family coverage."""
+    return TAX["hsa"]["self" if int(cov) == 1 else "family"]
+
+
 # ── State income tax (see tools/state_tax_data.py for the model and sources) ─────────
 def _state(st):
     st = int(st)
@@ -608,7 +642,11 @@ FUNCS = {
     "fv": fv, "pv": pv, "rate": rate, "pmt": pmt, "nper": nper, "npv": npv, "irr": irr,
     "incometax": incometax, "margrate": margrate, "bracketroom": bracketroom,
     "statetax": statetax, "statemarg": statemarg, "stategaintax": stategaintax,
-    "stddeduction": stddeduction, "amtexemption": amtexemption, "amttax": amttax, "ltcgtax": ltcgtax, "niitthreshold": niitthreshold,
+    "stddeduction": stddeduction, "amtexemption": amtexemption,
+    "irmaatier": irmaatier, "partbpremium": partbpremium, "partdirmaa": partdirmaa, "irmaaroom": irmaaroom,
+    "partbstandard": lambda: TAX["medicare"]["partB"], "partdbase": lambda: TAX["medicare"]["partDBase"],
+    "addlmedthreshold": addlmedthreshold, "addlmedrate": lambda: TAX["addlMedicare"]["rate"],
+    "hsalimit": hsalimit, "hsacatchup": lambda: TAX["hsa"]["catchUp55"], "amttax": amttax, "ltcgtax": ltcgtax, "niitthreshold": niitthreshold,
     "rmdfactor": rmdfactor, "limit401k": limit401k, "limitira": limitira,
     "giftexclusion": lambda: TAX["giftAnnualExclusion"],
     "estateexemption": lambda: TAX["estateExemption"],
@@ -920,6 +958,12 @@ SRC = {
     "states": {"title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)", "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"},
     "amt": {"title": "IRS • About Form 6251, Alternative Minimum Tax: Individuals", "url": "https://www.irs.gov/forms-pubs/about-form-6251"},
     "niit": {"title": "IRS • Net investment income tax", "url": "https://www.irs.gov/individuals/net-investment-income-tax"},
+    "cms_premiums": {"title": "CMS • Medicare Parts A & B Premiums and Deductibles (Part B and Part D IRMAA tables)", "url": "https://www.cms.gov/newsroom/fact-sheets/2027-medicare-parts-b-premiums-deductibles"},
+    "irmaa_ssa": {"title": "SSA • Request to lower an income-related monthly adjustment amount (IRMAA)", "url": "https://www.ssa.gov/medicare/lower-irmaa"},
+    "medicare_penalty": {"title": "Medicare.gov • Avoid late enrollment penalties", "url": "https://www.medicare.gov/basics/costs/medicare-costs/avoid-penalties"},
+    "medicare_retro": {"title": "Medicare.gov • Working past 65 (HSA and retroactive Part A)", "url": "https://www.medicare.gov/basics/get-started-with-medicare/medicare-basics/working-past-65"},
+    "hsa": {"title": "IRS • Publication 969, Health Savings Accounts", "url": "https://www.irs.gov/publications/p969"},
+    "form8959": {"title": "IRS • Instructions for Form 8959, Additional Medicare Tax", "url": "https://www.irs.gov/instructions/i8959"},
     "rmd": {"title": "IRS • Publication 590-B (distributions from IRAs)", "url": "https://www.irs.gov/publications/p590b"},
     "401k": {"title": "IRS • 401(k) contribution limits", "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-401k-and-profit-sharing-plan-contribution-limits"},
     "ira": {"title": "IRS • IRA contribution limits", "url": "https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-ira-contribution-limits"},
@@ -1383,6 +1427,10 @@ calc("monte_carlo", "Monte Carlo withdrawal test", RET,
      interpretation="A success rate summarizes simulated outcomes under the assumptions entered. It is not a probability forecast or a recommendation.",
      excelNotes="Simulation results aren't a cell formula. Use Copy table for the percentile paths.")
 
+PREM = lambda m: f"(partbpremium({m},status)+partdirmaa({m},status))"   # monthly Part B premium + Part D surcharge, per person
+MED_PREM_NOTE = (" The Medicare line uses AGI (taxable income plus the standard deduction) as the income Medicare looks at, and only matters if"
+                 " you'll be on Medicare two years later; it uses this year's CMS tier table as a stand-in for that year's.")
+
 # --- Tax ---------------------------------------------------------------------
 calc("income_tax", "Federal and state income tax", TX,
      [F("ti", "Taxable ordinary income", "$", "250000"), STATUS(), STATE()],
@@ -1455,14 +1503,15 @@ calc("ltcg_tax", "Long-term capital gains tax", TX,
      [O("0", "Federal capital gains tax", "ltcgtax(ord,gain,status)", "currency"),
       O("1", "Federal effective rate on the gain", "if(gain>0,ltcgtax(ord,gain,status)/gain,0)", "percent"),
       O("2", "State tax on the gain", "stategaintax(ord+stddeduction(status),gain,status,st)", "currency"),
-      O("3", "Combined effective rate on the gain", "if(gain>0,(ltcgtax(ord,gain,status)+stategaintax(ord+stddeduction(status),gain,status,st))/gain,0)", "percent")],
+      O("3", "Combined effective rate on the gain", "if(gain>0,(ltcgtax(ord,gain,status)+stategaintax(ord+stddeduction(status),gain,status,st))/gain,0)", "percent"),
+      O("4", "Extra Medicare premiums two years later, per person per year", f"12*({PREM('(ord+stddeduction(status)+gain)')}-{PREM('(ord+stddeduction(status))')})", "currency")],
      "Federal: gains stack on ordinary income through the 0% / 15% / 20% thresholds; state: the gain's extra state tax under that state's rules",
      "Federal tax on long-term gains and qualified dividends, layered on top of ordinary income, plus the state's tax on the gain.",
      "capital gains qualified dividends 15% 20% state", interpretation=TAX_INTERP + " NIIT is a separate calculator." + STATE_NOTE
      + " Most states tax gains as ordinary income; this follows each state's own treatment where it differs (exclusions in Arizona, Arkansas,"
        " New Mexico, North Dakota, South Carolina and Wisconsin; Hawaii's 7.25% cap; Montana's lower rates; no tax in Missouri;"
-       " Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax).",
-     sources=["capgains", "states"])
+       " Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax)." + MED_PREM_NOTE,
+     sources=["capgains", "states", "cms_premiums"])
 
 calc("niit", "Net investment income tax", TX,
      [F("magi", "Modified AGI", "$", "320000"), F("nii", "Net investment income", "$", "90000"), STATUS()],
@@ -1491,9 +1540,10 @@ calc("roth_conversion", "Roth conversion: tax and bracket room", TX,
       O("2", "Room left in current bracket", "bracketroom(ti,status)", "currency"),
       O("3", "Marginal federal rate after conversion", "margrate(ti+x,status)", "percent"),
       O("4", "Extra state tax from conversion", f"statetax({AGI}+x,status,st)-statetax({AGI},status,st)", "currency"),
-      O("5", "Combined average rate on the conversion", f"if(x>0,(incometax(ti+x,status)-incometax(ti,status)+statetax({AGI}+x,status,st)-statetax({AGI},status,st))/x,0)", "percent")],
+      O("5", "Combined average rate on the conversion", f"if(x>0,(incometax(ti+x,status)-incometax(ti,status)+statetax({AGI}+x,status,st)-statetax({AGI},status,st))/x,0)", "percent"),
+      O("6", "Extra Medicare premiums two years later, per person per year", f"12*({PREM(AGI + '+x')}-{PREM(AGI)})", "currency")],
      "Tax(income + conversion) − tax(income), federal and state", "Incremental federal and state tax from converting pre-tax money to Roth.",
-     "fill the bracket conversion state", interpretation=TAX_INTERP + STATE_NOTE, sources=["brackets", "states"])
+     "fill the bracket conversion state IRMAA medicare", interpretation=TAX_INTERP + STATE_NOTE + MED_PREM_NOTE, sources=["brackets", "states", "cms_premiums"])
 
 calc("tlh", "Tax-loss harvesting value", TX,
      [F("loss", "Losses harvested", "$", "40000"), F("gains", "Capital gains this year", "$", "25000"),
@@ -1516,6 +1566,110 @@ calc("tax_deferral", "Tax-deferred vs. taxable growth", TX,
      "Taxable: (1 + r(1−t))^n; Deferred: growth taxed once at the end",
      "Shows the cost of tax drag compared with deferring tax on the same after-tax principal.",
      "tax drag deferral annuity nonqualified")
+
+# --- Medicare -------------------------------------------------------------------------
+MED = "Medicare"
+MED_YEAR_NOTE = ("Uses CMS's premium and IRMAA tables for the year selected in the app (the tax-year switch also sets the premium year). "
+                 "IRMAA is set from the tax return two years before the premium year (2026 premiums use 2024 income); after a qualifying "
+                 "life-changing event, Social Security can use a more recent year (form SSA-44). Head of household uses the individual tiers.")
+MAGI_HINT = ("Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year. "
+             "Excludes Medicaid, state programs and people with Medicare through a Medicare Savings Program.")
+PREM = lambda m: f"(partbpremium({m},status)+partdirmaa({m},status))"   # monthly Part B premium + Part D surcharge, per person
+
+calc("medicare_premiums", "Medicare premiums and IRMAA", MED,
+     [F("magi", "Modified AGI (from two years earlier)", "$", "240000", hint=MAGI_HINT), STATUS(),
+      F("n", "People on Medicare", "count", "2", min=1, max=2, hint="1 or 2. On a joint return both spouses' premiums use the joint income."),
+      F("plan", "Part D plan premium per person (monthly)", "$", "45", hint="The drug plan's own premium; 0 for a plan with no premium or no drug plan.")],
+     [O("0", "Income tier (0 = no surcharge, 5 = highest)", "irmaatier(magi,status)", "number"),
+      O("1", "Part B premium per person, monthly", "partbpremium(magi,status)", "currency"),
+      O("2", "Part D income surcharge per person, monthly", "partdirmaa(magi,status)", "currency"),
+      O("3", "Total per person, monthly (Part B + drug plan + surcharge)", f"{PREM('magi')}+plan", "currency"),
+      O("4", "Total for everyone covered, yearly", f"12*n*({PREM('magi')}+plan)", "currency"),
+      O("5", "Income-related surcharges in that, yearly", f"12*n*({PREM('magi')}-partbstandard())", "currency"),
+      O("6", "Income room before the next tier", "irmaaroom(magi,status)", "currency")],
+     "Part B = standard premium + IRMAA for the income tier; Part D surcharge by the same tier; yearly = 12 × people × monthly",
+     "What Part B and Part D cost each month at a given income, including the income-related surcharge (IRMAA).",
+     "IRMAA income-related monthly adjustment amount Part B Part D premium surcharge cliff tier going on Medicare", acronym="IRMAA",
+     assumptions=("Standard Part B coverage (not the immunosuppressive-drug-only premium). Part A is assumed premium-free (true for about 99% of "
+                  "people). Excludes Medicare Advantage premiums, Medigap and out-of-pocket costs. Married filing separately is not modeled."),
+     interpretation=MED_YEAR_NOTE + " One dollar over a tier threshold raises the premium for the whole year.",
+     sources=["cms_premiums", "irmaa_ssa"], rules=[R("n", "<=", "2", "Enter 1 or 2 people.")],
+     excelNotes="The tier thresholds and amounts change every year; the app uses its dated CMS table.")
+
+calc("irmaa_spike", "IRMAA check for a Roth conversion or sale", MED,
+     [F("magi", "Modified AGI without it", "$", "200000", hint=MAGI_HINT), F("x", "Extra income (conversion or gain)", "$", "40000"), STATUS(),
+      F("n", "People on Medicare", "count", "2", min=1, max=2, hint="1 or 2, counted in the premium year two years later.")],
+     [O("0", "Income tier without it", "irmaatier(magi,status)", "number"),
+      O("1", "Income tier with it", "irmaatier(magi+x,status)", "number"),
+      O("2", "Extra Medicare premiums per person, monthly", f"{PREM('magi+x')}-{PREM('magi')}", "currency"),
+      O("3", "Extra Medicare premiums for everyone, for the year", f"12*n*({PREM('magi+x')}-{PREM('magi')})", "currency"),
+      O("4", "Room before the next tier (without it)", "irmaaroom(magi,status)", "currency")],
+     "Premiums at (MAGI + extra) − premiums at MAGI, using the tier tables; paid in the premium year two years after the income",
+     "Whether a Roth conversion, capital gain or other one-time income pushes Medicare premiums into a higher tier two years later.",
+     "IRMAA cliff Roth conversion capital gain one-time income Medicare premium two years later tier", acronym="IRMAA",
+     assumptions="Today's tier table is used as a stand-in for the premium year two years out, which CMS publishes each fall; thresholds usually rise with inflation. " +
+                 "The one-time income affects one premium year only.",
+     interpretation=MED_YEAR_NOTE, sources=["cms_premiums", "irmaa_ssa"], rules=[R("n", "<=", "2", "Enter 1 or 2 people.")],
+     excelNotes="The tier thresholds and amounts change every year; the app uses its dated CMS table.")
+
+calc("medicare_penalty", "Medicare late-enrollment penalties", MED,
+     [F("mb", "Months you could have had Part B but didn't", "count", "24",
+        hint="Months after your enrollment window ended, not counting time covered by a job's group plan (which gives a Special Enrollment Period)."),
+      F("md", "Full months without Part D or other creditable drug coverage", "count", "14",
+        hint="After your enrollment window, counting only gaps of more than 63 days in a row.")],
+     [O("0", "Part B penalty rate", "0.1*floor(mb/12)", "percent"),
+      O("1", "Part B premium with the penalty, monthly", "floor(partbstandard()*(1+0.1*floor(mb/12))*10+0.5)/10", "currency"),
+      O("2", "Part B penalty, monthly", "floor(partbstandard()*(1+0.1*floor(mb/12))*10+0.5)/10-partbstandard()", "currency"),
+      O("3", "Part D penalty, monthly", "floor(0.01*md*partdbase()*10+0.5)/10", "currency"),
+      O("4", "Both penalties, yearly", "12*(floor(partbstandard()*(1+0.1*floor(mb/12))*10+0.5)/10-partbstandard()+floor(0.01*md*partdbase()*10+0.5)/10)", "currency")],
+     "Part B: 10% of the standard premium per full 12 months late; Part D: 1% of the national base beneficiary premium per month without coverage; each rounded to the nearest $0.10",
+     "The lifelong monthly penalties for signing up for Part B or Part D late.",
+     "late enrollment penalty Part B Part D creditable coverage IEP special enrollment period", 
+     assumptions=("Standard Part B premium (an IRMAA surcharge is added on top separately). The penalty is recalculated each year from that year's "
+                  "standard premium and base beneficiary premium. No penalty applies with a Special Enrollment Period, a Medicare Savings Program, or Extra Help."),
+     interpretation="Uses CMS's standard Part B premium and Part D base beneficiary premium for the year selected in the app. Penalties last as long as you have the coverage.",
+     sources=["medicare_penalty"], excelNotes="Part B: =ROUND(standard*(1+0.1*INT(months/12)),1). Part D: =ROUND(0.01*months*base,1).")
+
+HSA_START = "max(applym-6,if(m65>0,m65,applym-6))"   # Part A start month (this year's numbering; 0 or less = an earlier year)
+HSA_MONTHS = f"max(0,min(12,{HSA_START}-1))"
+calc("hsa_medicare", "HSA contributions when Medicare starts", MED,
+     [F("applym", "Month you apply for Medicare or Social Security (1–12)", "count", "9", min=1, max=12),
+      F("m65", "Month you turn 65 this year (0 if you turned 65 before this year)", "count", "0", min=0, max=12,
+        hint="Medicare eligibility starts the month you turn 65 (the month before, if your birthday is on the 1st)."),
+      F("cov", "HSA coverage", "choice", "2", options=[{"value": 1, "label": "Self-only"}, {"value": 2, "label": "Family"}]),
+      F("c55", "Age 55 or older", "choice", "1", options=[{"value": 0, "label": "No"}, {"value": 1, "label": "Yes"}]),
+      F("paid", "Contributed for this year so far", "$", "9750", hint="Your own and your employer's contributions together.")],
+     [O("0", "Part A coverage starts in month (0 or less = last year)", HSA_START, "number"),
+      O("1", "Months you can still contribute this year", HSA_MONTHS, "number"),
+      O("2", "Contribution limit for this year", f"(hsalimit(cov)+if(c55==1,hsacatchup(),0))*{HSA_MONTHS}/12", "currency"),
+      O("3", "Excess contribution to withdraw", f"max(0,paid-(hsalimit(cov)+if(c55==1,hsacatchup(),0))*{HSA_MONTHS}/12)", "currency"),
+      O("4", "6% excise tax per year if the excess stays in", f"0.06*max(0,paid-(hsalimit(cov)+if(c55==1,hsacatchup(),0))*{HSA_MONTHS}/12)", "currency")],
+     "Part A start = application month − 6, but not before the month you turn 65; limit = (annual limit + catch-up) × eligible months ÷ 12",
+     "How Medicare's six-month retroactive Part A coverage cuts this year's HSA contribution limit, and any excess to take back out.",
+     "HSA health savings account Medicare Part A retroactive six months stop contributing excess contribution 65",
+     assumptions=("Applying at 65 or later: Part A is backdated up to 6 months but not before you're eligible. Applying before 65: coverage starts "
+                  "the month you turn 65. You were HSA-eligible every month before Medicare. Ignores the last-month rule and its testing period, "
+                  "and a spouse's separate HSA (family limits are shared between spouses)."),
+     interpretation=("Uses the IRS HSA limits for the tax year selected in the app. Excess contributions withdrawn with their earnings by the tax "
+                     "return due date (with extensions) avoid the 6% excise tax."),
+     sources=["hsa", "medicare_retro"], excelNotes="The HSA limits change every year; the app uses its dated IRS table.")
+
+calc("addl_medicare_tax", "Additional Medicare tax (0.9%)", MED,
+     [F("w", "Medicare wages", "$", "320000", hint="Box 5 of your W-2 forms, both spouses together on a joint return."),
+      F("se", "Self-employment income (Schedule SE)", "$", "0", hint="Net earnings from self-employment after the 92.35% adjustment; 0 if none."),
+      STATUS()],
+     [O("0", "Threshold for your filing status", "addlmedthreshold(status)", "currency"),
+      O("1", "Additional Medicare tax", "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))", "currency"),
+      O("2", "Withheld by one employer (wages over $200,000)", "addlmedrate()*max(0,w-200000)", "currency"),
+      O("3", "Still owed with the return (negative = refund)",
+        "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))-addlmedrate()*max(0,w-200000)", "currency")],
+     "0.9% × (wages over the threshold + self-employment income over the threshold left after wages)",
+     "The 0.9% Medicare tax on high wages and self-employment income, and how it compares to what an employer withholds.",
+     "additional medicare tax 0.9% Form 8959 wages self-employment withholding payroll",
+     assumptions=("Wages from one employer per person (each employer withholds separately over $200,000). Railroad (RRTA) compensation and "
+                  "married filing separately aren't modeled. The thresholds are set by law and not adjusted for inflation."),
+     interpretation="This is the Form 8959 calculation, a payroll-type tax separate from income tax and from the 3.8% net investment income tax.",
+     sources=["form8959"], excelNotes="=0.009*(MAX(0,{w}-T)+MAX(0,{se}-MAX(0,T-{w}))) with T = 200,000 / 250,000 by filing status.")
 
 # --- Portfolio & risk ------------------------------------------------------------
 calc("weighted_return", "Portfolio expected return", PF,
