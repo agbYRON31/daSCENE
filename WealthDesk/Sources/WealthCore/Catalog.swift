@@ -113,7 +113,7 @@ public struct Calculator: Codable, Hashable, Identifiable {
     public var usesTaxTable: Bool {
         let names = ["incometax(", "margrate(", "bracketroom(", "stddeduction(", "ltcgtax(", "niitthreshold(",
                      "niitrate(", "rmdfactor(", "limit401k(", "limitira(", "giftexclusion(", "estateexemption(", "estaterate(",
-                     "statetax(", "statemarg(", "stategaintax(", "amtexemption(", "amttax("]
+                     "statetax(", "statemarg(", "stategaintax(", "amtexemption(", "amttax(", "irmaatier(", "partbpremium(", "partdirmaa(", "irmaaroom(", "partbstandard(", "partdbase(", "addlmedthreshold(", "addlmedrate(", "hsalimit(", "hsacatchup("]
         let text = (outputs.map(\.expression) + rules.map(\.left) + rules.map(\.right)).joined(separator: " ")
         return names.contains { text.contains($0) }
     }

@@ -1562,6 +1562,9 @@ const Spec = {
   taxDrag: [F("a", "Amount invested", 0, 2e6, 5000), F("r", "Yearly return", 0, 12, 0.25),
     F("t", "Tax rate on investment earnings", 0, 50, 1), F("n", "Years", 1, 50, 1)],
   incomeTax: [F("ti", "Taxable income", 0, 2e6, 5000)],
+  medicare: [F("magi", "Income two years ago (modified AGI)", 0, 2e6, 5000), F("status", "Tax return", 1, 2, 1), F("n", "People on Medicare", 1, 2, 1),
+    F("plan", "Drug plan premium per person", 0, 500, 5, "0")],
+  medicarePenalty: [F("mb", "Months you could have had Part B but didn't", 0, 240, 1, "0"), F("md", "Months without drug coverage", 0, 240, 1, "0")],
 };
 Spec.retirement = [...Spec.retirementYou, ...Spec.retirementAssumptions];
 
@@ -1572,6 +1575,7 @@ const TOOLS = [
   { id: "decisions", title: "Compare two plans" },
   { id: "taxes", title: "Taxes & purchasing power" },
   { id: "market", title: "Market brief" },
+  { id: "medicare", title: "Going on Medicare" },
 ];
 
 const raw = (key, id) => S.client[key]?.[id] ?? "";
@@ -2073,6 +2077,85 @@ function taxesTool(tool) {
 // Mirrors ClientMarketView in the Mac app. Numbers come straight from data/roro.json
 // via clientMarketSummary (web/client_market.js, tested by web/client-market-check.mjs).
 
+// "Going on Medicare": what Part B and drug coverage would cost at this income, where the income tiers sit, and the
+// rules that catch people out (enrollment window, working past 65, HSA, the two-year income look-back). Figures come
+// from the audited medicare_premiums and medicare_penalty calculators and the CMS table for the selected year.
+const MKEY = "client.medicare";
+function medicareTool(tool) {
+  const run = () => clientRun(MKEY, "medicare_premiums", Spec.medicare);
+  const pen = () => clientRun(MKEY, "medicare_penalty", Spec.medicarePenalty);
+  const seg = (id, label, opts, on, refill) => h("div", { class: "gfield" }, h("label", { text: label }),
+    h("div", { class: "seg wide" }, opts.map(([v, t]) => h("button", { class: String(raw(MKEY, id)) === v ? "on" : null, text: t,
+      onclick: () => { setRaw(MKEY, id, v); refill(); on(); } }))));
+  return toolPage(tool, (on, refill) => [
+    h("div", { class: "ginputs" },
+      moneyBox(MKEY, "magi", "Income two years ago (modified AGI)", null, on),
+      seg("status", "Tax return", [["1", "Single"], ["2", "Joint"]], on, refill),
+      seg("n", "People on Medicare", [["1", "One"], ["2", "Two"]], on, refill),
+      moneyBox(MKEY, "plan", "Drug plan premium per person", "/ mo", on)),
+    more(MKEY, Spec.medicarePenalty, "Only if you signed up late. Leave empty otherwise.", inputs(MKEY, "medicare_penalty", Spec.medicarePenalty, on)),
+  ], () => {
+    const c = run(), p = pen();
+    const eyebrow = h("div", { class: "eyebrow", text: tool.title });
+    if (!c?.ok) return [eyebrow, h("p", { class: "answer-head", text: "Type in your income to see what Medicare would cost." }), needsInput(c)];
+    const n = Number(raw(MKEY, "n")) === 2 ? 2 : 1;
+    const penB = p?.ok ? p.v(2) : 0, penD = p?.ok ? p.v(3) : 0, pens = penB + penD;
+    const monthly = c.v(4) / 12 + n * pens, yearly = monthly * 12;
+    const t = engine.tax.medicare;
+    const surcharge = c.v(1) - t.partB + c.v(2);
+    const money = (v) => Format.currency(v);
+    const status = Number(raw(MKEY, "status"));
+    const bounds = t.irmaaThresholds[String(status)], tier = c.v(0);
+    const head = n === 2 ? `Medicare would cost about ${money(monthly)} a month for the two of you.` : `Medicare would cost about ${money(monthly)} a month.`;
+    const sub = [h("strong", { text: usd0(yearly) }), " a year for Part B and drug coverage, before supplemental coverage and out-of-pocket costs",
+      surcharge > 0 ? [", including an income-related surcharge of ", h("strong", { text: money(surcharge) }), " a month per person."] : ". No income-related surcharge at this income.",
+      pens > 0 ? [" That includes late-enrollment penalties of ", h("strong", { text: money(pens) }), " a month per person."] : null];
+    const k$ = (v) => "$" + Math.round(v).toLocaleString("en-US");
+    const ranges = [`Up to ${k$(bounds[0])}`, ...[0, 1, 2, 3].map((i) => `${k$(bounds[i])} – ${k$(bounds[i + 1])}`), `${k$(bounds[4])} or more`];
+    const room = c.v(6);
+    const spend = String(raw("client.retirement", "spend")).trim();
+    const addBtn = () => {
+      if (!spend) return h("p", { class: "note", text: `In “Am I on track for retirement?”, include about ${usd0(yearly)} a year for Medicare in retirement spending.` });
+      if (raw(MKEY, "_added") === spend) return h("p", { class: "note", text: "Added to retirement spending." });
+      return h("div", { style: "display:flex;flex-direction:column;gap:6px;align-items:flex-start" },
+        h("p", { class: "note", text: "This uses today's income tier. Income often drops in retirement, which can mean a lower tier." }),
+        h("button", { class: "btn no-print", text: `Add ${usd0(yearly)} a year to retirement spending`, onclick: () => {
+        let cur = 0;
+        try { cur = Engine.parseNumber(spend, false); } catch { /* leave spending as typed */ }
+        const next = Format.plain(Math.round(cur + yearly), 0);
+        setRaw("client.retirement", "spend", next); setRaw(MKEY, "_added", next);
+        toast(`Retirement spending is now ${usd0(cur + yearly)} a year.`); route();
+      } }));
+    };
+    return [
+      eyebrow,
+      h("p", { class: "answer-head", text: head }),
+      h("p", { class: "answer-sub" }, sub),
+      h("section", { class: "plain-section" },
+        h("h2", { class: "eyebrow", text: `${engine.tax.taxYear} income tiers · ${status === 2 ? "joint return" : "single return"}` }),
+        h("table", { class: "tiers" },
+          h("thead", {}, h("tr", {}, h("th", { text: "Income two years earlier" }), h("th", { class: "r", text: "Per person, monthly" }))),
+          h("tbody", {}, ranges.map((r, i) => h("tr", { class: i === tier ? "on" : null },
+            h("td", {}, r, i === tier ? h("span", { class: "you", text: "You" }) : null),
+            h("td", { class: "r tnum", text: money(t.partB + t.partBAdjust[i] + t.partDAdjust[i]) }))))),
+        h("p", { class: "note", text: (tier >= 5 ? "This is the top tier. " : `You're ${usd0(room)} below the next tier. One dollar over a line raises the premium for the whole year. `)
+          + "Per person: Part B plus the drug-coverage surcharge, before the drug plan's own premium." })),
+      h("dl", { class: "plain-rows facts" },
+        [["When to sign up", "Your first chance is a seven-month window: the three months before the month you turn 65, that month, and the three months after."],
+          ["Still working at 65", "If you or your spouse are still working and covered by that employer's group plan (20 or more employees), you can usually wait on Part B without a penalty, then sign up within 8 months after the job or the coverage ends."],
+          ["Health savings account", "Contributions have to stop once Medicare starts. If you sign up after 65, Part A is backdated up to six months, so stop contributing six months before you apply."],
+          ["Why income from two years ago", "Social Security sets the surcharge from your tax return two years before. After a life-changing event, such as retiring, you can ask it to use a more recent year with form SSA-44."]]
+          .map(([k, v]) => h("div", {}, h("dt", { text: k }), h("dd", { text: v })))),
+      addBtn(),
+      h("details", { class: "gmore" }, h("summary", { text: "Breakdown and method" }),
+        h("dl", { class: "gmetrics" }, [["Part B, per person", money(c.v(1))], ["Drug-coverage surcharge, per person", money(c.v(2))],
+          ["Drug plan, per person", money(c.v(3) - c.v(1) - c.v(2))], ["Penalties, per person", money(pens)]].map(([k, v]) => h("div", {}, h("dt", { text: k }), h("dd", { text: v })))),
+        h("p", { class: "note", text: `Uses CMS's ${engine.tax.taxYear} Part B premium ($${t.partB.toFixed(2)}) and income tiers. Part A is assumed premium-free, as it is for about 99% of people. Not included: Medicare Advantage or Medigap premiums, deductibles and other out-of-pocket costs. Sources: the CMS premium fact sheet, Medicare.gov and the Social Security Administration.` }),
+        howItWorks(p?.ok && pens > 0 ? [c, p] : [c])),
+    ];
+  }, () => { const c = run(); return c?.ok ? [c, pen()] : [c]; });   // the penalty calc is complete even when empty
+}
+
 function marketTool(tool) {
   const m = data.roro;
   const sum = clientMarketSummary(m);
@@ -2151,7 +2234,7 @@ function route() {
     const tool = TOOLS.find((t) => t.id === sub);
     if (!tool) return show(clientHome(), { mode });
     if (tool.id === "market" && data.roro === undefined) loadRoRo().then(route);
-    const make = { growth: growthTool, retirement: retirementTool, risk: riskTool, decisions: decisionsTool, taxes: taxesTool, market: marketTool }[tool.id];
+    const make = { growth: growthTool, retirement: retirementTool, risk: riskTool, decisions: decisionsTool, taxes: taxesTool, market: marketTool, medicare: medicareTool }[tool.id];
     return show(make(tool), { mode });
   }
   show(startPage());

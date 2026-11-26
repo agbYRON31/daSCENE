@@ -19,6 +19,31 @@ public struct TaxTable: Codable {
         public let rates: [Double]
     }
 
+    /// Medicare premiums and IRMAA tiers from CMS's yearly fact sheets; the table's year is the premium year.
+    public struct Medicare: Codable {
+        public let partB: Double
+        public let partBDeductible: Double
+        public let partDBase: Double
+        public let irmaaThresholds: [String: [Double]]
+        public let partBAdjust: [Double]
+        public let partDAdjust: [Double]
+    }
+
+    /// HSA contribution limits (IRS revenue procedure) and the age-55 catch-up.
+    public struct HSA: Codable {
+        public let selfOnly: Double
+        public let family: Double
+        public let catchUp55: Double
+        enum CodingKeys: String, CodingKey { case selfOnly = "self", family, catchUp55 }
+    }
+
+    /// Additional Medicare tax (Form 8959): thresholds set by statute, not indexed.
+    public struct AddlMedicare: Codable {
+        public let rate: Double
+        public let threshold: [String: Double]
+        public let withholdingThreshold: Double
+    }
+
     public let taxYear: Int
     /// Date (YYYY-MM-DD) these figures were checked against the IRS sources.
     public let verifiedOn: String
@@ -34,6 +59,9 @@ public struct TaxTable: Codable {
     public let niitThreshold: [String: Double]
     public let niitRate: Double
     public let amt: AMT
+    public let medicare: Medicare
+    public let hsa: HSA
+    public let addlMedicare: AddlMedicare
     public let limits: Limits
     public let giftAnnualExclusion: Double
     public let estateExemption: Double
@@ -98,6 +126,26 @@ public struct TaxTable: Codable {
     }
 
     public func niitThreshold(_ status: Double) throws -> Double { niitThreshold[try key(status)]! }
+
+    /// IRMAA tier 0–5: the first four thresholds are crossed by income above them, the top one at or above it (CMS tables).
+    public func irmaaTier(_ magi: Double, _ status: Double) throws -> Double {
+        guard let t = medicare.irmaaThresholds[try key(status)], t.count == 5 else { throw EvalError.message("Unknown filing status.") }
+        return Double(t.prefix(4).filter { magi > $0 }.count + (magi >= t[4] ? 1 : 0))
+    }
+    public func partBPremium(_ magi: Double, _ status: Double) throws -> Double {
+        medicare.partB + medicare.partBAdjust[Int(try irmaaTier(magi, status))]
+    }
+    public func partDIrmaa(_ magi: Double, _ status: Double) throws -> Double {
+        medicare.partDAdjust[Int(try irmaaTier(magi, status))]
+    }
+    /// Income that can be added before the next tier's threshold (0 in the top tier).
+    public func irmaaRoom(_ magi: Double, _ status: Double) throws -> Double {
+        let k = Int(try irmaaTier(magi, status))
+        return k >= 5 ? 0 : Swift.max(0, medicare.irmaaThresholds[try key(status)]![k] - magi)
+    }
+    public func addlMedicareThreshold(_ status: Double) throws -> Double { addlMedicare.threshold[try key(status)]! }
+    /// 1 = self-only coverage, 2 = family coverage.
+    public func hsaLimit(_ coverage: Double) -> Double { Int(coverage) == 1 ? hsa.selfOnly : hsa.family }
 
     /// AMT exemption after the phase-out (same rule as amtexemption in tools/build_catalog.py).
     public func amtExemption(_ amti: Double, _ status: Double) throws -> Double {

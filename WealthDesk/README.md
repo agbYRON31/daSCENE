@@ -2,8 +2,8 @@
 
 A native macOS app for financial education and illustration. Independent software: not affiliated with, endorsed by, or approved by Morgan Stanley or any other firm.
 
-- **Client Mode:** five plain-language tools with sliders and charts (growth, retirement, risk, decisions, taxes and inflation).
-- **Advisor Mode:** four destinations. **Market Brief** (the landing page: the RoRo Composite's overall reading, as-of date and three horizon scores, with factors, history and methodology one click deeper), **Stock research** (one ticker: overview, financials, valuation and filings tabs), **Calculators** (110 calculators with formulas, assumptions, Excel equivalents and sources; most-used first, everyday math folded away, all searchable) and **Client Mode**. Retirement, portfolio stress and growth calculators have **Present to client**, which opens the matching Client Mode tool with the same numbers. Tools: Treasury yields and quotes, a scientific calculator, session scenarios and history.
+- **Client Mode:** seven plain-language tools (savings growth, retirement, what if markets fall, comparing two plans, taxes and purchasing power, the market brief, and going on Medicare).
+- **Advisor Mode:** four destinations. **Market Brief** (the landing page: the RoRo Composite's overall reading, as-of date and three horizon scores, with factors, history and methodology one click deeper), **Stock research** (one ticker: overview, financials, valuation and filings tabs), **Calculators** (115 calculators with formulas, assumptions, Excel equivalents and sources; most-used first, everyday math folded away, all searchable) and **Client Mode**. Retirement, portfolio stress and growth calculators have **Present to client**, which opens the matching Client Mode tool with the same numbers. Tools: Treasury yields and quotes, a scientific calculator, session scenarios and history.
 - **Privacy by design:** calculators open blank. Typed numbers live in memory only and are erased on quit. Nothing typed is ever transmitted. Scenario files (optionally AES-256 password-protected) and PDF reports are written only when the user chooses, where they choose. The app is sandboxed: network client access and user-selected files only.
 - **Accuracy:** every calculator is independently audited (`docs/ACCURACY_AUDIT.md`), and the shipped engine is checked against the reference on every build (`wdcheck`).
 
@@ -22,14 +22,14 @@ During development: `swift run WealthDesk` (app) and `swift run wdcheck` (self-t
 
 ## Web version (Windows, Linux, phones)
 
-`web/` is a browser version for people without a Mac, laid out like the app: the start screen, Advisor Mode (sidebar, all 110 calculators, Calculator, Markets, RoRo Composite, session scenarios and history) and Client Mode. It reads the same `catalog.json` and `taxdata.json`, and `web/engine.js` is a line-by-line port of `Sources/WealthCore`.
+`web/` is a browser version for people without a Mac, laid out like the app: the start screen, Advisor Mode (sidebar, all 115 calculators, Calculator, Markets, RoRo Composite, session scenarios and history) and Client Mode. It reads the same `catalog.json` and `taxdata.json`, and `web/engine.js` is a line-by-line port of `Sources/WealthCore`.
 
 How it's checked:
 
 | Check | What it proves |
 | --- | --- |
 | `web/check.mjs` | The web `wdcheck`: every catalog example matches its Python-computed expected value (Monte Carlo included: same SplitMix64 stream), plus parser and IRS bracket checks. |
-| `web/parity.mjs` | Thousands of generated inputs per run across all 110 calculators (variations, every input style, invalid and edge-case entries) give the same field errors, rule errors, outputs and tables as the Swift engine (`swift run wdparity`). |
+| `web/parity.mjs` | Thousands of generated inputs per run across all 115 calculators (variations, every input style, invalid and edge-case entries) give the same field errors, rule errors, outputs and tables as the Swift engine (`swift run wdparity`). |
 | `web/scenario-check.mjs` | Scenario files, plain and password-protected, open both ways between the web and the app. |
 
 Browsers can't reach Yahoo, FRED or Treasury.gov directly, so RoRo and Markets on the web come from a scheduled build: each weekday after the US close, GitHub Actions runs the app's own engine (`roro fetch/build/meta/markets`) on a Mac runner and publishes the results with the site. The Mac app still fetches live and lets you add watchlist symbols. PDF reports use the browser's print dialog. Preferences (favorites, tax year, calculator mode) are kept in the browser; calculator inputs are memory-only and gone when the tab closes.
@@ -76,6 +76,18 @@ python3 -m venv .venv && .venv/bin/pip install pandas numpy
 ```
 
 (`truncate.py` makes the 2022-06-16 snapshot; `compare.py` diffs two model files; `swift run roro fetch|build` is the Swift CLI.)
+
+## Medicare
+
+Five Advisor calculators in the **Medicare** category, plus the **Going on Medicare** Client Mode page:
+
+- **Medicare premiums and IRMAA:** Part B and the Part D income surcharge for a modified AGI from two years earlier, per person and for the household, and the income room before the next tier.
+- **IRMAA check for a Roth conversion or sale:** whether one-time income moves premiums into a higher tier two years later. The Roth conversion and capital gains calculators also show this as an extra output.
+- **Medicare late-enrollment penalties:** Part B (10% per full 12 months) and Part D (1% of the national base beneficiary premium per month), each rounded to the nearest $0.10 as Medicare does.
+- **HSA contributions when Medicare starts:** the six-month retroactive Part A rule and the prorated HSA limit, with any excess and the 6% excise tax.
+- **Additional Medicare tax (0.9%):** Form 8959's wage and self-employment calculation against employer withholding.
+
+The figures live in `taxdata.json` under each year's table (`medicare`, `hsa`, `addlMedicare`), from CMS's 2026 and 2027 premium fact sheets, CMS's Part D base beneficiary premium releases ($38.99 for 2026, $41.33 for 2027), IRS Rev. Procs. 2025-19 and 2026-24 (HSA limits) and the Form 8959 instructions. The selected tax year is also the premium year. `tools/audit.py` checks every case against CMS's printed rows and Medicare.gov's worked examples, and `wdcheck` checks both years' printed rows.
 
 ## Tax data and the IRS
 

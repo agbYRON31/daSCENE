@@ -722,3 +722,16 @@ h1.large, .calc-head h1, h1.serif { font-size: 24px; }
   .tb .tbtn span, .tb .tbtn .lbl { display: none; }
   .wordmark { font-size: 18px; }
 }
+
+/* Going on Medicare: income-tier ladder and plain facts */
+.tiers { width: 100%; border-collapse: collapse; font-size: 16px; }
+.tiers th { text-align: left; font-size: 13px; font-weight: 600; color: var(--secondary); padding: 6px 0; border-bottom: 1px solid var(--ink); }
+.tiers td { padding: 9px 0; border-bottom: 1px solid var(--sep); font-variant-numeric: tabular-nums; }
+.tiers .r { text-align: right; }
+.tiers tr.on td { font-weight: 600; color: var(--accent-text); }
+.tiers .you { margin-left: 10px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; background: var(--accent-12); }
+.plain-rows.facts > div { grid-template-columns: minmax(140px, 220px) minmax(0, 1fr); }
+.plain-rows.facts dt { font-size: 15px; font-weight: 600; }
+.plain-rows.facts dd { font-size: 16px; font-weight: 400; display: block; color: var(--text); }
+@media (max-width: 620px) { .plain-rows.facts > div { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.ginputs .seg .on { background: var(--ink); color: var(--content); box-shadow: none; }

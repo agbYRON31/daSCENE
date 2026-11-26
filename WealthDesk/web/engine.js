@@ -644,6 +644,17 @@ export class TaxTable {
     const a = this.amt, k = this.key(status);
     return Math.max(0, a.exemption[k] - a.phaseoutRate * Math.max(0, amti - a.phaseoutStart[k]));
   }
+  /** IRMAA tier 0–5: the first four thresholds are crossed by income above them, the top one at or above it (CMS tables). */
+  irmaaTier(magi, status) {
+    const t = this.medicare.irmaaThresholds[this.key(status)];
+    return t.slice(0, 4).filter((x) => magi > x).length + (magi >= t[4] ? 1 : 0);
+  }
+  partBPremium(magi, status) { return this.medicare.partB + this.medicare.partBAdjust[this.irmaaTier(magi, status)]; }
+  partDIrmaa(magi, status) { return this.medicare.partDAdjust[this.irmaaTier(magi, status)]; }
+  irmaaRoom(magi, status) {
+    const k = this.irmaaTier(magi, status);
+    return k >= 5 ? 0 : Math.max(0, this.medicare.irmaaThresholds[this.key(status)][k] - magi);
+  }
   amtTax(amti, status) {
     const a = this.amt, base = Math.max(0, amti - this.amtExemption(amti, status));
     return a.rates[0] * Math.min(base, a.rateBreak) + a.rates[1] * Math.max(0, base - a.rateBreak);
@@ -871,6 +882,16 @@ class Evaluator {
       case "stddeduction": need(1); return tax.standardDeductionFor(n(0));
       case "amtexemption": need(2); return tax.amtExemption(n(0), n(1));
       case "amttax": need(2); return tax.amtTax(n(0), n(1));
+      case "irmaatier": need(2); return tax.irmaaTier(n(0), n(1));
+      case "partbpremium": need(2); return tax.partBPremium(n(0), n(1));
+      case "partdirmaa": need(2); return tax.partDIrmaa(n(0), n(1));
+      case "irmaaroom": need(2); return tax.irmaaRoom(n(0), n(1));
+      case "partbstandard": need(0); return tax.medicare.partB;
+      case "partdbase": need(0); return tax.medicare.partDBase;
+      case "addlmedthreshold": need(1); return tax.addlMedicare.threshold[tax.key(n(0))];
+      case "addlmedrate": need(0); return tax.addlMedicare.rate;
+      case "hsalimit": need(1); return trunc(n(0)) === 1 ? tax.hsa.self : tax.hsa.family;
+      case "hsacatchup": need(0); return tax.hsa.catchUp55;
       case "ltcgtax": need(3); return tax.ltcgTax(n(0), n(1), n(2));
       case "niitthreshold": need(1); return tax.niitThresholdFor(n(0));
       case "niitrate": need(0); return tax.niitRate;
@@ -1160,7 +1181,7 @@ export const fieldKind = {
 
 const TAX_FUNCS = ["incometax(", "margrate(", "bracketroom(", "stddeduction(", "ltcgtax(", "niitthreshold(",
   "niitrate(", "rmdfactor(", "limit401k(", "limitira(", "giftexclusion(", "estateexemption(", "estaterate(",
-  "statetax(", "statemarg(", "stategaintax(", "amtexemption(", "amttax("];
+  "statetax(", "statemarg(", "stategaintax(", "amtexemption(", "amttax(", "irmaatier(", "partbpremium(", "partdirmaa(", "irmaaroom(", "partbstandard(", "partdbase(", "addlmedthreshold(", "addlmedrate(", "hsalimit(", "hsacatchup("];
 
 export function usesTaxTable(calc) {
   const text = [...calc.outputs.map((o) => o.expression), ...calc.rules.map((r) => r.left), ...calc.rules.map((r) => r.right)].join(" ");

@@ -4896,6 +4896,14 @@
     "format": "percent",
     "excel": null,
     "expected": 0.15
+   },
+   {
+    "id": "4",
+    "label": "Extra Medicare premiums two years later, per person per year",
+    "expression": "12*((partbpremium((ord+stddeduction(status)+gain),status)+partdirmaa((ord+stddeduction(status)+gain),status))-(partbpremium((ord+stddeduction(status)),status)+partdirmaa((ord+stddeduction(status)),status)))",
+    "format": "currency",
+    "excel": null,
+    "expected": 2884.8
    }
   ],
   "math": "Federal: gains stack on ordinary income through the 0% / 15% / 20% thresholds; state: the gain's extra state tax under that state's rules",
@@ -4903,7 +4911,7 @@
   "aliases": "capital gains qualified dividends 15% 20% state",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. NIIT is a separate calculator. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes. Most states tax gains as ordinary income; this follows each state's own treatment where it differs (exclusions in Arizona, Arkansas, New Mexico, North Dakota, South Carolina and Wisconsin; Hawaii's 7.25% cap; Montana's lower rates; no tax in Missouri; Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax).",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. NIIT is a separate calculator. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes. Most states tax gains as ordinary income; this follows each state's own treatment where it differs (exclusions in Arizona, Arkansas, New Mexico, North Dakota, South Carolina and Wisconsin; Hawaii's 7.25% cap; Montana's lower rates; no tax in Missouri; Maryland's and Minnesota's surtaxes; Washington's separate capital gains tax). The Medicare line uses AGI (taxable income plus the standard deduction) as the income Medicare looks at, and only matters if you'll be on Medicare two years later; it uses this year's CMS tier table as a stand-in for that year's.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -4915,6 +4923,10 @@
    {
     "title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)",
     "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"
+   },
+   {
+    "title": "CMS • Medicare Parts A & B Premiums and Deductibles (Part B and Part D IRMAA tables)",
+    "url": "https://www.cms.gov/newsroom/fact-sheets/2027-medicare-parts-b-premiums-deductibles"
    }
   ],
   "explain": {
@@ -5449,14 +5461,22 @@
     "format": "percent",
     "excel": null,
     "expected": 0.22
+   },
+   {
+    "id": "6",
+    "label": "Extra Medicare premiums two years later, per person per year",
+    "expression": "12*((partbpremium((ti+stddeduction(status))+x,status)+partdirmaa((ti+stddeduction(status))+x,status))-(partbpremium((ti+stddeduction(status)),status)+partdirmaa((ti+stddeduction(status)),status)))",
+    "format": "currency",
+    "excel": null,
+    "expected": 1148.4
    }
   ],
   "math": "Tax(income + conversion) − tax(income), federal and state",
   "summary": "Incremental federal and state tax from converting pre-tax money to Roth.",
-  "aliases": "fill the bracket conversion state",
+  "aliases": "fill the bracket conversion state IRMAA medicare",
   "acronym": "",
   "assumptions": "Inputs refer to the same person, account and period. Rates are annual and compound once per period unless stated. Taxes, fees and inflation are excluded unless entered.",
-  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes.",
+  "interpretation": "Uses the IRS figures for the tax year selected in the app (shown above the inputs, with its IRS sources). Excludes AMT (it has its own calculator), credits, phase-outs and payroll taxes. State tax is an estimate from the state's 2026 brackets, standard deduction, personal exemptions and personal credits, starting from AGI (estimated as taxable income plus the federal standard deduction). Local income taxes, dependents, high-income recapture and most phase-outs are not included; the tax-data panel lists each state's notes. The Medicare line uses AGI (taxable income plus the standard deduction) as the income Medicare looks at, and only matters if you'll be on Medicare two years later; it uses this year's CMS tier table as a stand-in for that year's.",
   "excelNotes": "Enter percentages in Excel as 7% or 0.07. Excel's PV/FV/PMT treat money paid out as negative, so some formulas carry a minus sign to show a positive result.",
   "rules": [],
   "common": false,
@@ -5468,6 +5488,10 @@
    {
     "title": "Tax Foundation • State Individual Income Tax Rates and Brackets, 2026 (state tables; official sources noted per state)",
     "url": "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/"
+   },
+   {
+    "title": "CMS • Medicare Parts A & B Premiums and Deductibles (Part B and Part D IRMAA tables)",
+    "url": "https://www.cms.gov/newsroom/fact-sheets/2027-medicare-parts-b-premiums-deductibles"
    }
   ],
   "explain": {
@@ -5664,6 +5688,705 @@
     {
      "term": "growth taxed once at the end",
      "meaning": "Deferred: full compounding, then tax on the gain at withdrawal."
+    }
+   ]
+  }
+ },
+ {
+  "id": "medicare_premiums",
+  "name": "Medicare premiums and IRMAA",
+  "category": "Medicare",
+  "fields": [
+   {
+    "id": "magi",
+    "label": "Modified AGI (from two years earlier)",
+    "unit": "$",
+    "example": "240000",
+    "hint": "Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year (for 2026 premiums, the 2024 return).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   },
+   {
+    "id": "n",
+    "label": "People on Medicare",
+    "unit": "count",
+    "example": "2",
+    "hint": "1 or 2. On a joint return both spouses' premiums use the joint income.",
+    "min": 1,
+    "max": 2,
+    "integer": true
+   },
+   {
+    "id": "plan",
+    "label": "Part D plan premium per person (monthly)",
+    "unit": "$",
+    "example": "45",
+    "hint": "The drug plan's own premium; 0 for a $0-premium plan.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Income tier (0 = no surcharge, 5 = highest)",
+    "expression": "irmaatier(magi,status)",
+    "format": "number",
+    "excel": null,
+    "expected": 1.0
+   },
+   {
+    "id": "1",
+    "label": "Part B premium per person, monthly",
+    "expression": "partbpremium(magi,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 284.1
+   },
+   {
+    "id": "2",
+    "label": "Part D income surcharge per person, monthly",
+    "expression": "partdirmaa(magi,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 14.5
+   },
+   {
+    "id": "3",
+    "label": "Total per person, monthly (Part B + drug plan + surcharge)",
+    "expression": "(partbpremium(magi,status)+partdirmaa(magi,status))+plan",
+    "format": "currency",
+    "excel": null,
+    "expected": 343.6
+   },
+   {
+    "id": "4",
+    "label": "Total for everyone covered, yearly",
+    "expression": "12*n*((partbpremium(magi,status)+partdirmaa(magi,status))+plan)",
+    "format": "currency",
+    "excel": null,
+    "expected": 8246.400000000001
+   },
+   {
+    "id": "5",
+    "label": "Income-related surcharges in that, yearly",
+    "expression": "12*n*((partbpremium(magi,status)+partdirmaa(magi,status))-partbstandard())",
+    "format": "currency",
+    "excel": null,
+    "expected": 2296.8
+   },
+   {
+    "id": "6",
+    "label": "Income room before the next tier",
+    "expression": "irmaaroom(magi,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 34000.0
+   }
+  ],
+  "math": "Part B = standard premium + IRMAA for the income tier; Part D surcharge by the same tier; yearly = 12 × people × monthly",
+  "summary": "What Part B and Part D cost each month at a given income, including the income-related surcharge (IRMAA).",
+  "aliases": "IRMAA income-related monthly adjustment amount Part B Part D premium surcharge cliff tier going on Medicare",
+  "acronym": "IRMAA",
+  "assumptions": "Standard Part B coverage (not the immunosuppressive-drug-only premium). Part A is assumed premium-free (true for about 99% of people). Assumes drug coverage through a Part D plan or a Medicare Advantage plan with drugs; the income surcharge applies to either. Excludes Medicare Advantage premiums, Medigap and out-of-pocket costs, and married filing separately. People whose premiums are paid by Medicaid or a Medicare Savings Program don't pay these amounts.",
+  "interpretation": "Uses CMS's premium and IRMAA tables for the year selected in the app (the tax-year switch also sets the premium year). IRMAA is set from the tax return two years before the premium year (2026 premiums use 2024 income); after a qualifying life-changing event, Social Security can use a more recent year (form SSA-44). Head of household uses the individual tiers. One dollar over a tier threshold raises the premium for the whole year.",
+  "excelNotes": "The tier thresholds and amounts change every year; the app uses its dated CMS table.",
+  "rules": [
+   {
+    "left": "n",
+    "relation": "<=",
+    "right": "2",
+    "message": "Enter 1 or 2 people."
+   },
+   {
+    "left": "if(status==2,1,n)",
+    "relation": "<=",
+    "right": "1",
+    "message": "Two people share one income tier only on a joint return. For two single filers, check each one separately."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "CMS • Medicare Parts A & B Premiums and Deductibles (Part B and Part D IRMAA tables)",
+    "url": "https://www.cms.gov/newsroom/fact-sheets/2027-medicare-parts-b-premiums-deductibles"
+   },
+   {
+    "title": "SSA • Request to lower an income-related monthly adjustment amount (IRMAA)",
+    "url": "https://www.ssa.gov/medicare/lower-irmaa"
+   }
+  ],
+  "explain": {
+   "why": "Everyone on Part B pays the standard premium. People with higher income pay an extra amount on top (IRMAA), for Part B and for drug coverage, set by which income tier they fall in. The tiers are steps, not a gradual rate, so a dollar over a threshold costs the whole step for the year.",
+   "parts": [
+    {
+     "term": "standard premium",
+     "meaning": "The Part B premium most people pay, set by CMS each year."
+    },
+    {
+     "term": "IRMAA",
+     "meaning": "The income-related monthly adjustment amount: an extra monthly charge for each tier above the first."
+    },
+    {
+     "term": "income tier",
+     "meaning": "Which band your modified AGI from two years earlier falls in; joint returns have bands twice as wide."
+    },
+    {
+     "term": "Part D surcharge",
+     "meaning": "The drug-coverage IRMAA, added to whatever your drug plan charges."
+    },
+    {
+     "term": "12 × people × monthly",
+     "meaning": "Turns the monthly cost per person into a yearly household cost."
+    }
+   ]
+  }
+ },
+ {
+  "id": "irmaa_spike",
+  "name": "IRMAA check for a Roth conversion or sale",
+  "category": "Medicare",
+  "fields": [
+   {
+    "id": "magi",
+    "label": "Modified AGI without it",
+    "unit": "$",
+    "example": "200000",
+    "hint": "Adjusted gross income plus tax-exempt interest, from the tax return two years before the premium year (for 2026 premiums, the 2024 return).",
+    "min": 0
+   },
+   {
+    "id": "x",
+    "label": "Extra income (conversion or gain)",
+    "unit": "$",
+    "example": "40000",
+    "hint": "Dollar amount; k and m suffixes work (250k, 1.2m).",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   },
+   {
+    "id": "n",
+    "label": "People on Medicare",
+    "unit": "count",
+    "example": "2",
+    "hint": "1 or 2, counted in the premium year two years later.",
+    "min": 1,
+    "max": 2,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Income tier without it",
+    "expression": "irmaatier(magi,status)",
+    "format": "number",
+    "excel": null,
+    "expected": 0.0
+   },
+   {
+    "id": "1",
+    "label": "Income tier with it",
+    "expression": "irmaatier(magi+x,status)",
+    "format": "number",
+    "excel": null,
+    "expected": 1.0
+   },
+   {
+    "id": "2",
+    "label": "Extra Medicare premiums per person, monthly",
+    "expression": "(partbpremium(magi+x,status)+partdirmaa(magi+x,status))-(partbpremium(magi,status)+partdirmaa(magi,status))",
+    "format": "currency",
+    "excel": null,
+    "expected": 95.70000000000002
+   },
+   {
+    "id": "3",
+    "label": "Extra Medicare premiums for everyone, for the year",
+    "expression": "12*n*((partbpremium(magi+x,status)+partdirmaa(magi+x,status))-(partbpremium(magi,status)+partdirmaa(magi,status)))",
+    "format": "currency",
+    "excel": null,
+    "expected": 2296.8
+   },
+   {
+    "id": "4",
+    "label": "Room before the next tier (without it)",
+    "expression": "irmaaroom(magi,status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 18000.0
+   }
+  ],
+  "math": "Premiums at (MAGI + extra) − premiums at MAGI, using the tier tables; paid in the premium year two years after the income",
+  "summary": "Whether a Roth conversion, capital gain or other one-time income pushes Medicare premiums into a higher tier two years later.",
+  "aliases": "IRMAA cliff Roth conversion capital gain one-time income Medicare premium two years later tier",
+  "acronym": "IRMAA",
+  "assumptions": "Today's tier table is used as a stand-in for the premium year two years out, which CMS publishes each fall; thresholds usually rise with inflation. The one-time income affects one premium year only.",
+  "interpretation": "Uses CMS's premium and IRMAA tables for the year selected in the app (the tax-year switch also sets the premium year). IRMAA is set from the tax return two years before the premium year (2026 premiums use 2024 income); after a qualifying life-changing event, Social Security can use a more recent year (form SSA-44). Head of household uses the individual tiers.",
+  "excelNotes": "The tier thresholds and amounts change every year; the app uses its dated CMS table.",
+  "rules": [
+   {
+    "left": "n",
+    "relation": "<=",
+    "right": "2",
+    "message": "Enter 1 or 2 people."
+   },
+   {
+    "left": "if(status==2,1,n)",
+    "relation": "<=",
+    "right": "1",
+    "message": "Two people share one income tier only on a joint return. For two single filers, check each one separately."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "CMS • Medicare Parts A & B Premiums and Deductibles (Part B and Part D IRMAA tables)",
+    "url": "https://www.cms.gov/newsroom/fact-sheets/2027-medicare-parts-b-premiums-deductibles"
+   },
+   {
+    "title": "SSA • Request to lower an income-related monthly adjustment amount (IRMAA)",
+    "url": "https://www.ssa.gov/medicare/lower-irmaa"
+   }
+  ],
+  "explain": {
+   "why": "Medicare premiums are set from your income two years earlier. A one-time bump, such as a Roth conversion or a large capital gain, can move you into a higher tier for one premium year, and the cost is the difference between the two tiers' premiums.",
+   "parts": [
+    {
+     "term": "premiums at (MAGI + extra)",
+     "meaning": "What Part B and the Part D surcharge cost with the extra income included."
+    },
+    {
+     "term": "− premiums at MAGI",
+     "meaning": "Takes away what you'd pay anyway, leaving only the cost of the extra income."
+    },
+    {
+     "term": "two years after",
+     "meaning": "The premium year that the income affects, because Social Security uses the return from two years before."
+    }
+   ]
+  }
+ },
+ {
+  "id": "medicare_penalty",
+  "name": "Medicare late-enrollment penalties",
+  "category": "Medicare",
+  "fields": [
+   {
+    "id": "mb",
+    "label": "Months you could have had Part B but didn't",
+    "unit": "count",
+    "example": "24",
+    "hint": "Months after your enrollment window ended, not counting time covered by a job's group plan (which gives a Special Enrollment Period).",
+    "min": 0,
+    "integer": true
+   },
+   {
+    "id": "md",
+    "label": "Full months without Part D or other creditable drug coverage",
+    "unit": "count",
+    "example": "14",
+    "hint": "After your enrollment window, counting only gaps of more than 63 days in a row.",
+    "min": 0,
+    "integer": true
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Part B penalty rate",
+    "expression": "0.1*floor(mb/12)",
+    "format": "percent",
+    "excel": null,
+    "expected": 0.2
+   },
+   {
+    "id": "1",
+    "label": "Part B premium with the penalty, monthly",
+    "expression": "floor(partbstandard()*(1+0.1*floor(mb/12))*10+0.5)/10",
+    "format": "currency",
+    "excel": null,
+    "expected": 243.5
+   },
+   {
+    "id": "2",
+    "label": "Part B penalty, monthly",
+    "expression": "floor(partbstandard()*(1+0.1*floor(mb/12))*10+0.5)/10-partbstandard()",
+    "format": "currency",
+    "excel": null,
+    "expected": 40.599999999999994
+   },
+   {
+    "id": "3",
+    "label": "Part D penalty, monthly",
+    "expression": "floor(0.01*md*partdbase()*10+0.5)/10",
+    "format": "currency",
+    "excel": null,
+    "expected": 5.5
+   },
+   {
+    "id": "4",
+    "label": "Both penalties, yearly",
+    "expression": "12*(floor(partbstandard()*(1+0.1*floor(mb/12))*10+0.5)/10-partbstandard()+floor(0.01*md*partdbase()*10+0.5)/10)",
+    "format": "currency",
+    "excel": null,
+    "expected": 553.1999999999999
+   }
+  ],
+  "math": "Part B: 10% of the standard premium per full 12 months late; Part D: 1% of the national base beneficiary premium per month without coverage; each rounded to the nearest $0.10",
+  "summary": "The lifelong monthly penalties for signing up for Part B or Part D late.",
+  "aliases": "late enrollment penalty Part B Part D creditable coverage IEP special enrollment period",
+  "acronym": "",
+  "assumptions": "Standard Part B premium (an IRMAA surcharge is added on top separately). The penalty is recalculated each year from that year's standard premium and base beneficiary premium. No penalty applies with a Special Enrollment Period, a Medicare Savings Program, or Extra Help.",
+  "interpretation": "Uses CMS's standard Part B premium and Part D base beneficiary premium for the year selected in the app. Penalties last as long as you have the coverage.",
+  "excelNotes": "Part B: =ROUND(standard*(1+0.1*INT(months/12)),1). Part D: =ROUND(0.01*months*base,1).",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "Medicare.gov • Avoid late enrollment penalties",
+    "url": "https://www.medicare.gov/basics/costs/medicare-costs/avoid-penalties"
+   }
+  ],
+  "explain": {
+   "why": "Signing up late for Part B or for drug coverage adds a permanent percentage to the premium. Part B counts whole years late; Part D counts months without creditable coverage.",
+   "parts": [
+    {
+     "term": "10% … per full 12 months",
+     "meaning": "Part B's penalty grows by 10% of the standard premium for each complete year you could have had it."
+    },
+    {
+     "term": "1% of the national base beneficiary premium",
+     "meaning": "Part D's penalty grows by 1% of a national figure CMS sets each year, for each month without coverage."
+    },
+    {
+     "term": "rounded to the nearest $0.10",
+     "meaning": "Medicare rounds each monthly amount to the nearest ten cents."
+    }
+   ]
+  }
+ },
+ {
+  "id": "hsa_medicare",
+  "name": "HSA contributions when Medicare starts",
+  "category": "Medicare",
+  "fields": [
+   {
+    "id": "applym",
+    "label": "Month you apply for Medicare or Social Security (1–12)",
+    "unit": "count",
+    "example": "9",
+    "hint": "A whole number.",
+    "min": 1,
+    "max": 12,
+    "integer": true
+   },
+   {
+    "id": "m65",
+    "label": "Month you turn 65 this year (0 if you turned 65 before this year)",
+    "unit": "count",
+    "example": "0",
+    "hint": "Medicare eligibility starts the month you turn 65 (the month before, if your birthday is on the 1st).",
+    "min": 0,
+    "max": 12,
+    "integer": true
+   },
+   {
+    "id": "cov",
+    "label": "HSA coverage",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Self-only"
+     },
+     {
+      "value": 2,
+      "label": "Family"
+     }
+    ]
+   },
+   {
+    "id": "c55",
+    "label": "Age 55 or older",
+    "unit": "choice",
+    "example": "1",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 0,
+      "label": "No"
+     },
+     {
+      "value": 1,
+      "label": "Yes"
+     }
+    ]
+   },
+   {
+    "id": "paid",
+    "label": "Contributed for this year so far",
+    "unit": "$",
+    "example": "9750",
+    "hint": "Your own and your employer's contributions together.",
+    "min": 0
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Part A coverage starts in month (0 or less = last year)",
+    "expression": "max(applym-6,if(m65>0,m65,applym-6))",
+    "format": "number",
+    "excel": null,
+    "expected": 3.0
+   },
+   {
+    "id": "1",
+    "label": "Months you can still contribute this year",
+    "expression": "max(0,min(12,max(applym-6,if(m65>0,m65,applym-6))-1))",
+    "format": "number",
+    "excel": null,
+    "expected": 2.0
+   },
+   {
+    "id": "2",
+    "label": "Contribution limit for this year",
+    "expression": "(hsalimit(cov)+if(c55==1,hsacatchup(),0))*max(0,min(12,max(applym-6,if(m65>0,m65,applym-6))-1))/12",
+    "format": "currency",
+    "excel": null,
+    "expected": 1625.0
+   },
+   {
+    "id": "3",
+    "label": "Excess contribution to withdraw",
+    "expression": "max(0,paid-(hsalimit(cov)+if(c55==1,hsacatchup(),0))*max(0,min(12,max(applym-6,if(m65>0,m65,applym-6))-1))/12)",
+    "format": "currency",
+    "excel": null,
+    "expected": 8125.0
+   },
+   {
+    "id": "4",
+    "label": "6% excise tax per year if the excess stays in",
+    "expression": "0.06*max(0,paid-(hsalimit(cov)+if(c55==1,hsacatchup(),0))*max(0,min(12,max(applym-6,if(m65>0,m65,applym-6))-1))/12)",
+    "format": "currency",
+    "excel": null,
+    "expected": 487.5
+   }
+  ],
+  "math": "Part A start = application month − 6, but not before the month you turn 65; limit = (annual limit + catch-up) × eligible months ÷ 12",
+  "summary": "How Medicare's six-month retroactive Part A coverage cuts this year's HSA contribution limit, and any excess to take back out.",
+  "aliases": "HSA health savings account Medicare Part A retroactive six months stop contributing excess contribution 65",
+  "acronym": "",
+  "assumptions": "Applying at 65 or later: Part A is backdated up to 6 months but not before you're eligible. Applying before 65: coverage starts the month you turn 65. You were HSA-eligible every month before Medicare. Ignores the last-month rule and its testing period, and a spouse's separate HSA (family limits are shared between spouses).",
+  "interpretation": "Uses the IRS HSA limits for the tax year selected in the app. Excess contributions withdrawn with their earnings by the tax return due date (with extensions) avoid the 6% excise tax.",
+  "excelNotes": "The HSA limits change every year; the app uses its dated IRS table.",
+  "rules": [],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Publication 969, Health Savings Accounts",
+    "url": "https://www.irs.gov/publications/p969"
+   },
+   {
+    "title": "Medicare.gov • Working past 65 (HSA and retroactive Part A)",
+    "url": "https://www.medicare.gov/basics/get-started-with-medicare/medicare-basics/working-past-65"
+   }
+  ],
+  "explain": {
+   "why": "You can't contribute to an HSA in any month you're on Medicare. When you sign up at 65 or later, Part A is backdated up to six months, so those months stop counting for the HSA too, and the year's limit shrinks to the months that are left.",
+   "parts": [
+    {
+     "term": "application month − 6",
+     "meaning": "Part A's backdated start when you apply after you're eligible."
+    },
+    {
+     "term": "not before the month you turn 65",
+     "meaning": "Coverage can't start before you're eligible for Medicare."
+    },
+    {
+     "term": "(annual limit + catch-up)",
+     "meaning": "The year's full HSA limit for your coverage, plus $1,000 if you're 55 or older."
+    },
+    {
+     "term": "× eligible months ÷ 12",
+     "meaning": "Keeps only the share of the year before Medicare starts."
+    }
+   ]
+  }
+ },
+ {
+  "id": "addl_medicare_tax",
+  "name": "Additional Medicare tax (0.9%)",
+  "category": "Medicare",
+  "fields": [
+   {
+    "id": "w",
+    "label": "Medicare wages",
+    "unit": "$",
+    "example": "320000",
+    "hint": "Box 5 of your W-2 forms, both spouses together on a joint return.",
+    "min": 0
+   },
+   {
+    "id": "ow",
+    "label": "Wages over $200,000 at any one employer",
+    "unit": "$",
+    "example": "120000",
+    "hint": "Each employer withholds the 0.9% only on what it pays you above $200,000. Add that excess up across jobs (and spouses); 0 if no one job paid over $200,000.",
+    "min": 0
+   },
+   {
+    "id": "se",
+    "label": "Self-employment income (Schedule SE)",
+    "unit": "$",
+    "example": "0",
+    "hint": "Net earnings from self-employment after the 92.35% adjustment; 0 if none.",
+    "min": 0
+   },
+   {
+    "id": "status",
+    "label": "Filing status",
+    "unit": "choice",
+    "example": "2",
+    "hint": "Pick one.",
+    "min": 0,
+    "integer": true,
+    "options": [
+     {
+      "value": 1,
+      "label": "Single"
+     },
+     {
+      "value": 2,
+      "label": "Married filing jointly"
+     },
+     {
+      "value": 3,
+      "label": "Head of household"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "id": "0",
+    "label": "Threshold for your filing status",
+    "expression": "addlmedthreshold(status)",
+    "format": "currency",
+    "excel": null,
+    "expected": 250000.0
+   },
+   {
+    "id": "1",
+    "label": "Additional Medicare tax",
+    "expression": "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))",
+    "format": "currency",
+    "excel": null,
+    "expected": 630.0
+   },
+   {
+    "id": "2",
+    "label": "Withheld by employers",
+    "expression": "addlmedrate()*ow",
+    "format": "currency",
+    "excel": null,
+    "expected": 1080.0
+   },
+   {
+    "id": "3",
+    "label": "Still owed with the return (negative = refund)",
+    "expression": "addlmedrate()*(max(0,w-addlmedthreshold(status))+max(0,se-max(0,addlmedthreshold(status)-w)))-addlmedrate()*ow",
+    "format": "currency",
+    "excel": null,
+    "expected": -450.0
+   }
+  ],
+  "math": "0.9% × (wages over the threshold + self-employment income over the threshold left after wages)",
+  "summary": "The 0.9% Medicare tax on high wages and self-employment income, and how it compares to what an employer withholds.",
+  "aliases": "additional medicare tax 0.9% Form 8959 wages self-employment withholding payroll",
+  "acronym": "",
+  "assumptions": "Railroad (RRTA) compensation and married filing separately aren't modeled. The thresholds are set by law and not adjusted for inflation.",
+  "interpretation": "This is the Form 8959 calculation, a payroll-type tax separate from income tax and from the 3.8% net investment income tax.",
+  "excelNotes": "=0.009*(MAX(0,{w}-T)+MAX(0,{se}-MAX(0,T-{w}))) with T = 200,000 / 250,000 by filing status.",
+  "rules": [
+   {
+    "left": "ow",
+    "relation": "<=",
+    "right": "w",
+    "message": "Wages over $200,000 at one employer can't be more than total wages."
+   }
+  ],
+  "common": false,
+  "sources": [
+   {
+    "title": "IRS • Instructions for Form 8959, Additional Medicare Tax",
+    "url": "https://www.irs.gov/instructions/i8959"
+   }
+  ],
+  "explain": {
+   "why": "On top of the regular 1.45% Medicare tax, wages and self-employment income above a threshold pay another 0.9%. The threshold depends on filing status, but employers start withholding at $200,000 regardless, so the return settles the difference.",
+   "parts": [
+    {
+     "term": "0.9%",
+     "meaning": "The additional Medicare tax rate."
+    },
+    {
+     "term": "wages over the threshold",
+     "meaning": "Medicare wages above $200,000 (single, head of household) or $250,000 (joint)."
+    },
+    {
+     "term": "threshold left after wages",
+     "meaning": "Self-employment income only counts above whatever part of the threshold your wages didn't use."
     }
    ]
   }

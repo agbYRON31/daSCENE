@@ -193,6 +193,33 @@ for (year, irs) in irsAMT.sorted(by: { $0.key < $1.key }) {
                "\(year) status \(status) tentative minimum tax matches Form 6251's 28% shortcut")
     }
 }
+// Medicare vs. CMS's printed fact sheets (2026: Nov 14, 2025; 2027: Nov 17, 2026): the total Part B premium and the Part D
+// adjustment for each printed row, tested just inside each printed income bound for single and joint returns.
+let cmsRows: [Int: (single: [Double], joint: [Double], partB: [Double], partD: [Double])] = [
+    2026: ([109_000, 137_000, 171_000, 205_000, 500_000], [218_000, 274_000, 342_000, 410_000, 750_000],
+           [202.90, 284.10, 405.80, 527.50, 649.20, 689.90], [0, 14.50, 37.50, 60.40, 83.30, 91.00]),
+    2027: ([112_000, 141_000, 177_000, 212_000, 500_000], [224_000, 282_000, 354_000, 424_000, 750_000],
+           [209.40, 293.10, 418.80, 544.40, 670.00, 711.80], [0, 15.40, 39.70, 64.00, 88.30, 96.40]),
+]
+for (year, cms) in cmsRows.sorted(by: { $0.key < $1.key }) {
+    guard let table = taxData.table(for: year) else { continue }
+    for (status, bounds) in [(1.0, cms.single), (2.0, cms.joint), (3.0, cms.single)] {
+        // Representative income in each printed row: at the lower rows' upper bound ("less than or equal to"), one dollar above it,
+        // and exactly at the top row's bound ("greater than or equal to").
+        let samples: [(Double, Int)] = [(bounds[0], 0), (bounds[0] + 1, 1), (bounds[1], 1), (bounds[1] + 1, 2), (bounds[2], 2), (bounds[2] + 1, 3),
+                                        (bounds[3], 3), (bounds[3] + 1, 4), (bounds[4] - 1, 4), (bounds[4], 5)]
+        let ok = samples.allSatisfy { m, row in
+            abs(((try? table.partBPremium(m, status)) ?? -1) - cms.partB[row]) < 0.005 && abs(((try? table.partDIrmaa(m, status)) ?? -1) - cms.partD[row]) < 0.005
+        }
+        expect(ok, "\(year) status \(Int(status)) Part B premium and Part D IRMAA match CMS's printed rows")
+    }
+}
+if let t26 = taxData.table(for: 2026), let t27 = taxData.table(for: 2027) {
+    expect(t26.medicare.partDBase == 38.99 && t27.medicare.partDBase == 41.33, "Part D base beneficiary premium 2026 $38.99, 2027 $41.33 (CMS)")
+    expect(t26.hsaLimit(1) == 4400 && t26.hsaLimit(2) == 8750 && t27.hsaLimit(1) == 4500 && t27.hsaLimit(2) == 9000 && t27.hsa.catchUp55 == 1000,
+           "HSA limits: 2026 $4,400/$8,750 (Rev. Proc. 2025-19), 2027 $4,500/$9,000 (Rev. Proc. 2026-24)")
+    expect((try? t27.addlMedicareThreshold(2)) == 250_000 && (try? t27.addlMedicareThreshold(1)) == 200_000, "Additional Medicare tax thresholds (Form 8959)")
+}
 // Selecting a tax year changes the figures; unknown years are refused.
 let switcher = Engine(calculators: [], taxData: taxData, year: 2026)
 expect(switcher.tax.standardDeduction["2"] == 32_200, "2026 MFJ standard deduction")

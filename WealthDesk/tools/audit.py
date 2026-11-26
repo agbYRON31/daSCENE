@@ -549,6 +549,72 @@ def _(v):
     return [amti, exemption, tmt, reg, max(0.0, tmt - reg), max(tmt, reg)]
 ind("after_tax_return", DEF)(lambda v: [v.r * (1 - v.t)])
 ind("tey", SOLVE)(lambda v: [bisect(lambda y: y * (1 - v.t) - v.y, -1, 100)])
+# Medicare: CMS's printed 2026 fact-sheet rows (total Part B premium, Part D adjustment), looked up by the printed
+# "greater than … and less than or equal to …" wording rather than from the catalog's tier function.
+CMS_2026 = {   # status -> [(lower bound, lower inclusive?, upper bound, upper inclusive?, Part B total, Part D adjustment)]
+    1: [(-1e18, True, 109000, True, 202.90, 0.00), (109000, False, 137000, True, 284.10, 14.50), (137000, False, 171000, True, 405.80, 37.50),
+        (171000, False, 205000, True, 527.50, 60.40), (205000, False, 500000, False, 649.20, 83.30), (500000, True, 1e18, True, 689.90, 91.00)],
+    2: [(-1e18, True, 218000, True, 202.90, 0.00), (218000, False, 274000, True, 284.10, 14.50), (274000, False, 342000, True, 405.80, 37.50),
+        (342000, False, 410000, True, 527.50, 60.40), (410000, False, 750000, False, 649.20, 83.30), (750000, True, 1e18, True, 689.90, 91.00)],
+}
+CMS_2026[3] = CMS_2026[1]
+def cms_row(magi, status):
+    for i, (lo, loi, hi, hii, b, d) in enumerate(CMS_2026[int(status)]):
+        if (magi >= lo if loi else magi > lo) and (magi <= hi if hii else magi < hi):
+            return i, b, d, (hi if i < 5 else None)
+    raise ValueError(magi)
+def cms_monthly(magi, status):
+    _, b, d, _ = cms_row(magi, status)
+    return b + d
+def tenth(x):   # Medicare rounds monthly penalties to the nearest $0.10
+    from decimal import Decimal, ROUND_HALF_UP
+    return float(Decimal(repr(x)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+MED_EDGES = [0.0, 109000.0, 109000.01, 137000.0, 171000.5, 205000.0, 205000.01, 499999.0, 500000.0, 218000.0, 218001.0, 409999.0,
+             749999.99, 750000.0, 2e6]
+@ind("medicare_premiums", "CMS 2026 fact sheet's printed Part B totals and Part D adjustments, matched by its printed income bounds", cases=[
+    dict(magi=m, status=s, n=n, plan=p) for m in MED_EDGES for s in (1, 2, 3) for n, p in ((1, 0.0), (2, 45.0)) if n == 1 or s == 2])
+def _(v):
+    i, b, d, hi = cms_row(v.magi, v.status)
+    per = b + d + v.plan
+    return [float(i), b, d, per, 12 * v.n * per, 12 * v.n * (b + d - 202.90), 0.0 if hi is None else max(0.0, hi - v.magi)]
+@ind("irmaa_spike", "CMS 2026 printed rows before and after the extra income", cases=[
+    dict(magi=m, x=x, status=s, n=n) for m in (100000.0, 136000.0, 200000.0, 409000.0, 740000.0) for x in (0.0, 1000.0, 60000.0, 600000.0)
+    for s in (1, 2) for n in (1, 2) if n == 1 or s == 2])
+def _(v):
+    i0, b0, d0, hi = cms_row(v.magi, v.status)
+    i1, b1, d1, _ = cms_row(v.magi + v.x, v.status)
+    return [float(i0), float(i1), (b1 + d1) - (b0 + d0), 12 * v.n * ((b1 + d1) - (b0 + d0)), 0.0 if hi is None else max(0.0, hi - v.magi)]
+@ind("medicare_penalty", "Medicare.gov's rules counted month by month; Medicare.gov's worked examples ($243.50 at 24 months, $5.50 at 14 months)", cases=[
+    dict(mb=m, md=d) for m in (0, 11, 12, 23, 24, 27, 36, 120) for d in (0, 1, 14, 63, 200)])
+def _(v):
+    full_years = 0
+    for month in range(1, int(v.mb) + 1):
+        if month % 12 == 0:
+            full_years += 1
+    b_total = tenth(202.90 * (1 + 0.10 * full_years))
+    d_pen = tenth(38.99 * 0.01 * int(v.md))
+    return [0.10 * full_years, b_total, b_total - 202.90, d_pen, 12 * (b_total - 202.90 + d_pen)]
+assert tenth(202.90 * 1.2) == 243.50 and tenth(38.99 * 0.14) == 5.50   # Medicare.gov's printed examples
+@ind("hsa_medicare", "Month-by-month eligibility walk; IRS Rev. Proc. 2025-19 limits ($4,400 / $8,750, $1,000 catch-up)", cases=[
+    dict(applym=a, m65=m, cov=c, c55=k, paid=p) for a in (1, 3, 6, 7, 9, 12) for m in (0, 2, 5, 11) for c in (1, 2) for k in (0, 1) for p in (0.0, 2000.0, 9750.0)])
+def _(v):
+    start = v.applym - 6
+    if v.m65 > 0:
+        start = max(start, v.m65)
+    months = sum(1 for month in range(1, 13) if month < start)
+    limit = ({1: 4400, 2: 8750}[int(v.cov)] + (1000 if v.c55 == 1 else 0)) / 12 * months
+    excess = max(0.0, v.paid - limit)
+    return [float(start), float(months), limit, excess, 0.06 * excess]
+@ind("addl_medicare_tax", "Form 8959 line by line (Parts I and II)", cases=[
+    dict(w=w, ow=o, se=se, status=s) for w, o in ((0.0, 0.0), (150000.0, 0.0), (200000.0, 0.0), (260000.0, 60000.0), (300000.0, 0.0), (900000.0, 700000.0))
+    for se in (0.0, 80000.0, 300000.0) for s in (1, 2, 3)])
+def _(v):
+    thr = {1: 200000, 2: 250000, 3: 200000}[int(v.status)]
+    line7 = 0.009 * max(0.0, v.w - thr)                       # Part I: wages over the threshold
+    line11 = max(0.0, thr - v.w)                              # Part II: threshold reduced by wages
+    line13 = 0.009 * max(0.0, v.se - line11)
+    withheld = 0.009 * v.ow                                   # each employer withholds only on its own pay over $200,000
+    return [float(thr), line7 + line13, withheld, line7 + line13 - withheld]
 @ind("ltcg_tax", "Cumulative-schedule difference using IRS thresholds; state gain rules applied to each state's schedule", cases=[
     dict(ord=0.0, gain=50000.0), dict(ord=0.0, gain=98900.0), dict(ord=50000.0, gain=100000.0), dict(ord=600000.0, gain=100000.0),
     dict(ord=0.0, gain=1000000.0), dict(ord=40000.0, gain=600000.0, status=1), dict(ord=60000.0, gain=20000.0, status=3), dict(gain=0.0)]
@@ -557,7 +623,9 @@ ind("tey", SOLVE)(lambda v: [bisect(lambda y: y * (1 - v.t) - v.y, -1, 100)])
 def _(v):
     fed = ltcg_cumulative(v.ord + v.gain, v.status) - ltcg_cumulative(v.ord, v.status)
     stg = st_gain(v.ord + STD_2026[int(v.status)], v.gain, v.status, v.st)
-    return [fed, fed / v.gain if v.gain > 0 else 0.0, stg, (fed + stg) / v.gain if v.gain > 0 else 0.0]
+    agi = v.ord + STD_2026[int(v.status)]
+    return [fed, fed / v.gain if v.gain > 0 else 0.0, stg, (fed + stg) / v.gain if v.gain > 0 else 0.0,
+            12 * (cms_monthly(agi + v.gain, v.status) - cms_monthly(agi, v.status))]
 ind("niit", "IRS statutory thresholds", cases=[dict(magi=240000.0), dict(magi=1000000.0), dict(status=1), dict(nii=0.0)])(
     lambda v: [0.038 * min(v.nii, max(0, v.magi - NIIT_THR[int(v.status)])), max(0, v.magi - NIIT_THR[int(v.status)])])
 ind("roth_vs_trad", SIM, cases=[dict(tn=0.24, tr=0.24), dict(r=0.0), dict(tn=0.12, tr=0.32)])(
@@ -569,7 +637,7 @@ def _(v):
     agi = v.ti + STD_2026[int(v.status)]
     sx = st_tax(agi + v.x, v.status, v.st) - st_tax(agi, v.status, v.st)
     return [extra, extra / v.x if v.x > 0 else 0.0, irs_room(v.ti, v.status), irs_marginal(v.ti + v.x, v.status), sx,
-            (extra + sx) / v.x if v.x > 0 else 0.0]
+            (extra + sx) / v.x if v.x > 0 else 0.0, 12 * (cms_monthly(agi + v.x, v.status) - cms_monthly(agi, v.status))]
 @ind("tlh", "Step-by-step netting", cases=[dict(loss=10000.0), dict(gains=0.0), dict(loss=26000.0)])
 def _(v):
     offset = min(v.loss, v.gains)

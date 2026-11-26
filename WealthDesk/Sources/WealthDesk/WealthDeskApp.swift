@@ -176,6 +176,7 @@ enum QAHooks {
             "client.inflation": ["c": "80000", "i": "3", "n": "20"],
             "client.taxdrag": ["a": "100000", "r": "7", "t": "24", "n": "20"],
             "client.incometax": ["ti": "250000", "st": "5"],
+            "client.medicare": ["magi": "240,000", "status": "2", "n": "2", "plan": "45", "mb": "24", "md": "14"],
         ]
         for (k, v) in fill { for (id, x) in v { state.setClient(k, id, x) } }
         var failures = 0
@@ -203,7 +204,7 @@ enum QAHooks {
             say("\(tool.rawValue): \(calcs.count) calculators, key results \(calcs.map { Format.plain($0.1.v(0), maxDecimals: 4) }), pdf \(pdf.count) bytes")
         }
         png(AnyView(GrowthTool()), "growth"); png(AnyView(RetirementTool()), "retirement"); png(AnyView(RiskTool()), "risk")
-        png(AnyView(DecisionsTool()), "decisions"); png(AnyView(TaxesTool()), "taxes")
+        png(AnyView(DecisionsTool()), "decisions"); png(AnyView(TaxesTool()), "taxes"); png(AnyView(MedicareTool()), "medicare")
         // A blank session must show no numbers anywhere.
         let blank = AppState()
         for tool in ClientTool.allCases where ClientReports.calcs(for: tool, state: blank).contains(where: { $0.1.ok }) {
@@ -214,7 +215,7 @@ enum QAHooks {
     }
 
     /// --qa-screens <folder> [roro.json]: renders the redesigned screens (client home, Growth blank / example /
-    /// running out, Market Brief, client market view) to PNGs in light and dark mode, then exits.
+    /// running out, Market Brief, client market view, Going on Medicare) to PNGs in light and dark mode, then exits.
     /// The RoRo screens use the given model file (for example Tests/roro_expected.json).
     static func runScreens(_ folder: URL, roroFile: URL?) {
         let state = AppState(), roro = RoRoStore()
@@ -247,6 +248,9 @@ enum QAHooks {
         shot("growth-long", AnyView(GrowthTool()))
         shot("market-brief", AnyView(MarketBriefView()), height: 1000)
         shot("client-market", AnyView(ClientMarketView()), height: 1000)
+        let med = MedicareTool.key
+        for (k, v) in ["magi": "240,000", "status": "2", "n": "2", "plan": "45"] { state.setClient(med, k, v) }
+        shot("medicare", AnyView(MedicareTool()), height: 1400)
         shot("market-brief-narrow", AnyView(MarketBriefView().frame(width: 600)), height: 1300)
         // Stress: the smallest window and extreme numbers.
         shot("min-client-home", AnyView(ClientHome()), width: 600, height: 440)
